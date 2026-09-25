@@ -1,0 +1,9 @@
+title = "oanda-client secret scanning"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "oanda-personal-access-token"
+description = "OANDA personal access token"
+regex = '''(?i)\b[0-9a-f]{32}-[0-9a-f]{32}\b'''

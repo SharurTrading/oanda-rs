@@ -105,11 +105,12 @@ Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
 ## Testing status
 
 Normal CI needs no OANDA credentials. It runs formatting, Clippy, tests, documentation, package
-verification, and the offline coverage check on Rust 1.95. Clippy uses pedantic warnings as errors.
-The manual release-readiness workflow checks the requested version and runs the same gates plus a
-crates.io publish dry run; it does not publish a release. Dependabot checks Cargo and GitHub Actions
-updates weekly. The 30 REST methods have deterministic loopback
-success and rejection fixtures, including method, URL, query, header, and mutation-body checks.
+verification, full-history secret scanning, and the offline coverage check on Rust 1.95. Clippy
+uses pedantic warnings as errors. The manual release-readiness workflow repeats the Rust and
+coverage checks, checks the requested version, and runs a crates.io publish dry run; it does not
+publish a release. Dependabot checks Cargo and GitHub Actions updates weekly. The 30 REST methods
+have deterministic loopback success and rejection fixtures, including method, URL, query, header,
+and mutation-body checks.
 Both streams have local framing, heartbeat, error, and gap tests. These tests establish the
 documented wire surface; they do not establish behavior against an authenticated OANDA account.
 

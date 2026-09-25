@@ -1,0 +1,1305 @@
+{
+  "reviewed_at": "2026-09-25",
+  "authority": "https://developer.oanda.com/rest-live-v20/introduction/",
+  "openapi_commit": "70324cfee31ff0074ed0bf1f93e67d8ee6c84444",
+  "operations": [
+    {
+      "method": "GET",
+      "path": "/v3/accounts",
+      "public_method": "list_accounts",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}",
+      "public_method": "account_details",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/summary",
+      "public_method": "account_summary",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/instruments",
+      "public_method": "account_instruments",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PATCH",
+      "path": "/v3/accounts/{accountID}/configuration",
+      "public_method": "configure_account",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/changes",
+      "public_method": "account_changes",
+      "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "POST",
+      "path": "/v3/accounts/{accountID}/orders",
+      "public_method": "create_order",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/orders",
+      "public_method": "list_orders",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/pendingOrders",
+      "public_method": "list_pending_orders",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/orders/{orderSpecifier}",
+      "public_method": "order_details",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/orders/{orderSpecifier}",
+      "public_method": "replace_order",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/orders/{orderSpecifier}/cancel",
+      "public_method": "cancel_order",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/orders/{orderSpecifier}/clientExtensions",
+      "public_method": "update_order_client_extensions",
+      "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/trades",
+      "public_method": "list_trades",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/openTrades",
+      "public_method": "list_open_trades",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/trades/{tradeSpecifier}",
+      "public_method": "trade_details",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/trades/{tradeSpecifier}/close",
+      "public_method": "close_trade",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/trades/{tradeSpecifier}/clientExtensions",
+      "public_method": "update_trade_client_extensions",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/trades/{tradeSpecifier}/orders",
+      "public_method": "set_trade_dependent_orders",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/positions",
+      "public_method": "list_positions",
+      "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/openPositions",
+      "public_method": "list_open_positions",
+      "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/positions/{instrument}",
+      "public_method": "position_details",
+      "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "PUT",
+      "path": "/v3/accounts/{accountID}/positions/{instrument}/close",
+      "public_method": "close_position",
+      "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
+      "kind": "mutation",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/transactions",
+      "public_method": "list_transactions",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/transactions/{transactionID}",
+      "public_method": "transaction_details",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/transactions/idrange",
+      "public_method": "transactions_by_id_range",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/transactions/sinceid",
+      "public_method": "transactions_since_id",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/transactions/stream",
+      "public_method": "stream_transactions",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
+      "kind": "stream",
+      "status": "tested",
+      "test": "transaction_stream_decodes_heartbeat_and_variant"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/candles/latest",
+      "public_method": "latest_candles",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/pricing",
+      "public_method": "pricing",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/pricing/stream",
+      "public_method": "stream_pricing",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
+      "kind": "stream",
+      "status": "tested",
+      "test": "pricing_stream_handles_fragmented_lines_and_heartbeats"
+    },
+    {
+      "method": "GET",
+      "path": "/v3/accounts/{accountID}/instruments/{instrument}/candles",
+      "public_method": "instrument_candles",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
+      "kind": "query",
+      "status": "tested",
+      "test": "all_documented_rest_operations_have_wire_fixtures"
+    }
+  ],
+  "definitions": [
+    {
+      "name": "AccountID",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Account",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountChangesState",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountProperties",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderParameters",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderMode",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderMutability",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountSummary",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccumulatedAccountState",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CalculatedAccountState",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountChanges",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountFinancingMode",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "UserAttributes",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PositionAggregationMode",
+      "source": "https://developer.oanda.com/rest-live-v20/account-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CandlestickGranularity",
+      "source": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "WeeklyAlignment",
+      "source": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Candlestick",
+      "source": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CandlestickData",
+      "source": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CandlestickResponse",
+      "source": "https://developer.oanda.com/rest-live-v20/instrument-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Order",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "all_documented_tagged_variants_round_trip"
+    },
+    {
+      "name": "MarketOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "FixedPriceOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LimitOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketIfTouchedOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossOrder",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "all_documented_tagged_variants_round_trip"
+    },
+    {
+      "name": "MarketOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LimitOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketIfTouchedOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossOrderRequest",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderID",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderType",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "all_documented_scalar_enum_variants_round_trip"
+    },
+    {
+      "name": "CancellableOrderType",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderState",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderStateFilter",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderIdentifier",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderSpecifier",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TimeInForce",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "all_documented_scalar_enum_variants_round_trip"
+    },
+    {
+      "name": "OrderPositionFill",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderTriggerCondition",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DynamicOrderState",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "UnitsAvailableDetails",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "UnitsAvailable",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderEntryData",
+      "source": "https://developer.oanda.com/rest-live-v20/order-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeID",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeState",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeStateFilter",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeSpecifier",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Trade",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeSummary",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CalculatedTradeState",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradePL",
+      "source": "https://developer.oanda.com/rest-live-v20/trade-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Position",
+      "source": "https://developer.oanda.com/rest-live-v20/position-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PositionSide",
+      "source": "https://developer.oanda.com/rest-live-v20/position-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CalculatedPositionState",
+      "source": "https://developer.oanda.com/rest-live-v20/position-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Transaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "all_documented_tagged_variants_round_trip"
+    },
+    {
+      "name": "CreateTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CloseTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ReopenTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientConfigureTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientConfigureRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransferFundsTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransferFundsRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "FixedPriceOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LimitOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LimitOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketIfTouchedOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketIfTouchedOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossOrderTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossOrderRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderFillTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderCancelTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderCancelRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderClientExtensionsModifyTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderClientExtensionsModifyRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeClientExtensionsModifyTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeClientExtensionsModifyRejectTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarginCallEnterTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarginCallExtendTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarginCallExitTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DelayedTradeClosureTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DailyFinancingTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DividendAdjustmentTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ResetResettablePLTransaction",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransactionID",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransactionType",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "all_documented_scalar_enum_variants_round_trip"
+    },
+    {
+      "name": "FundingReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "FixedPriceOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LimitOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketIfTouchedOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossOrderReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderFillReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OrderCancelReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OpenTradeDividendAdjustment",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientID",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientTag",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientComment",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientExtensions",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TakeProfitDetails",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "StopLossDetails",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossDetails",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TrailingStopLossDetails",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeOpen",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TradeReduce",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderTradeClose",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderMarginCloseout",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderMarginCloseoutReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderDelayedTradeClose",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "MarketOrderPositionCloseout",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LiquidityRegenerationSchedule",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "LiquidityRegenerationScheduleStep",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "OpenTradeFinancing",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PositionFinancing",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "RequestID",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientRequestID",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransactionRejectReason",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransactionFilter",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "TransactionHeartbeat",
+      "source": "https://developer.oanda.com/rest-live-v20/transaction-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ClientPrice",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PriceStatus",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "QuoteHomeConversionFactors",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "HomeConversions",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PricingHeartbeat",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "CandleSpecification",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PriceValue",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-common-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PriceBucket",
+      "source": "https://developer.oanda.com/rest-live-v20/pricing-common-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DecimalNumber",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AccountUnits",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Currency",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Tag",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "InstrumentName",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "InstrumentType",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DayOfWeek",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "FinancingDayOfWeek",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "InstrumentFinancing",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Instrument",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "DateTime",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "AcceptDatetimeFormat",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "InstrumentCommission",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderModeForInstrument",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "GuaranteedStopLossOrderLevelRestriction",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "Direction",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "PricingComponent",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "ConversionFactor",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    },
+    {
+      "name": "HomeConversionFactors",
+      "source": "https://developer.oanda.com/rest-live-v20/primitives-df/",
+      "status": "tested",
+      "test": "every_documented_definition_has_a_typed_serde_contract"
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+[package]
+name = "oanda-client"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+license = "MIT-0"
+description = "An async, provider-native Rust client for OANDA's v20 REST API"
+repository = "https://github.com/SharurTrading/oanda-rs"
+readme = "README.md"
+keywords = ["oanda", "trading", "forex", "api-client"]
+categories = ["api-bindings", "asynchronous", "network-programming"]
+
+[features]
+default = []
+live-tests = []
+
+[dependencies]
+chrono = { version = "0.4", features = ["serde"] }
+futures-util = "0.3"
+percent-encoding = "2"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls", "stream"] }
+rust_decimal = { version = "1", features = ["serde-str"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["sync", "time"] }
+url = "2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt", "net", "io-util"] }
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

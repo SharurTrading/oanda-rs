@@ -1,0 +1,4 @@
+# Historical false positives: the pinned public OANDA OpenAPI Git revision.
+# Keep these fingerprint-specific so future findings in these files still fail CI.
+0b04ae1dabb0c8709c085d782ef4c222b7d7332f:docs/coverage.json:generic-api-key:4
+0b04ae1dabb0c8709c085d782ef4c222b7d7332f:tools/generate_api.py:generic-api-key:122

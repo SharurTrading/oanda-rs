@@ -1,4 +1,4 @@
-//! Read-only account snapshot; run with OANDA_TOKEN and OANDA_ACCOUNT_ID set.
+//! Read-only account snapshot; run with `OANDA_TOKEN` and `OANDA_ACCOUNT_ID` set.
 use oanda_client::{AccountID, Client, Environment};
 
 #[tokio::main(flavor = "current_thread")]

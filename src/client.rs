@@ -23,7 +23,7 @@ const REQUESTS_PER_SECOND: u32 = 100;
 pub struct ApiResponse<T> {
     /// Deserialized response body.
     pub body: T,
-    /// OANDA RequestID response header, when supplied.
+    /// OANDA `RequestID` response header, when supplied.
     pub request_id: Option<String>,
     /// Validated next-page URL from the Link header, when supplied.
     pub next_page: Option<Url>,
@@ -118,6 +118,8 @@ impl Client {
         }
     }
 
+    // Transport success, rejection, and ambiguity handling stay together for auditability.
+    #[allow(clippy::too_many_lines)]
     pub(crate) async fn execute<
         T: DeserializeOwned,
         R: DeserializeOwned,
@@ -142,7 +144,7 @@ impl Client {
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         crate::validation::validate(path, query_value.as_ref(), body_value.as_ref())?;
         self.admit(mutation_account.is_some()).await?;
-        let url = self.build_url(&self.inner.rest, path, query)?;
+        let url = Self::build_url(&self.inner.rest, path, query)?;
         let mut request = self
             .inner
             .http
@@ -246,6 +248,10 @@ impl Client {
     /// Follow a provider pagination link on this client's REST origin.
     ///
     /// The caller supplies the expected typed body for the originating list operation.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an off-origin link, transport failure, provider rejection, or invalid response.
     pub async fn fetch_page<T: DeserializeOwned>(
         &self,
         next_page: &Url,
@@ -302,7 +308,6 @@ impl Client {
     }
 
     pub(crate) fn build_url<Q: Serialize>(
-        &self,
         base: &Url,
         path: &str,
         query: Option<&Q>,
@@ -355,22 +360,26 @@ impl Client {
 
 impl ClientBuilder {
     /// Set the maximum non-stream response body size in bytes.
+    #[must_use]
     pub fn max_response_bytes(mut self, value: usize) -> Self {
         self.max_body = value;
         self
     }
     /// Set the REST request timeout.
+    #[must_use]
     pub fn timeout(mut self, value: Duration) -> Self {
         self.timeout = value;
         self
     }
     /// Select the documented OANDA timestamp wire format for responses.
+    #[must_use]
     pub fn datetime_format(mut self, value: AcceptDatetimeFormat) -> Self {
         self.datetime_format = value;
         self
     }
     /// Override both hosts for deterministic loopback fixtures.
     /// Remote endpoints must remain the selected OANDA environment pair.
+    #[must_use]
     pub fn endpoints(mut self, rest: Url, stream: Url) -> Self {
         self.rest_override = Some(rest);
         self.stream_override = Some(stream);
@@ -378,6 +387,11 @@ impl ClientBuilder {
     }
 
     /// Construct a client without making a network request.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if credentials, limits, or endpoint overrides are invalid, or if the
+    /// underlying HTTP clients cannot be constructed.
     pub fn build(self) -> Result<Client> {
         if self.token.trim().is_empty() || self.token.chars().any(char::is_control) {
             return Err(Error::InvalidInput("invalid bearer token".into()));
@@ -610,10 +624,7 @@ mod tests {
     async fn mutation_rate_admission_is_shared_by_clones() {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
-        let client = match client {
-            Ok(client) => client,
-            Err(_) => return,
-        };
+        let Ok(client) = client else { return };
         if let Ok(mut rate) = client.inner.rate.lock() {
             rate.used = REQUESTS_PER_SECOND;
             rate.start = Instant::now();
@@ -628,22 +639,13 @@ mod tests {
     fn account_reservation_and_reconciliation_are_shared() {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
-        let client = match client {
-            Ok(client) => client,
-            Err(_) => return,
-        };
+        let Ok(client) = client else { return };
         let account = AccountID::new("101-001-1-001");
         assert!(account.is_ok());
-        let account = match account {
-            Ok(account) => account,
-            Err(_) => return,
-        };
+        let Ok(account) = account else { return };
         let first = MutationGuard::new(client.inner.clone(), &account);
         assert!(first.is_ok());
-        let first = match first {
-            Ok(guard) => guard,
-            Err(_) => return,
-        };
+        let Ok(first) = first else { return };
         assert!(matches!(
             MutationGuard::new(client.clone().inner, &account),
             Err(Error::MutationInFlight { .. })

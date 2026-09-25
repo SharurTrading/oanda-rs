@@ -149,7 +149,7 @@ impl Client {
         let lease = StreamLease {
             inner: self.inner.clone(),
         };
-        let url = self.build_url(&self.inner.stream, path, query)?;
+        let url = Self::build_url(&self.inner.stream, path, query)?;
         let response = self
             .inner
             .stream_http
@@ -191,6 +191,11 @@ impl Client {
     }
 
     /// Open the sampled account pricing stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for an invalid query, exhausted stream capacity, transport failure, or
+    /// provider rejection.
     pub async fn stream_pricing(
         &self,
         account: &AccountID,
@@ -210,6 +215,10 @@ impl Client {
     }
 
     /// Open the account transaction stream. It starts at connection time; use transaction history for recovery.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for exhausted stream capacity, transport failure, or provider rejection.
     pub async fn stream_transactions(
         &self,
         account: &AccountID,
@@ -262,10 +271,7 @@ mod tests {
     async fn cancelled_stream_owner_releases_its_connection_slot() {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
-        let client = match client {
-            Ok(client) => client,
-            Err(_) => return,
-        };
+        let Ok(client) = client else { return };
         if let Ok(mut slots) = client.inner.stream_slots.lock() {
             slots.active = 1;
         }

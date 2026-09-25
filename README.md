@@ -8,13 +8,13 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
-[![live testing: not run](https://img.shields.io/badge/live%20testing-not%20run-orange.svg)](#testing-status)
+[![Practice probes: 3/3 passed](https://img.shields.io/badge/Practice%20probes-3%2F3%20passed-brightgreen.svg)](#testing-status)
 
 > [!WARNING]
-> **Pre-release:** no authenticated OANDA Practice or Live environment testing has been conducted.
-> Validation currently consists of deterministic synthetic fixtures, loopback transport tests,
-> and reviewed documentation and schema checks. Do not use this crate for live trading without
-> independent validation.
+> **Pre-release:** three authenticated, read-only OANDA Practice probes passed on 2026-09-25.
+> A separate, one-off Practice limit-order creation and cancellation probe also passed. No Live
+> environment has been tested. Do not use this crate for live trading without independent
+> validation.
 
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 The Cargo package and import name are `oanda-client` and `oanda_client`; `-rs` belongs to the
@@ -38,7 +38,7 @@ are recorded rather than silently adopting older operations.
 | Variants | 503 scalar enum values and 55 tagged order, request, and transaction variants tested locally |
 | Environments | Paired Practice and Live REST and stream hosts |
 | Runtime and credentials | Caller-owned Tokio runtime and injected bearer token |
-| Live validation | Not run; three ignored, explicitly armed, read-only Practice probes are available |
+| Authenticated validation | Three read-only Practice probes and one temporary limit-order creation/cancellation probe passed on 2026-09-25; no Live environment testing |
 
 The exhaustive [coverage ledger](docs/coverage.json) names each operation and definition, its
 source URL, public method or type, and local test. The [coverage notes](docs/coverage.md) explain
@@ -85,7 +85,8 @@ See the runnable [read-only Practice example](examples/practice_account.rs). Sel
   trade, position, transaction, candle, and pricing methods. Responses include typed provider
   fields, typed rejection bodies, request IDs, and pagination metadata where documented.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
-  parsed from OANDA decimal strings. Provider IDs and timestamps have dedicated types.
+  parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
+  Provider IDs and timestamps have dedicated types.
 - REST response bodies are bounded. Cloned clients share conservative rate admission and provider
   cooldown. Requests are single-attempt; a mutation is never automatically retried.
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
@@ -102,7 +103,10 @@ Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
 ## Testing status
 
 Normal CI needs no OANDA credentials. It runs formatting, Clippy, tests, documentation, package
-verification, and the offline coverage check. The 30 REST methods have deterministic loopback
+verification, and the offline coverage check on Rust 1.95. Clippy uses pedantic warnings as errors.
+The manual release-readiness workflow checks the requested version and runs the same gates plus a
+crates.io publish dry run; it does not publish a release. Dependabot checks Cargo and GitHub Actions
+updates weekly. The 30 REST methods have deterministic loopback
 success and rejection fixtures, including method, URL, query, header, and mutation-body checks.
 Both streams have local framing, heartbeat, error, and gap tests. These tests establish the
 documented wire surface; they do not establish behavior against an authenticated OANDA account.
@@ -116,6 +120,9 @@ OANDA_TOKEN=... OANDA_ACCOUNT_ID=... \
 cargo test --features live-tests --test practice_read_only -- --ignored
 ```
 
-No live mutation probe is part of acceptance. The current repository has **not** run these
-Practice probes. See [coverage and contract drift](docs/coverage.md) for the reviewed source and
-verification details.
+All three read-only Practice probes passed on 2026-09-25. A separate, temporary probe placed a
+one-unit EUR/USD limit order well below the current bid, observed a price and heartbeat on the
+pricing stream, received creation and cancellation updates on the transaction stream, and verified
+the order's final state was `CANCELLED`. The temporary probe was removed; no mutation probe runs in
+CI or remains in this repository. See [coverage and contract drift](docs/coverage.md) for the
+reviewed source and verification details.

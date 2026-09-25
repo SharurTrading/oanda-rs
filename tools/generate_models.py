@@ -96,7 +96,10 @@ def emit_object(name, desc, pre):
         if fid in seen: continue
         seen.add(fid)
         lines+=docs(fielddesc, '    ')
-        lines+=['    #[serde(rename = '+repr(fname).replace("'",'"') + ('' if required else ', default, skip_serializing_if = "Option::is_none"')+')]']
+        serde_args = 'rename = '+repr(fname).replace("'",'"') + ('' if required else ', default, skip_serializing_if = "Option::is_none"')
+        if name == 'PriceBucket' and fname == 'liquidity':
+            serde_args += ', deserialize_with = "crate::decimal_wire::optional_number_or_string"'
+        lines+=['    #[serde('+serde_args+')]']
         lines+=['    pub '+fid+': '+(t if required else 'Option<'+t+'>')+',']
     lines+=['}','']
     return lines

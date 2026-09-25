@@ -1,5 +1,10 @@
 //! Round-trip every scalar enum value listed on OANDA's definition pages.
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::too_many_lines
+)]
 use oanda_client::models;
 use serde::{Serialize, de::DeserializeOwned};
 use std::fmt::Debug;

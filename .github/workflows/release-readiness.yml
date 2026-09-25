@@ -1,22 +1,19 @@
-name: CI
+name: Release readiness
 
 on:
-  pull_request:
-  push:
-    branches: [main]
-  schedule:
-    - cron: "17 6 * * 1"
   workflow_dispatch:
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+    inputs:
+      version:
+        description: Version expected in Cargo.toml
+        required: true
+        type: string
 
 permissions:
   contents: read
 
 jobs:
-  quality:
+  verify:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -28,6 +25,20 @@ jobs:
           toolchain: "1.95.0"
           components: clippy, rustfmt
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Check requested version
+        env:
+          EXPECTED_VERSION: ${{ inputs.version }}
+        run: |
+          python3 - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          actual = tomllib.loads(Path("Cargo.toml").read_text())["package"]["version"]
+          expected = os.environ["EXPECTED_VERSION"]
+          if actual != expected:
+              raise SystemExit(f"Cargo.toml version {actual!r} does not match {expected!r}")
+          PY
       - name: Formatting
         run: cargo fmt --all -- --check
       - name: Strict Clippy
@@ -38,5 +49,7 @@ jobs:
         run: RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked
       - name: Coverage ledger
         run: python3 tools/check_coverage.py
-      - name: Package verification
+      - name: Crate package
         run: cargo package --locked
+      - name: Registry dry run
+        run: cargo publish --dry-run --locked

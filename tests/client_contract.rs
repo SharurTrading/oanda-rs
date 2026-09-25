@@ -89,7 +89,7 @@ async fn account_query_uses_provider_path_and_redacts_token() {
 
 #[tokio::test]
 async fn pricing_query_uses_csv_and_exact_decimal() {
-    let (url, task) = server(http_json("200 OK", r#"{"prices":[{"type":"PRICE","instrument":"EUR_USD","closeoutBid":"1.000000000000000001","bids":[],"asks":[]}] }"#)).await;
+    let (url, task) = server(http_json("200 OK", r#"{"prices":[{"type":"PRICE","instrument":"EUR_USD","closeoutBid":"1.000000000000000001","bids":[{"price":"1.0","liquidity":500000}],"asks":[{"price":"1.1","liquidity":0.1234567890123456789012345678}]}] }"#)).await;
     let client = fixture_client(url);
     let account = AccountID::new("101-001-1-001").expect("account");
     let instrument = InstrumentName::new("EUR_USD").expect("instrument");
@@ -103,6 +103,14 @@ async fn pricing_query_uses_csv_and_exact_decimal() {
     assert_eq!(
         response.prices[0].closeout_bid,
         Some(Decimal::from_str("1.000000000000000001").expect("decimal"))
+    );
+    assert_eq!(
+        response.prices[0].bids.as_ref().expect("bids")[0].liquidity,
+        Some(Decimal::from(500_000))
+    );
+    assert_eq!(
+        response.prices[0].asks.as_ref().expect("asks")[0].liquidity,
+        Some(Decimal::from_str("0.1234567890123456789012345678").expect("decimal"))
     );
     let request = task.await.expect("server");
     assert!(request.contains("/pricing?instruments=EUR_USD"));
@@ -139,7 +147,7 @@ async fn ambiguous_mutation_fences_only_its_account() {
 
 #[tokio::test]
 async fn pricing_stream_handles_fragmented_lines_and_heartbeats() {
-    let price = br#"{"type":"PRICE","instrument":"EUR_USD","closeoutBid":"1.23456"}"#;
+    let price = br#"{"type":"PRICE","instrument":"EUR_USD","closeoutBid":"1.23456","bids":[{"price":"1.23456","liquidity":500000}]}"#;
     let heartbeat = br#"{"type":"HEARTBEAT","time":"2016-09-20T15:05:50.163791738Z"}"#;
     let chunks = vec![
         &price[..18],

@@ -16,6 +16,10 @@ macro_rules! id_type {
 
         impl $name {
             /// Validate and construct an identifier.
+            ///
+            /// # Errors
+            ///
+            /// Returns [`InvalidId`] for an empty identifier or one containing control characters.
             pub fn new(value: impl Into<String>) -> Result<Self, InvalidId> {
                 let value = value.into();
                 if value.is_empty() || value.chars().any(char::is_control) {

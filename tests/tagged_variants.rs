@@ -1,5 +1,10 @@
 //! Deserialize and reserialize every documented tagged Order and Transaction variant.
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    clippy::too_many_lines
+)]
 use oanda_client::models::{Order, OrderRequest, Transaction};
 use serde_json::{Value, json};
 fn round_trip<T: serde::Serialize + serde::de::DeserializeOwned>(wire: Value, kind: &str) {

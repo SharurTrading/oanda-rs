@@ -5,6 +5,8 @@ use rust_decimal::Decimal;
 use serde_json::Value;
 use std::str::FromStr;
 
+// Keep endpoint-specific admission checks in one place so no path skips a rule.
+#[allow(clippy::too_many_lines)]
 pub(crate) fn validate(path: &str, query: Option<&Value>, body: Option<&Value>) -> Result<()> {
     if let Some(query) = query {
         for key in ["instruments", "candleSpecifications", "ids"] {

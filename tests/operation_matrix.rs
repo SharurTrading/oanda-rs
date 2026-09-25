@@ -3,6 +3,7 @@
     clippy::expect_used,
     clippy::unwrap_used,
     clippy::panic,
+    clippy::too_many_lines,
     unused_variables
 )]
 use oanda_client::{
@@ -114,7 +115,9 @@ where
         assert_eq!(target_url.path(), path, "{target}");
         let pairs: Vec<_> = target_url.query_pairs().collect();
         let expected_query: &[(&str, &str)] = match path {
-            "/v3/accounts/101-001-1-001/instruments" => &[("instruments", "EUR_USD")],
+            "/v3/accounts/101-001-1-001/instruments" | "/v3/accounts/101-001-1-001/pricing" => {
+                &[("instruments", "EUR_USD")]
+            }
             "/v3/accounts/101-001-1-001/changes" => &[("sinceTransactionID", "1")],
             "/v3/accounts/101-001-1-001/orders" if method == "GET" => &[("count", "1")],
             "/v3/accounts/101-001-1-001/trades" => &[("count", "1")],
@@ -124,7 +127,6 @@ where
             "/v3/accounts/101-001-1-001/candles/latest" => {
                 &[("candleSpecifications", "EUR_USD:M5:B")]
             }
-            "/v3/accounts/101-001-1-001/pricing" => &[("instruments", "EUR_USD")],
             "/v3/accounts/101-001-1-001/instruments/EUR_USD/candles" => {
                 &[("count", "1"), ("price", "M")]
             }

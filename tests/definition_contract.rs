@@ -1,4 +1,5 @@
 //! Compile-time typed serde coverage for every website definition.
+#![allow(clippy::too_many_lines)]
 use serde::{Serialize, de::DeserializeOwned};
 fn typed_contract<T: Serialize + DeserializeOwned>() {}
 #[test]

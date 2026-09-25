@@ -10,6 +10,7 @@ pub struct Timestamp(DateTime<Utc>);
 
 impl Timestamp {
     /// Return the parsed UTC instant.
+    #[must_use]
     pub fn into_inner(self) -> DateTime<Utc> {
         self.0
     }

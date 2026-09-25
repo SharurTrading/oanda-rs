@@ -65,20 +65,18 @@ credentials from ambient process state.
 ```rust
 use oanda_client::{AccountID, Client, Environment};
 
-#[tokio::main(flavor = "current_thread")]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let token = std::env::var("OANDA_TOKEN")?;
-    let account = AccountID::new(std::env::var("OANDA_ACCOUNT_ID")?)?;
+async fn account_summary(token: String, account_id: &str)
+    -> Result<(), Box<dyn std::error::Error>>
+{
+    let account = AccountID::new(account_id)?;
     let client = Client::builder(Environment::Practice, token).build()?;
-    let summary = client.account_summary(&account).await?;
-    println!("request ID: {:?}", summary.request_id);
-    println!("last transaction: {:?}", summary.last_transaction_id);
+    let snapshot = client.account_summary(&account).await?;
+    println!("last transaction: {:?}", snapshot.last_transaction_id);
     Ok(())
 }
 ```
 
-This is the runnable [read-only Practice example](examples/practice_account.rs). With those two
-environment variables set, run `cargo run --example practice_account`. Select
+See the runnable [read-only Practice example](examples/practice_account.rs). Select
 `Environment::Live` only after validating the application and its account reconciliation flow.
 
 ## API and transport

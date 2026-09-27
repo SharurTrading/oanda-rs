@@ -38,8 +38,22 @@ jobs:
         run: RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked
       - name: Coverage ledger
         run: python3 tools/check_coverage.py
+      - name: Release-note checker tests (offline)
+        run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: Package verification
         run: cargo package --locked
+
+  oanda-release-notes:
+    name: OANDA release-note drift
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for versions beyond the reviewed baseline
+        run: python3 tools/check_release_notes.py
 
   secret-scan:
     name: Secret scan (full history)

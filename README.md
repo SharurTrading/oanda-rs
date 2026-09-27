@@ -114,6 +114,12 @@ and mutation-body checks.
 Both streams have local framing, heartbeat, error, and gap tests. These tests establish the
 documented wire surface; they do not establish behavior against an authenticated OANDA account.
 
+Weekly and manually dispatched CI also check the public OANDA release notes for versions beyond
+the [last reviewed baseline](docs/release-notes.json), initially `3.0.25`. Newer versions and
+fetch/parsing failures fail the dedicated job with an actionable summary. PR and push runs test
+the checker offline. See [release-note monitoring](docs/coverage.md#release-note-monitoring)
+for the review and baseline-update procedure.
+
 Ignored, explicitly armed **read-only Practice** probes cover representative REST queries and
 both streams:
 

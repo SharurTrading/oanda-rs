@@ -1,6 +1,7 @@
 """Credential-free release-note checks using synthetic HTML and mocked HTTP."""
 
 from contextlib import redirect_stdout
+from http.client import IncompleteRead
 import io
 import json
 import os
@@ -102,6 +103,7 @@ class ReleaseNoteTests(unittest.TestCase):
         for error in [
             URLError("unavailable"), TimeoutError("timed out"),
             HTTPError(checker.URL, 503, "unavailable", {}, None),
+            IncompleteRead(b"partial HTML", 100),
         ]:
             with self.subTest(error=error), patch.dict(os.environ, {}, clear=True):
                 with patch.object(checker, "urlopen", side_effect=error), redirect_stdout(io.StringIO()) as output:

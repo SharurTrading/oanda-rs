@@ -8,6 +8,7 @@ Exit codes: 0 = current, 1 = review needed, 2 = check could not be completed.
 import argparse
 from datetime import date
 from html.parser import HTMLParser
+from http.client import HTTPException
 import json
 import os
 from pathlib import Path
@@ -133,7 +134,7 @@ def main(argv=None):
         date.fromisoformat(baseline["reviewed_at"])
         html = args.html.read_text(encoding="utf-8") if args.html else fetch_html()
         status, message = check(html, reviewed)
-    except (OSError, URLError, ValueError, KeyError, TypeError) as error:
+    except (OSError, URLError, HTTPException, ValueError, KeyError, TypeError) as error:
         status, message = 2, f"OANDA release-note check could not be completed: {error}"
     print(message)
     if os.environ.get("GITHUB_ACTIONS") == "true" and status:

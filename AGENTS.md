@@ -8,6 +8,24 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 - **OA-CONTRACT-01:** The six current OANDA v20 endpoint pages and their linked definitions are the implementation authority. The pinned OANDA OpenAPI revision is a cross-check; document drift rather than silently using obsolete operations.
 - **OA-COVERAGE-01:** Every operation in `docs/coverage.json` needs a public typed method, a typed success and rejection contract, and a deterministic test. A coverage claim must be computed from the ledger, not inferred from generated code.
 - **OA-DECIMAL-01:** Financial values use exact `rust_decimal::Decimal` parsing and serialization. Accept OANDA decimal strings and documented numeric liquidity without a floating-point round trip.
+- **LAW-INVARIANT:** A supposedly impossible branch is not permission to
+  invent a business value or silently abandon work. Exhaustive matches, failed
+  conversions and missing required state must not fabricate a side, price,
+  quantity, identity, account mode or success merely to satisfy the type
+  checker or avoid a panic. Prefer a type or function boundary that makes the
+  invalid combination unrepresentable; where it remains representable, report
+  a typed invariant failure to the owning caller. A bare `return`, `continue`,
+  `None`, `Ok(())`, log-only path or `Default` is not a fix when it disguises
+  that failure as absence, success or a benign no-op. Legitimate optional
+  values, declared defaults and duplicate/stale outcomes remain valid only
+  when they express the operation's actual contract. An "unreachable by
+  construction" comment or `debug_assert!` alone does not establish a
+  release-build outcome. Review verifies the caller handles the failure
+  explicitly, preserves accepted evidence and avoids partial business-state
+  mutation. Test a representable failure at its owning boundary and assert its
+  observable outcome and state preservation, not merely that it does not
+  panic. Existing violations found outside the current change receive a
+  tracked issue with the path and required outcome.
 - **OA-ID-01:** Public provider identities are distinct validated types. No implicit identity guessing.
 
 ## Transport and safety

@@ -11,8 +11,17 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Local hostile-input bound on a single newline-delimited record.
+///
+/// This is the client's own memory bound, not a provider contract: OANDA
+/// documents no record size, and realistic pricing and transaction payloads are
+/// orders of magnitude smaller. A record over this limit ends the generation
+/// with an explicit gap. There is deliberately no bound on the transport chunk
+/// size or on the buffered backlog — HTTP chunk segmentation is not a provider
+/// record boundary, and a slow caller must never cause records to be evicted,
+/// because dropping records would invent a continuity gap that the provider did
+/// not create.
 const MAX_RECORD_BYTES: usize = 1024 * 1024;
-const MAX_CHUNK_BYTES: usize = 8 * 1024 * 1024;
 
 /// One event from OANDA's sampled pricing stream.
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +47,7 @@ pub enum TransactionStreamEvent {
 pub struct HttpStream<E> {
     response: Option<Response>,
     buffer: Vec<u8>,
+    start: usize,
     decoder: fn(&[u8]) -> Result<E>,
     ended: bool,
     lease: Option<StreamLease>,
@@ -55,25 +65,44 @@ impl<E> HttpStream<E> {
             return None;
         }
         loop {
-            if let Some(position) = self.buffer.iter().position(|byte| *byte == b'\n') {
-                if position > MAX_RECORD_BYTES {
+            // Records are consumed through a cursor rather than by draining the
+            // buffer per record: a large transport read must not turn record
+            // delivery into quadratic copying, and buffered records are never
+            // evicted, because a dropped record would invent a provider gap.
+            if let Some(offset) = self.buffer[self.start..]
+                .iter()
+                .position(|byte| *byte == b'\n')
+            {
+                let newline = self.start + offset;
+                let mut end = newline;
+                if end > self.start && self.buffer[end - 1] == b'\r' {
+                    end -= 1;
+                }
+                if end - self.start > MAX_RECORD_BYTES {
                     self.finish();
                     return Some(Err(Error::ResponseTooLarge));
                 }
-                let line: Vec<u8> = self.buffer.drain(..=position).collect();
-                let line = line[..line.len() - 1]
-                    .strip_suffix(b"\r")
-                    .unwrap_or(&line[..line.len() - 1]);
+                let line: Vec<u8> = self.buffer[self.start..end].to_vec();
+                self.start = newline + 1;
+                if self.start == self.buffer.len() {
+                    self.buffer.clear();
+                    self.start = 0;
+                } else if self.start > MAX_RECORD_BYTES {
+                    self.buffer.drain(..self.start);
+                    self.start = 0;
+                }
                 if line.is_empty() {
                     continue;
                 }
-                let result = (self.decoder)(line);
+                let result = (self.decoder)(&line);
                 if result.is_err() {
                     self.finish();
                 }
                 return Some(result);
             }
-            if self.buffer.len() > MAX_RECORD_BYTES {
+            // No complete record is buffered. Bound the pending record, then
+            // read more transport data.
+            if self.buffer.len() - self.start > MAX_RECORD_BYTES {
                 self.finish();
                 return Some(Err(Error::ResponseTooLarge));
             }
@@ -89,10 +118,11 @@ impl<E> HttpStream<E> {
                     )));
                 }
                 Ok(Ok(Some(chunk))) => {
-                    if chunk.len() > MAX_CHUNK_BYTES {
-                        self.finish();
-                        return Some(Err(Error::ResponseTooLarge));
-                    }
+                    // An HTTP chunk is a transport read, not a record
+                    // boundary: one chunk may carry thousands of complete
+                    // records, so its size alone says nothing about provider
+                    // data. Records are bounded individually, before any
+                    // decode.
                     self.buffer.extend_from_slice(&chunk);
                 }
                 Ok(Ok(None)) => {
@@ -195,6 +225,7 @@ impl Client {
         Ok(HttpStream {
             response: Some(response),
             buffer: Vec::new(),
+            start: 0,
             decoder,
             ended: false,
             lease: Some(lease),

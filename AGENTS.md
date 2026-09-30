@@ -32,10 +32,10 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 
 - **OA-SECRET-01:** Callers inject bearer tokens. Never load, persist, log, or expose tokens in public accessors; redact `Debug`. Remote transport is HTTPS; HTTP is accepted only for exact loopback test hosts.
 - **OA-RUNTIME-01:** The caller owns the Tokio runtime. No hidden runtime or blocking network operation.
-- **OA-HTTP-01:** Bound response bodies and stream records; return typed errors for provider status and malformed or oversized input. Never log raw requests or headers.
+- **OA-HTTP-01:** Bound response bodies and stream records individually; an HTTP chunk is a transport read, not a record boundary, so no aggregate chunk-size rejection. Return typed errors for provider status and malformed or oversized input. Never log raw requests or headers.
 - **OA-MUTATION-01:** Never automatically retry account or trading mutations. An uncertain post-send outcome is explicitly ambiguous and fences further mutations for that account until caller-acknowledged reconciliation.
 - **OA-RATE-01:** Rate admission and provider cooldown are shared by cloned clients. A mutation that cannot be admitted immediately fails locally.
-- **OA-STREAM-01:** Pricing and transaction streams use incremental line-delimited JSON over HTTP. Surface malformed data, overflow, and connection loss as gaps; never silently resume a sequence or claim every market tick arrived.
+- **OA-STREAM-01:** Pricing and transaction streams use incremental line-delimited JSON over HTTP. Surface malformed data, per-record overflow, and connection loss as gaps; never silently resume a sequence or claim every market tick arrived. The per-record bound is a local hostile-input limit, not a provider contract, and buffered records are never evicted: a slow caller delays delivery rather than losing records.
 
 ## Development
 

@@ -6,7 +6,7 @@ use oanda_client::pricing::{PricingQuery, StreamPricingQuery};
 use oanda_client::trade::SetTradeDependentOrdersBody;
 use oanda_client::{
     AccountID, Client, Environment, Error, InstrumentName, OperationError, Patch, PriceStreamEvent,
-    Supplied,
+    Supplied, TransactionStreamEvent,
     models::{ClientPrice, Order, Transaction},
 };
 use rust_decimal::Decimal;
@@ -529,14 +529,76 @@ async fn malformed_stream_record_ends_generation() {
 }
 
 #[tokio::test]
-async fn oversized_stream_record_is_bounded_and_ends_generation() {
-    let body = vec![b'X'; 1024 * 1024 + 1];
+async fn a_large_transport_chunk_of_valid_records_invents_no_gap() {
+    // More than 8 MiB of individually valid records in one response: under the
+    // old aggregate chunk bound this ended the generation with ResponseTooLarge
+    // even though every record was provider-valid. Transport chunk
+    // segmentation is not a record boundary, and every record must arrive
+    // exactly once, in order.
+    let count: usize = 180_000;
+    let mut body = Vec::with_capacity(9 * 1024 * 1024);
+    for index in 0..count {
+        body.extend_from_slice(
+            format!(
+                "{{\"type\":\"HEARTBEAT\",\"lastTransactionID\":\"{index}\",\
+                 \"time\":\"2024-01-02T03:04:05.000000000Z\"}}\r\n"
+            )
+            .as_bytes(),
+        );
+    }
+    assert!(body.len() > 8 * 1024 * 1024, "fixture must exceed 8 MiB");
     let mut response = format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
         body.len()
     )
     .into_bytes();
     response.extend_from_slice(&body);
+    let (url, task) = server(response).await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let mut stream = client.stream_transactions(&account).await.expect("stream");
+    let mut seen: usize = 0;
+    while let Some(event) = stream.next_event().await {
+        match event {
+            Ok(TransactionStreamEvent::Heartbeat(beat)) => {
+                assert_eq!(
+                    beat.last_transaction_id
+                        .as_ref()
+                        .map(oanda_client::TransactionID::as_str),
+                    Some(seen.to_string().as_str()),
+                    "record {seen} arrived out of order or altered"
+                );
+                seen += 1;
+            }
+            Ok(TransactionStreamEvent::Transaction(_)) => {
+                panic!("fixture carries no transaction records");
+            }
+            Ok(_) => panic!("unexpected stream event variant"),
+            // The fixture closes the connection after the last record; the
+            // provider ending the stream is the expected terminal gap.
+            Err(Error::Transport(message)) if seen == count && message.contains("stream ended") => {
+                break;
+            }
+            Err(other) => panic!("unexpected stream error: {other:?}"),
+        }
+    }
+    assert_eq!(seen, count, "every record must be delivered exactly once");
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn oversized_stream_record_is_bounded_and_ends_generation() {
+    let body = vec![b'X'; 1024 * 1024 + 1];
+    // One declared chunked-transfer chunk carries the whole burst, so the
+    // transport hands the full backlog over in a single read and the cap is
+    // exercised deterministically.
+    let mut response = format!(
+        "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n",
+        body.len()
+    )
+    .into_bytes();
+    response.extend_from_slice(&body);
+    response.extend_from_slice(b"\r\n0\r\n\r\n");
     let (url, task) = server(response).await;
     let client = fixture_client(url);
     let account = AccountID::new("101-001-1-001").expect("account");

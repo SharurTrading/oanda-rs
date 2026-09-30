@@ -50,6 +50,8 @@ price is a decode error rather than a float round trip. Those files needed no re
 
 | The `tools/generate_*.py` generators substituted fallbacks for provider content they failed to parse: an invented `errorCode`/`errorMessage` pair for endpoints with no documented rejection schema (materialized in 22 checked-in structs), an empty success struct for a missing response schema, `pub type X = String` for an unparsed definition, and a fabricated field description ([#8](https://github.com/SharurTrading/oanda-rs/issues/8)). | The generators write the checked-in contracts; a default that survives into `src/` is provider content this repository never reviewed. | None: a parse miss is not a documented absence. | Every fabrication path is a hard failure with a non-zero exit, nothing written, and the endpoint or definition named on stderr; both generators now parse every page before writing any file. The 22 invented pairs are removed — those endpoints reject through the reviewed `GenericRejection`, and `docs/coverage.json` records each operation's decision as `"rejection": "endpoint" | "generic"`. The schema-token grammar is validated (`required`, `deprecated`, `default=…`), so a requiredness spelling drift fails instead of demoting a field to `Option`; a parameter table with no `[required]` row fails, since OANDA documents `Authorization` on every endpoint. `tools/test_generate_tools.py` covers each failure path offline. |
 
+| `tests/tagged_variants.rs` asserted a `type` value the serializer wrote rather than one the provider sent, and `tests/enum_variants.rs` round-tripped any string through the `Unknown` arm, so a variant the generator lost was invisible behind 500+ passing assertions ([#12](https://github.com/SharurTrading/oanda-rs/issues/12)). | The verification suites are the repo's own evidence that a documented contract is implemented; an assertion that cannot fail is not evidence. | A forward-compatibility arm that preserves unrecognized spellings is legitimate in the models; the defect was in what the tests asserted about it. | `tests/tagged_variants.rs` now asserts the reserialized payload equals the provider wire payload field-for-field, and the 21 type-only Transaction fixtures carry the fields OANDA sends on every transaction (id, time, userID, accountID, batchID, requestID) so those fields' round trip is asserted. `tests/enum_variants.rs` asserts each wire value decodes to its named documented variant, not to `Unknown`. Negative tests prove both assertions can fail: `a_normalized_field_value_fails_the_round_trip`, `an_undocumented_enum_value_fails_the_round_trip`. |
+
 ## Outstanding, tracked separately
 
 These are confirmed candidates whose repair is a separate, bounded change. Each has its own issue
@@ -65,7 +67,4 @@ with the path and the required outcome, as the law's final clause requires.
 - [#11](https://github.com/SharurTrading/oanda-rs/issues/11) — `tools/check_release_notes.py` drops a
   release row whose version cell is empty and can then report "current" while a newer version went
   uncompared.
-- [#12](https://github.com/SharurTrading/oanda-rs/issues/12) — the verification tests lock in
-  fallback behaviour: `tests/tagged_variants.rs` asserts a `type` value the serializer wrote rather
-  than one the provider sent, and `tests/enum_variants.rs` round-trips any string through the
-  `Unknown` arm, so a variant the generator lost is invisible.
+

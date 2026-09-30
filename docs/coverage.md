@@ -5,6 +5,10 @@ The current [OANDA v20 website](https://developer.oanda.com/rest-live-v20/introd
 The pinned [official OpenAPI](https://github.com/oanda/v20-openapi) revision is `70324cfee31ff0074ed0bf1f93e67d8ee6c84444` ([local copy](../spec/official/v20-openapi.json), SHA-256 `5856fab076e3bc6c40fb06ecaa78d85cc8a828e4f065a95806cace3ac1dea212`), retained under OANDA's [MIT license](../spec/official/LICENSE.txt). It has 40 operations and 156 definitions. The website adds `GET /v3/accounts/{accountID}/candles/latest` and 22 definitions including newer guaranteed-stop, dividend, and home-conversion models. The older OpenAPI file has nine endpoints and ten definitions absent from the website pages, including user and unscoped pricing endpoints. The website is authoritative for this crate; these differences are intentionally excluded or included as recorded here and checked offline.
 
 The coverage ledger distinguishes inventoried, implemented, tested, and blocked capabilities. The offline `tools/check_coverage.py` requires all 32 operations and 168 definitions to be tested, verifies public methods and typed contracts, checks test markers, confirms the pinned OpenAPI checksum, and detects changes to the reviewed operation drift. The 30 REST operations each have a loopback success and rejection fixture; both streams have typed event fixtures. Every definition has a compile-time serde contract check. All 503 documented scalar enum values and 55 tagged order, order-request, and transaction variants have wire round-trip tests.
+The round-trip manifests are hand-maintained on purpose: a value the generator gains or loses fails
+`tests/enum_variants.rs` to compile until it is updated in lockstep with a regeneration — a compile error
+beats a silent `Unknown` — and `tagged_arms_match_the_pinned_spec` cross-checks the tagged set against the
+pinned OpenAPI spec.
 
 ## Rejection evidence
 
@@ -32,6 +36,19 @@ rejection pair, an empty success struct, a `String` alias, or a field descriptio
 per-endpoint structs are a breaking change for callers naming them; stream operations record
 `"rejection": "stream"` and reject through `Error::Provider`, whose `code`/`message` fields carry
 the same evidence contract.
+## Stream record and transport bounds
+
+Pricing and transaction streams bound each newline-delimited record at a local hostile-input limit
+of 1 MiB; OANDA documents no record size, and realistic payloads are orders of magnitude smaller.
+An HTTP chunk is a transport read, not a provider record boundary, so there is deliberately no
+aggregate chunk-size rejection: a chunk carrying more than 8 MiB of individually valid records is
+processed record-by-record in order (`a_large_transport_chunk_of_valid_records_invents_no_gap`).
+Buffered records are never evicted for a slow caller, because dropping records would invent a
+continuity gap the provider did not create. The buffered backlog is capped at a local 16 MiB: a
+fill episode that parks more than that ends the generation with an explicit gap
+(`a_backlog_beyond_the_local_bound_ends_the_generation`), because while undelivered records
+remain no further reading — and therefore no per-record check — happens. A malformed or oversized
+individual record still ends the generation explicitly.
 
 ## Law-invariant audit
 

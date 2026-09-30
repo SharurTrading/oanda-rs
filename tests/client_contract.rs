@@ -476,6 +476,32 @@ fn configure_body() -> oanda_client::account::ConfigureAccountBody {
 }
 
 #[tokio::test]
+async fn a_mistyped_reason_key_erases_only_itself() {
+    // A struct-level read would fail on the first mistyped field and erase
+    // both keys; each key is read on its own, so the readable sibling survives
+    // exactly as it does on a refused stream.
+    let (url, task) = server(http_json(
+        "400 Bad Request",
+        r#"{"errorCode":5,"errorMessage":"margin rate rejected"}"#,
+    ))
+    .await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let error = client
+        .configure_account(&account, &configure_body())
+        .await
+        .expect_err("rejected");
+    match error {
+        OperationError::Rejected { code, message, .. } => {
+            assert!(code.is_none(), "a numeric code is not a readable one");
+            assert_eq!(message.as_deref(), Some("margin rate rejected"));
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    task.await.expect("server");
+}
+
+#[tokio::test]
 async fn an_unreadable_rejection_body_is_reported_as_evidence_not_as_a_reason() {
     let (url, task) = servers(vec![
         http_json("400 Bad Request", "not-json"),

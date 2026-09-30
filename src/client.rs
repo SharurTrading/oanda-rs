@@ -249,14 +249,12 @@ impl Client {
                 Err(_) => Supplied::Undecoded,
             }
         };
-        // `errorCode` and `errorMessage` are read independently of the endpoint's
-        // documented rejection schema so a schema mismatch cannot erase a reason
-        // OANDA did send. A body this client cannot read yields no reason, and
-        // `body` above is what tells the caller one arrived regardless.
-        let reason: ProviderError = match serde_json::from_slice::<ProviderError>(&bytes) {
-            Ok(reason) => reason,
-            Err(_) => ProviderError::UNREAD,
-        };
+        // `errorCode` and `errorMessage` are read one key at a time, so a value
+        // with an unexpected type erases only its own key and not its sibling —
+        // exactly how `open_http_stream` reads a refused stream's reason. A
+        // body this client cannot read as JSON yields no reason, and `body`
+        // above is what tells the caller one arrived regardless.
+        let reason = ProviderError::read(&bytes);
         if let Some(ref mut guard) = guard {
             guard.disarm();
         }
@@ -605,6 +603,26 @@ struct ProviderError {
 }
 
 impl ProviderError {
+    /// Read each reason key on its own. A struct-level deserialize would fail
+    /// on the first mistyped field and erase both keys, reporting a reason
+    /// OANDA sent as one it never did.
+    fn read(bytes: &[u8]) -> Self {
+        let value: serde_json::Value = match serde_json::from_slice(bytes) {
+            Ok(value) => value,
+            Err(_) => return Self::UNREAD,
+        };
+        Self {
+            error_code: value
+                .get("errorCode")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned),
+            error_message: value
+                .get("errorMessage")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_owned),
+        }
+    }
+
     /// No reason this client could read. It is distinct from a reason OANDA read
     /// and omitted, and only the rejection body's own state separates the two
     /// for a caller.

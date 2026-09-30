@@ -3,670 +3,1685 @@
     clippy::expect_used,
     clippy::unwrap_used,
     clippy::panic,
-    clippy::too_many_lines
+    clippy::too_many_lines,
+    clippy::needless_pass_by_value
 )]
 use oanda_client::models;
 use serde::{Serialize, de::DeserializeOwned};
 use std::fmt::Debug;
-fn round_trip<T: Serialize + DeserializeOwned + Debug>(wire: &str) {
+fn round_trip<T: Serialize + DeserializeOwned + Debug + PartialEq>(wire: &str, expected: T) {
     let decoded: T = serde_json::from_value(serde_json::Value::String(wire.to_owned()))
         .expect("decode documented enum");
+    assert_eq!(
+        decoded, expected,
+        "{wire:?} must decode to its documented variant, not to the Unknown arm"
+    );
     let encoded = serde_json::to_value(decoded).expect("encode documented enum");
     assert_eq!(encoded, serde_json::Value::String(wire.to_owned()));
 }
 #[test]
 fn all_documented_scalar_enum_variants_round_trip() {
-    round_trip::<models::GuaranteedStopLossOrderMode>("DISABLED");
-    round_trip::<models::GuaranteedStopLossOrderMode>("ALLOWED");
-    round_trip::<models::GuaranteedStopLossOrderMode>("REQUIRED");
-    round_trip::<models::GuaranteedStopLossOrderMutability>("FIXED");
-    round_trip::<models::GuaranteedStopLossOrderMutability>("REPLACEABLE");
-    round_trip::<models::GuaranteedStopLossOrderMutability>("CANCELABLE");
-    round_trip::<models::GuaranteedStopLossOrderMutability>("PRICE_WIDEN_ONLY");
-    round_trip::<models::AccountFinancingMode>("NO_FINANCING");
-    round_trip::<models::AccountFinancingMode>("SECOND_BY_SECOND");
-    round_trip::<models::AccountFinancingMode>("DAILY");
-    round_trip::<models::PositionAggregationMode>("ABSOLUTE_SUM");
-    round_trip::<models::PositionAggregationMode>("MAXIMAL_SIDE");
-    round_trip::<models::PositionAggregationMode>("NET_SUM");
-    round_trip::<models::CandlestickGranularity>("S5");
-    round_trip::<models::CandlestickGranularity>("S10");
-    round_trip::<models::CandlestickGranularity>("S15");
-    round_trip::<models::CandlestickGranularity>("S30");
-    round_trip::<models::CandlestickGranularity>("M1");
-    round_trip::<models::CandlestickGranularity>("M2");
-    round_trip::<models::CandlestickGranularity>("M4");
-    round_trip::<models::CandlestickGranularity>("M5");
-    round_trip::<models::CandlestickGranularity>("M10");
-    round_trip::<models::CandlestickGranularity>("M15");
-    round_trip::<models::CandlestickGranularity>("M30");
-    round_trip::<models::CandlestickGranularity>("H1");
-    round_trip::<models::CandlestickGranularity>("H2");
-    round_trip::<models::CandlestickGranularity>("H3");
-    round_trip::<models::CandlestickGranularity>("H4");
-    round_trip::<models::CandlestickGranularity>("H6");
-    round_trip::<models::CandlestickGranularity>("H8");
-    round_trip::<models::CandlestickGranularity>("H12");
-    round_trip::<models::CandlestickGranularity>("D");
-    round_trip::<models::CandlestickGranularity>("W");
-    round_trip::<models::CandlestickGranularity>("M");
-    round_trip::<models::WeeklyAlignment>("Monday");
-    round_trip::<models::WeeklyAlignment>("Tuesday");
-    round_trip::<models::WeeklyAlignment>("Wednesday");
-    round_trip::<models::WeeklyAlignment>("Thursday");
-    round_trip::<models::WeeklyAlignment>("Friday");
-    round_trip::<models::WeeklyAlignment>("Saturday");
-    round_trip::<models::WeeklyAlignment>("Sunday");
-    round_trip::<models::OrderType>("MARKET");
-    round_trip::<models::OrderType>("LIMIT");
-    round_trip::<models::OrderType>("STOP");
-    round_trip::<models::OrderType>("MARKET_IF_TOUCHED");
-    round_trip::<models::OrderType>("TAKE_PROFIT");
-    round_trip::<models::OrderType>("STOP_LOSS");
-    round_trip::<models::OrderType>("GUARANTEED_STOP_LOSS");
-    round_trip::<models::OrderType>("TRAILING_STOP_LOSS");
-    round_trip::<models::OrderType>("FIXED_PRICE");
-    round_trip::<models::CancellableOrderType>("LIMIT");
-    round_trip::<models::CancellableOrderType>("STOP");
-    round_trip::<models::CancellableOrderType>("MARKET_IF_TOUCHED");
-    round_trip::<models::CancellableOrderType>("TAKE_PROFIT");
-    round_trip::<models::CancellableOrderType>("STOP_LOSS");
-    round_trip::<models::CancellableOrderType>("GUARANTEED_STOP_LOSS");
-    round_trip::<models::CancellableOrderType>("TRAILING_STOP_LOSS");
-    round_trip::<models::OrderState>("PENDING");
-    round_trip::<models::OrderState>("FILLED");
-    round_trip::<models::OrderState>("TRIGGERED");
-    round_trip::<models::OrderState>("CANCELLED");
-    round_trip::<models::OrderStateFilter>("PENDING");
-    round_trip::<models::OrderStateFilter>("FILLED");
-    round_trip::<models::OrderStateFilter>("TRIGGERED");
-    round_trip::<models::OrderStateFilter>("CANCELLED");
-    round_trip::<models::OrderStateFilter>("ALL");
-    round_trip::<models::TimeInForce>("GTC");
-    round_trip::<models::TimeInForce>("GTD");
-    round_trip::<models::TimeInForce>("GFD");
-    round_trip::<models::TimeInForce>("FOK");
-    round_trip::<models::TimeInForce>("IOC");
-    round_trip::<models::OrderPositionFill>("OPEN_ONLY");
-    round_trip::<models::OrderPositionFill>("REDUCE_FIRST");
-    round_trip::<models::OrderPositionFill>("REDUCE_ONLY");
-    round_trip::<models::OrderPositionFill>("DEFAULT");
-    round_trip::<models::OrderTriggerCondition>("DEFAULT");
-    round_trip::<models::OrderTriggerCondition>("INVERSE");
-    round_trip::<models::OrderTriggerCondition>("BID");
-    round_trip::<models::OrderTriggerCondition>("ASK");
-    round_trip::<models::OrderTriggerCondition>("MID");
-    round_trip::<models::TradeState>("OPEN");
-    round_trip::<models::TradeState>("CLOSED");
-    round_trip::<models::TradeState>("CLOSE_WHEN_TRADEABLE");
-    round_trip::<models::TradeStateFilter>("OPEN");
-    round_trip::<models::TradeStateFilter>("CLOSED");
-    round_trip::<models::TradeStateFilter>("CLOSE_WHEN_TRADEABLE");
-    round_trip::<models::TradeStateFilter>("ALL");
-    round_trip::<models::TradePL>("POSITIVE");
-    round_trip::<models::TradePL>("NEGATIVE");
-    round_trip::<models::TradePL>("ZERO");
-    round_trip::<models::TransactionType>("CREATE");
-    round_trip::<models::TransactionType>("CLOSE");
-    round_trip::<models::TransactionType>("REOPEN");
-    round_trip::<models::TransactionType>("CLIENT_CONFIGURE");
-    round_trip::<models::TransactionType>("CLIENT_CONFIGURE_REJECT");
-    round_trip::<models::TransactionType>("TRANSFER_FUNDS");
-    round_trip::<models::TransactionType>("TRANSFER_FUNDS_REJECT");
-    round_trip::<models::TransactionType>("MARKET_ORDER");
-    round_trip::<models::TransactionType>("MARKET_ORDER_REJECT");
-    round_trip::<models::TransactionType>("FIXED_PRICE_ORDER");
-    round_trip::<models::TransactionType>("LIMIT_ORDER");
-    round_trip::<models::TransactionType>("LIMIT_ORDER_REJECT");
-    round_trip::<models::TransactionType>("STOP_ORDER");
-    round_trip::<models::TransactionType>("STOP_ORDER_REJECT");
-    round_trip::<models::TransactionType>("MARKET_IF_TOUCHED_ORDER");
-    round_trip::<models::TransactionType>("MARKET_IF_TOUCHED_ORDER_REJECT");
-    round_trip::<models::TransactionType>("TAKE_PROFIT_ORDER");
-    round_trip::<models::TransactionType>("TAKE_PROFIT_ORDER_REJECT");
-    round_trip::<models::TransactionType>("STOP_LOSS_ORDER");
-    round_trip::<models::TransactionType>("STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionType>("GUARANTEED_STOP_LOSS_ORDER");
-    round_trip::<models::TransactionType>("GUARANTEED_STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionType>("TRAILING_STOP_LOSS_ORDER");
-    round_trip::<models::TransactionType>("TRAILING_STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionType>("ORDER_FILL");
-    round_trip::<models::TransactionType>("ORDER_CANCEL");
-    round_trip::<models::TransactionType>("ORDER_CANCEL_REJECT");
-    round_trip::<models::TransactionType>("ORDER_CLIENT_EXTENSIONS_MODIFY");
-    round_trip::<models::TransactionType>("ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT");
-    round_trip::<models::TransactionType>("TRADE_CLIENT_EXTENSIONS_MODIFY");
-    round_trip::<models::TransactionType>("TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT");
-    round_trip::<models::TransactionType>("MARGIN_CALL_ENTER");
-    round_trip::<models::TransactionType>("MARGIN_CALL_EXTEND");
-    round_trip::<models::TransactionType>("MARGIN_CALL_EXIT");
-    round_trip::<models::TransactionType>("DELAYED_TRADE_CLOSURE");
-    round_trip::<models::TransactionType>("DAILY_FINANCING");
-    round_trip::<models::TransactionType>("DIVIDEND_ADJUSTMENT");
-    round_trip::<models::TransactionType>("RESET_RESETTABLE_PL");
-    round_trip::<models::FundingReason>("CLIENT_FUNDING");
-    round_trip::<models::FundingReason>("ACCOUNT_TRANSFER");
-    round_trip::<models::FundingReason>("DIVISION_MIGRATION");
-    round_trip::<models::FundingReason>("SITE_MIGRATION");
-    round_trip::<models::FundingReason>("ADJUSTMENT");
-    round_trip::<models::MarketOrderReason>("CLIENT_ORDER");
-    round_trip::<models::MarketOrderReason>("TRADE_CLOSE");
-    round_trip::<models::MarketOrderReason>("POSITION_CLOSEOUT");
-    round_trip::<models::MarketOrderReason>("MARGIN_CLOSEOUT");
-    round_trip::<models::MarketOrderReason>("DELAYED_TRADE_CLOSE");
-    round_trip::<models::FixedPriceOrderReason>("PLATFORM_ACCOUNT_MIGRATION");
-    round_trip::<models::FixedPriceOrderReason>("TRADE_CLOSE_DIVISION_ACCOUNT_MIGRATION");
-    round_trip::<models::FixedPriceOrderReason>("TRADE_CLOSE_ADMINISTRATIVE_ACTION");
-    round_trip::<models::LimitOrderReason>("CLIENT_ORDER");
-    round_trip::<models::LimitOrderReason>("REPLACEMENT");
-    round_trip::<models::StopOrderReason>("CLIENT_ORDER");
-    round_trip::<models::StopOrderReason>("REPLACEMENT");
-    round_trip::<models::MarketIfTouchedOrderReason>("CLIENT_ORDER");
-    round_trip::<models::MarketIfTouchedOrderReason>("REPLACEMENT");
-    round_trip::<models::TakeProfitOrderReason>("CLIENT_ORDER");
-    round_trip::<models::TakeProfitOrderReason>("REPLACEMENT");
-    round_trip::<models::TakeProfitOrderReason>("ON_FILL");
-    round_trip::<models::StopLossOrderReason>("CLIENT_ORDER");
-    round_trip::<models::StopLossOrderReason>("REPLACEMENT");
-    round_trip::<models::StopLossOrderReason>("ON_FILL");
-    round_trip::<models::GuaranteedStopLossOrderReason>("CLIENT_ORDER");
-    round_trip::<models::GuaranteedStopLossOrderReason>("REPLACEMENT");
-    round_trip::<models::GuaranteedStopLossOrderReason>("ON_FILL");
-    round_trip::<models::TrailingStopLossOrderReason>("CLIENT_ORDER");
-    round_trip::<models::TrailingStopLossOrderReason>("REPLACEMENT");
-    round_trip::<models::TrailingStopLossOrderReason>("ON_FILL");
-    round_trip::<models::OrderFillReason>("LIMIT_ORDER");
-    round_trip::<models::OrderFillReason>("STOP_ORDER");
-    round_trip::<models::OrderFillReason>("MARKET_IF_TOUCHED_ORDER");
-    round_trip::<models::OrderFillReason>("TAKE_PROFIT_ORDER");
-    round_trip::<models::OrderFillReason>("STOP_LOSS_ORDER");
-    round_trip::<models::OrderFillReason>("GUARANTEED_STOP_LOSS_ORDER");
-    round_trip::<models::OrderFillReason>("TRAILING_STOP_LOSS_ORDER");
-    round_trip::<models::OrderFillReason>("MARKET_ORDER");
-    round_trip::<models::OrderFillReason>("MARKET_ORDER_TRADE_CLOSE");
-    round_trip::<models::OrderFillReason>("MARKET_ORDER_POSITION_CLOSEOUT");
-    round_trip::<models::OrderFillReason>("MARKET_ORDER_MARGIN_CLOSEOUT");
-    round_trip::<models::OrderFillReason>("MARKET_ORDER_DELAYED_TRADE_CLOSE");
-    round_trip::<models::OrderFillReason>("FIXED_PRICE_ORDER");
-    round_trip::<models::OrderFillReason>("FIXED_PRICE_ORDER_PLATFORM_ACCOUNT_MIGRATION");
-    round_trip::<models::OrderFillReason>("FIXED_PRICE_ORDER_DIVISION_ACCOUNT_MIGRATION");
-    round_trip::<models::OrderFillReason>("FIXED_PRICE_ORDER_ADMINISTRATIVE_ACTION");
-    round_trip::<models::OrderCancelReason>("INTERNAL_SERVER_ERROR");
-    round_trip::<models::OrderCancelReason>("ACCOUNT_LOCKED");
-    round_trip::<models::OrderCancelReason>("ACCOUNT_NEW_POSITIONS_LOCKED");
-    round_trip::<models::OrderCancelReason>("ACCOUNT_ORDER_CREATION_LOCKED");
-    round_trip::<models::OrderCancelReason>("ACCOUNT_ORDER_FILL_LOCKED");
-    round_trip::<models::OrderCancelReason>("CLIENT_REQUEST");
-    round_trip::<models::OrderCancelReason>("MIGRATION");
-    round_trip::<models::OrderCancelReason>("MARKET_HALTED");
-    round_trip::<models::OrderCancelReason>("LINKED_TRADE_CLOSED");
-    round_trip::<models::OrderCancelReason>("TIME_IN_FORCE_EXPIRED");
-    round_trip::<models::OrderCancelReason>("INSUFFICIENT_MARGIN");
-    round_trip::<models::OrderCancelReason>("FIFO_VIOLATION");
-    round_trip::<models::OrderCancelReason>("BOUNDS_VIOLATION");
-    round_trip::<models::OrderCancelReason>("CLIENT_REQUEST_REPLACED");
-    round_trip::<models::OrderCancelReason>("DIVIDEND_ADJUSTMENT_REPLACED");
-    round_trip::<models::OrderCancelReason>("INSUFFICIENT_LIQUIDITY");
-    round_trip::<models::OrderCancelReason>("TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::OrderCancelReason>("TAKE_PROFIT_ON_FILL_LOSS");
-    round_trip::<models::OrderCancelReason>("LOSING_TAKE_PROFIT");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_LOSS");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_REQUIRED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED");
+    round_trip::<models::GuaranteedStopLossOrderMode>(
+        "DISABLED",
+        models::GuaranteedStopLossOrderMode::Disabled,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMode>(
+        "ALLOWED",
+        models::GuaranteedStopLossOrderMode::Allowed,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMode>(
+        "REQUIRED",
+        models::GuaranteedStopLossOrderMode::Required,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMutability>(
+        "FIXED",
+        models::GuaranteedStopLossOrderMutability::Fixed,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMutability>(
+        "REPLACEABLE",
+        models::GuaranteedStopLossOrderMutability::Replaceable,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMutability>(
+        "CANCELABLE",
+        models::GuaranteedStopLossOrderMutability::Cancelable,
+    );
+    round_trip::<models::GuaranteedStopLossOrderMutability>(
+        "PRICE_WIDEN_ONLY",
+        models::GuaranteedStopLossOrderMutability::PriceWidenOnly,
+    );
+    round_trip::<models::AccountFinancingMode>(
+        "NO_FINANCING",
+        models::AccountFinancingMode::NoFinancing,
+    );
+    round_trip::<models::AccountFinancingMode>(
+        "SECOND_BY_SECOND",
+        models::AccountFinancingMode::SecondBySecond,
+    );
+    round_trip::<models::AccountFinancingMode>("DAILY", models::AccountFinancingMode::Daily);
+    round_trip::<models::PositionAggregationMode>(
+        "ABSOLUTE_SUM",
+        models::PositionAggregationMode::AbsoluteSum,
+    );
+    round_trip::<models::PositionAggregationMode>(
+        "MAXIMAL_SIDE",
+        models::PositionAggregationMode::MaximalSide,
+    );
+    round_trip::<models::PositionAggregationMode>(
+        "NET_SUM",
+        models::PositionAggregationMode::NetSum,
+    );
+    round_trip::<models::CandlestickGranularity>("S5", models::CandlestickGranularity::S5);
+    round_trip::<models::CandlestickGranularity>("S10", models::CandlestickGranularity::S10);
+    round_trip::<models::CandlestickGranularity>("S15", models::CandlestickGranularity::S15);
+    round_trip::<models::CandlestickGranularity>("S30", models::CandlestickGranularity::S30);
+    round_trip::<models::CandlestickGranularity>("M1", models::CandlestickGranularity::M1);
+    round_trip::<models::CandlestickGranularity>("M2", models::CandlestickGranularity::M2);
+    round_trip::<models::CandlestickGranularity>("M4", models::CandlestickGranularity::M4);
+    round_trip::<models::CandlestickGranularity>("M5", models::CandlestickGranularity::M5);
+    round_trip::<models::CandlestickGranularity>("M10", models::CandlestickGranularity::M10);
+    round_trip::<models::CandlestickGranularity>("M15", models::CandlestickGranularity::M15);
+    round_trip::<models::CandlestickGranularity>("M30", models::CandlestickGranularity::M30);
+    round_trip::<models::CandlestickGranularity>("H1", models::CandlestickGranularity::H1);
+    round_trip::<models::CandlestickGranularity>("H2", models::CandlestickGranularity::H2);
+    round_trip::<models::CandlestickGranularity>("H3", models::CandlestickGranularity::H3);
+    round_trip::<models::CandlestickGranularity>("H4", models::CandlestickGranularity::H4);
+    round_trip::<models::CandlestickGranularity>("H6", models::CandlestickGranularity::H6);
+    round_trip::<models::CandlestickGranularity>("H8", models::CandlestickGranularity::H8);
+    round_trip::<models::CandlestickGranularity>("H12", models::CandlestickGranularity::H12);
+    round_trip::<models::CandlestickGranularity>("D", models::CandlestickGranularity::D);
+    round_trip::<models::CandlestickGranularity>("W", models::CandlestickGranularity::W);
+    round_trip::<models::CandlestickGranularity>("M", models::CandlestickGranularity::M);
+    round_trip::<models::WeeklyAlignment>("Monday", models::WeeklyAlignment::Monday);
+    round_trip::<models::WeeklyAlignment>("Tuesday", models::WeeklyAlignment::Tuesday);
+    round_trip::<models::WeeklyAlignment>("Wednesday", models::WeeklyAlignment::Wednesday);
+    round_trip::<models::WeeklyAlignment>("Thursday", models::WeeklyAlignment::Thursday);
+    round_trip::<models::WeeklyAlignment>("Friday", models::WeeklyAlignment::Friday);
+    round_trip::<models::WeeklyAlignment>("Saturday", models::WeeklyAlignment::Saturday);
+    round_trip::<models::WeeklyAlignment>("Sunday", models::WeeklyAlignment::Sunday);
+    round_trip::<models::OrderType>("MARKET", models::OrderType::Market);
+    round_trip::<models::OrderType>("LIMIT", models::OrderType::Limit);
+    round_trip::<models::OrderType>("STOP", models::OrderType::Stop);
+    round_trip::<models::OrderType>("MARKET_IF_TOUCHED", models::OrderType::MarketIfTouched);
+    round_trip::<models::OrderType>("TAKE_PROFIT", models::OrderType::TakeProfit);
+    round_trip::<models::OrderType>("STOP_LOSS", models::OrderType::StopLoss);
+    round_trip::<models::OrderType>(
+        "GUARANTEED_STOP_LOSS",
+        models::OrderType::GuaranteedStopLoss,
+    );
+    round_trip::<models::OrderType>("TRAILING_STOP_LOSS", models::OrderType::TrailingStopLoss);
+    round_trip::<models::OrderType>("FIXED_PRICE", models::OrderType::FixedPrice);
+    round_trip::<models::CancellableOrderType>("LIMIT", models::CancellableOrderType::Limit);
+    round_trip::<models::CancellableOrderType>("STOP", models::CancellableOrderType::Stop);
+    round_trip::<models::CancellableOrderType>(
+        "MARKET_IF_TOUCHED",
+        models::CancellableOrderType::MarketIfTouched,
+    );
+    round_trip::<models::CancellableOrderType>(
+        "TAKE_PROFIT",
+        models::CancellableOrderType::TakeProfit,
+    );
+    round_trip::<models::CancellableOrderType>("STOP_LOSS", models::CancellableOrderType::StopLoss);
+    round_trip::<models::CancellableOrderType>(
+        "GUARANTEED_STOP_LOSS",
+        models::CancellableOrderType::GuaranteedStopLoss,
+    );
+    round_trip::<models::CancellableOrderType>(
+        "TRAILING_STOP_LOSS",
+        models::CancellableOrderType::TrailingStopLoss,
+    );
+    round_trip::<models::OrderState>("PENDING", models::OrderState::Pending);
+    round_trip::<models::OrderState>("FILLED", models::OrderState::Filled);
+    round_trip::<models::OrderState>("TRIGGERED", models::OrderState::Triggered);
+    round_trip::<models::OrderState>("CANCELLED", models::OrderState::Cancelled);
+    round_trip::<models::OrderStateFilter>("PENDING", models::OrderStateFilter::Pending);
+    round_trip::<models::OrderStateFilter>("FILLED", models::OrderStateFilter::Filled);
+    round_trip::<models::OrderStateFilter>("TRIGGERED", models::OrderStateFilter::Triggered);
+    round_trip::<models::OrderStateFilter>("CANCELLED", models::OrderStateFilter::Cancelled);
+    round_trip::<models::OrderStateFilter>("ALL", models::OrderStateFilter::All);
+    round_trip::<models::TimeInForce>("GTC", models::TimeInForce::Gtc);
+    round_trip::<models::TimeInForce>("GTD", models::TimeInForce::Gtd);
+    round_trip::<models::TimeInForce>("GFD", models::TimeInForce::Gfd);
+    round_trip::<models::TimeInForce>("FOK", models::TimeInForce::Fok);
+    round_trip::<models::TimeInForce>("IOC", models::TimeInForce::Ioc);
+    round_trip::<models::OrderPositionFill>("OPEN_ONLY", models::OrderPositionFill::OpenOnly);
+    round_trip::<models::OrderPositionFill>("REDUCE_FIRST", models::OrderPositionFill::ReduceFirst);
+    round_trip::<models::OrderPositionFill>("REDUCE_ONLY", models::OrderPositionFill::ReduceOnly);
+    round_trip::<models::OrderPositionFill>("DEFAULT", models::OrderPositionFill::Default);
+    round_trip::<models::OrderTriggerCondition>("DEFAULT", models::OrderTriggerCondition::Default);
+    round_trip::<models::OrderTriggerCondition>("INVERSE", models::OrderTriggerCondition::Inverse);
+    round_trip::<models::OrderTriggerCondition>("BID", models::OrderTriggerCondition::Bid);
+    round_trip::<models::OrderTriggerCondition>("ASK", models::OrderTriggerCondition::Ask);
+    round_trip::<models::OrderTriggerCondition>("MID", models::OrderTriggerCondition::Mid);
+    round_trip::<models::TradeState>("OPEN", models::TradeState::Open);
+    round_trip::<models::TradeState>("CLOSED", models::TradeState::Closed);
+    round_trip::<models::TradeState>(
+        "CLOSE_WHEN_TRADEABLE",
+        models::TradeState::CloseWhenTradeable,
+    );
+    round_trip::<models::TradeStateFilter>("OPEN", models::TradeStateFilter::Open);
+    round_trip::<models::TradeStateFilter>("CLOSED", models::TradeStateFilter::Closed);
+    round_trip::<models::TradeStateFilter>(
+        "CLOSE_WHEN_TRADEABLE",
+        models::TradeStateFilter::CloseWhenTradeable,
+    );
+    round_trip::<models::TradeStateFilter>("ALL", models::TradeStateFilter::All);
+    round_trip::<models::TradePL>("POSITIVE", models::TradePL::Positive);
+    round_trip::<models::TradePL>("NEGATIVE", models::TradePL::Negative);
+    round_trip::<models::TradePL>("ZERO", models::TradePL::Zero);
+    round_trip::<models::TransactionType>("CREATE", models::TransactionType::Create);
+    round_trip::<models::TransactionType>("CLOSE", models::TransactionType::Close);
+    round_trip::<models::TransactionType>("REOPEN", models::TransactionType::Reopen);
+    round_trip::<models::TransactionType>(
+        "CLIENT_CONFIGURE",
+        models::TransactionType::ClientConfigure,
+    );
+    round_trip::<models::TransactionType>(
+        "CLIENT_CONFIGURE_REJECT",
+        models::TransactionType::ClientConfigureReject,
+    );
+    round_trip::<models::TransactionType>("TRANSFER_FUNDS", models::TransactionType::TransferFunds);
+    round_trip::<models::TransactionType>(
+        "TRANSFER_FUNDS_REJECT",
+        models::TransactionType::TransferFundsReject,
+    );
+    round_trip::<models::TransactionType>("MARKET_ORDER", models::TransactionType::MarketOrder);
+    round_trip::<models::TransactionType>(
+        "MARKET_ORDER_REJECT",
+        models::TransactionType::MarketOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "FIXED_PRICE_ORDER",
+        models::TransactionType::FixedPriceOrder,
+    );
+    round_trip::<models::TransactionType>("LIMIT_ORDER", models::TransactionType::LimitOrder);
+    round_trip::<models::TransactionType>(
+        "LIMIT_ORDER_REJECT",
+        models::TransactionType::LimitOrderReject,
+    );
+    round_trip::<models::TransactionType>("STOP_ORDER", models::TransactionType::StopOrder);
+    round_trip::<models::TransactionType>(
+        "STOP_ORDER_REJECT",
+        models::TransactionType::StopOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "MARKET_IF_TOUCHED_ORDER",
+        models::TransactionType::MarketIfTouchedOrder,
+    );
+    round_trip::<models::TransactionType>(
+        "MARKET_IF_TOUCHED_ORDER_REJECT",
+        models::TransactionType::MarketIfTouchedOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "TAKE_PROFIT_ORDER",
+        models::TransactionType::TakeProfitOrder,
+    );
+    round_trip::<models::TransactionType>(
+        "TAKE_PROFIT_ORDER_REJECT",
+        models::TransactionType::TakeProfitOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "STOP_LOSS_ORDER",
+        models::TransactionType::StopLossOrder,
+    );
+    round_trip::<models::TransactionType>(
+        "STOP_LOSS_ORDER_REJECT",
+        models::TransactionType::StopLossOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "GUARANTEED_STOP_LOSS_ORDER",
+        models::TransactionType::GuaranteedStopLossOrder,
+    );
+    round_trip::<models::TransactionType>(
+        "GUARANTEED_STOP_LOSS_ORDER_REJECT",
+        models::TransactionType::GuaranteedStopLossOrderReject,
+    );
+    round_trip::<models::TransactionType>(
+        "TRAILING_STOP_LOSS_ORDER",
+        models::TransactionType::TrailingStopLossOrder,
+    );
+    round_trip::<models::TransactionType>(
+        "TRAILING_STOP_LOSS_ORDER_REJECT",
+        models::TransactionType::TrailingStopLossOrderReject,
+    );
+    round_trip::<models::TransactionType>("ORDER_FILL", models::TransactionType::OrderFill);
+    round_trip::<models::TransactionType>("ORDER_CANCEL", models::TransactionType::OrderCancel);
+    round_trip::<models::TransactionType>(
+        "ORDER_CANCEL_REJECT",
+        models::TransactionType::OrderCancelReject,
+    );
+    round_trip::<models::TransactionType>(
+        "ORDER_CLIENT_EXTENSIONS_MODIFY",
+        models::TransactionType::OrderClientExtensionsModify,
+    );
+    round_trip::<models::TransactionType>(
+        "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        models::TransactionType::OrderClientExtensionsModifyReject,
+    );
+    round_trip::<models::TransactionType>(
+        "TRADE_CLIENT_EXTENSIONS_MODIFY",
+        models::TransactionType::TradeClientExtensionsModify,
+    );
+    round_trip::<models::TransactionType>(
+        "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        models::TransactionType::TradeClientExtensionsModifyReject,
+    );
+    round_trip::<models::TransactionType>(
+        "MARGIN_CALL_ENTER",
+        models::TransactionType::MarginCallEnter,
+    );
+    round_trip::<models::TransactionType>(
+        "MARGIN_CALL_EXTEND",
+        models::TransactionType::MarginCallExtend,
+    );
+    round_trip::<models::TransactionType>(
+        "MARGIN_CALL_EXIT",
+        models::TransactionType::MarginCallExit,
+    );
+    round_trip::<models::TransactionType>(
+        "DELAYED_TRADE_CLOSURE",
+        models::TransactionType::DelayedTradeClosure,
+    );
+    round_trip::<models::TransactionType>(
+        "DAILY_FINANCING",
+        models::TransactionType::DailyFinancing,
+    );
+    round_trip::<models::TransactionType>(
+        "DIVIDEND_ADJUSTMENT",
+        models::TransactionType::DividendAdjustment,
+    );
+    round_trip::<models::TransactionType>(
+        "RESET_RESETTABLE_PL",
+        models::TransactionType::ResetResettablePl,
+    );
+    round_trip::<models::FundingReason>("CLIENT_FUNDING", models::FundingReason::ClientFunding);
+    round_trip::<models::FundingReason>("ACCOUNT_TRANSFER", models::FundingReason::AccountTransfer);
+    round_trip::<models::FundingReason>(
+        "DIVISION_MIGRATION",
+        models::FundingReason::DivisionMigration,
+    );
+    round_trip::<models::FundingReason>("SITE_MIGRATION", models::FundingReason::SiteMigration);
+    round_trip::<models::FundingReason>("ADJUSTMENT", models::FundingReason::Adjustment);
+    round_trip::<models::MarketOrderReason>("CLIENT_ORDER", models::MarketOrderReason::ClientOrder);
+    round_trip::<models::MarketOrderReason>("TRADE_CLOSE", models::MarketOrderReason::TradeClose);
+    round_trip::<models::MarketOrderReason>(
+        "POSITION_CLOSEOUT",
+        models::MarketOrderReason::PositionCloseout,
+    );
+    round_trip::<models::MarketOrderReason>(
+        "MARGIN_CLOSEOUT",
+        models::MarketOrderReason::MarginCloseout,
+    );
+    round_trip::<models::MarketOrderReason>(
+        "DELAYED_TRADE_CLOSE",
+        models::MarketOrderReason::DelayedTradeClose,
+    );
+    round_trip::<models::FixedPriceOrderReason>(
+        "PLATFORM_ACCOUNT_MIGRATION",
+        models::FixedPriceOrderReason::PlatformAccountMigration,
+    );
+    round_trip::<models::FixedPriceOrderReason>(
+        "TRADE_CLOSE_DIVISION_ACCOUNT_MIGRATION",
+        models::FixedPriceOrderReason::TradeCloseDivisionAccountMigration,
+    );
+    round_trip::<models::FixedPriceOrderReason>(
+        "TRADE_CLOSE_ADMINISTRATIVE_ACTION",
+        models::FixedPriceOrderReason::TradeCloseAdministrativeAction,
+    );
+    round_trip::<models::LimitOrderReason>("CLIENT_ORDER", models::LimitOrderReason::ClientOrder);
+    round_trip::<models::LimitOrderReason>("REPLACEMENT", models::LimitOrderReason::Replacement);
+    round_trip::<models::StopOrderReason>("CLIENT_ORDER", models::StopOrderReason::ClientOrder);
+    round_trip::<models::StopOrderReason>("REPLACEMENT", models::StopOrderReason::Replacement);
+    round_trip::<models::MarketIfTouchedOrderReason>(
+        "CLIENT_ORDER",
+        models::MarketIfTouchedOrderReason::ClientOrder,
+    );
+    round_trip::<models::MarketIfTouchedOrderReason>(
+        "REPLACEMENT",
+        models::MarketIfTouchedOrderReason::Replacement,
+    );
+    round_trip::<models::TakeProfitOrderReason>(
+        "CLIENT_ORDER",
+        models::TakeProfitOrderReason::ClientOrder,
+    );
+    round_trip::<models::TakeProfitOrderReason>(
+        "REPLACEMENT",
+        models::TakeProfitOrderReason::Replacement,
+    );
+    round_trip::<models::TakeProfitOrderReason>("ON_FILL", models::TakeProfitOrderReason::OnFill);
+    round_trip::<models::StopLossOrderReason>(
+        "CLIENT_ORDER",
+        models::StopLossOrderReason::ClientOrder,
+    );
+    round_trip::<models::StopLossOrderReason>(
+        "REPLACEMENT",
+        models::StopLossOrderReason::Replacement,
+    );
+    round_trip::<models::StopLossOrderReason>("ON_FILL", models::StopLossOrderReason::OnFill);
+    round_trip::<models::GuaranteedStopLossOrderReason>(
+        "CLIENT_ORDER",
+        models::GuaranteedStopLossOrderReason::ClientOrder,
+    );
+    round_trip::<models::GuaranteedStopLossOrderReason>(
+        "REPLACEMENT",
+        models::GuaranteedStopLossOrderReason::Replacement,
+    );
+    round_trip::<models::GuaranteedStopLossOrderReason>(
+        "ON_FILL",
+        models::GuaranteedStopLossOrderReason::OnFill,
+    );
+    round_trip::<models::TrailingStopLossOrderReason>(
+        "CLIENT_ORDER",
+        models::TrailingStopLossOrderReason::ClientOrder,
+    );
+    round_trip::<models::TrailingStopLossOrderReason>(
+        "REPLACEMENT",
+        models::TrailingStopLossOrderReason::Replacement,
+    );
+    round_trip::<models::TrailingStopLossOrderReason>(
+        "ON_FILL",
+        models::TrailingStopLossOrderReason::OnFill,
+    );
+    round_trip::<models::OrderFillReason>("LIMIT_ORDER", models::OrderFillReason::LimitOrder);
+    round_trip::<models::OrderFillReason>("STOP_ORDER", models::OrderFillReason::StopOrder);
+    round_trip::<models::OrderFillReason>(
+        "MARKET_IF_TOUCHED_ORDER",
+        models::OrderFillReason::MarketIfTouchedOrder,
+    );
+    round_trip::<models::OrderFillReason>(
+        "TAKE_PROFIT_ORDER",
+        models::OrderFillReason::TakeProfitOrder,
+    );
+    round_trip::<models::OrderFillReason>(
+        "STOP_LOSS_ORDER",
+        models::OrderFillReason::StopLossOrder,
+    );
+    round_trip::<models::OrderFillReason>(
+        "GUARANTEED_STOP_LOSS_ORDER",
+        models::OrderFillReason::GuaranteedStopLossOrder,
+    );
+    round_trip::<models::OrderFillReason>(
+        "TRAILING_STOP_LOSS_ORDER",
+        models::OrderFillReason::TrailingStopLossOrder,
+    );
+    round_trip::<models::OrderFillReason>("MARKET_ORDER", models::OrderFillReason::MarketOrder);
+    round_trip::<models::OrderFillReason>(
+        "MARKET_ORDER_TRADE_CLOSE",
+        models::OrderFillReason::MarketOrderTradeClose,
+    );
+    round_trip::<models::OrderFillReason>(
+        "MARKET_ORDER_POSITION_CLOSEOUT",
+        models::OrderFillReason::MarketOrderPositionCloseout,
+    );
+    round_trip::<models::OrderFillReason>(
+        "MARKET_ORDER_MARGIN_CLOSEOUT",
+        models::OrderFillReason::MarketOrderMarginCloseout,
+    );
+    round_trip::<models::OrderFillReason>(
+        "MARKET_ORDER_DELAYED_TRADE_CLOSE",
+        models::OrderFillReason::MarketOrderDelayedTradeClose,
+    );
+    round_trip::<models::OrderFillReason>(
+        "FIXED_PRICE_ORDER",
+        models::OrderFillReason::FixedPriceOrder,
+    );
+    round_trip::<models::OrderFillReason>(
+        "FIXED_PRICE_ORDER_PLATFORM_ACCOUNT_MIGRATION",
+        models::OrderFillReason::FixedPriceOrderPlatformAccountMigration,
+    );
+    round_trip::<models::OrderFillReason>(
+        "FIXED_PRICE_ORDER_DIVISION_ACCOUNT_MIGRATION",
+        models::OrderFillReason::FixedPriceOrderDivisionAccountMigration,
+    );
+    round_trip::<models::OrderFillReason>(
+        "FIXED_PRICE_ORDER_ADMINISTRATIVE_ACTION",
+        models::OrderFillReason::FixedPriceOrderAdministrativeAction,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INTERNAL_SERVER_ERROR",
+        models::OrderCancelReason::InternalServerError,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "ACCOUNT_LOCKED",
+        models::OrderCancelReason::AccountLocked,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "ACCOUNT_NEW_POSITIONS_LOCKED",
+        models::OrderCancelReason::AccountNewPositionsLocked,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "ACCOUNT_ORDER_CREATION_LOCKED",
+        models::OrderCancelReason::AccountOrderCreationLocked,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "ACCOUNT_ORDER_FILL_LOCKED",
+        models::OrderCancelReason::AccountOrderFillLocked,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "CLIENT_REQUEST",
+        models::OrderCancelReason::ClientRequest,
+    );
+    round_trip::<models::OrderCancelReason>("MIGRATION", models::OrderCancelReason::Migration);
+    round_trip::<models::OrderCancelReason>(
+        "MARKET_HALTED",
+        models::OrderCancelReason::MarketHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "LINKED_TRADE_CLOSED",
+        models::OrderCancelReason::LinkedTradeClosed,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "TIME_IN_FORCE_EXPIRED",
+        models::OrderCancelReason::TimeInForceExpired,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSUFFICIENT_MARGIN",
+        models::OrderCancelReason::InsufficientMargin,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "FIFO_VIOLATION",
+        models::OrderCancelReason::FifoViolation,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "BOUNDS_VIOLATION",
+        models::OrderCancelReason::BoundsViolation,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "CLIENT_REQUEST_REPLACED",
+        models::OrderCancelReason::ClientRequestReplaced,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "DIVIDEND_ADJUSTMENT_REPLACED",
+        models::OrderCancelReason::DividendAdjustmentReplaced,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSUFFICIENT_LIQUIDITY",
+        models::OrderCancelReason::InsufficientLiquidity,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::OrderCancelReason::TakeProfitOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "TAKE_PROFIT_ON_FILL_LOSS",
+        models::OrderCancelReason::TakeProfitOnFillLoss,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "LOSING_TAKE_PROFIT",
+        models::OrderCancelReason::LosingTakeProfit,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::OrderCancelReason::StopLossOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_LOSS",
+        models::OrderCancelReason::StopLossOnFillLoss,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::OrderCancelReason::StopLossOnFillPriceDistanceMaximumExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_REQUIRED",
+        models::OrderCancelReason::StopLossOnFillRequired,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedRequired,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedNotAllowed,
+    );
     round_trip::<models::OrderCancelReason>(
         "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        models::OrderCancelReason::StopLossOnFillGuaranteedMinimumDistanceNotMet,
     );
     round_trip::<models::OrderCancelReason>(
         "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedLevelRestrictionExceeded,
     );
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GUARANTEED_HEDGING_NOT_ALLOWED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_LOSS");
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_HEDGING_NOT_ALLOWED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedHedgingNotAllowed,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::OrderCancelReason::StopLossOnFillTimeInForceInvalid,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::OrderCancelReason::StopLossOnFillTriggerConditionInvalid,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::OrderCancelReason::GuaranteedStopLossOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_LOSS",
+        models::OrderCancelReason::GuaranteedStopLossOnFillLoss,
+    );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded,
     );
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED");
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillRequired,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillNotAllowed,
+    );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET",
+        models::OrderCancelReason::GuaranteedStopLossOnFillMinimumDistanceNotMet,
     );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded,
     );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded,
     );
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_HEDGING_NOT_ALLOWED");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID");
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_HEDGING_NOT_ALLOWED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillHedgingNotAllowed,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::OrderCancelReason::GuaranteedStopLossOnFillTimeInForceInvalid,
+    );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::OrderCancelReason::GuaranteedStopLossOnFillTriggerConditionInvalid,
     );
-    round_trip::<models::OrderCancelReason>("TAKE_PROFIT_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::OrderCancelReason>("CLIENT_TRADE_ID_ALREADY_EXISTS");
-    round_trip::<models::OrderCancelReason>("POSITION_CLOSEOUT_FAILED");
-    round_trip::<models::OrderCancelReason>("OPEN_TRADES_ALLOWED_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("PENDING_ORDERS_ALLOWED_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS");
+    round_trip::<models::OrderCancelReason>(
+        "TAKE_PROFIT_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::OrderCancelReason::TakeProfitOnFillPriceDistanceMaximumExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::OrderCancelReason::TrailingStopLossOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "CLIENT_TRADE_ID_ALREADY_EXISTS",
+        models::OrderCancelReason::ClientTradeIdAlreadyExists,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "POSITION_CLOSEOUT_FAILED",
+        models::OrderCancelReason::PositionCloseoutFailed,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "OPEN_TRADES_ALLOWED_EXCEEDED",
+        models::OrderCancelReason::OpenTradesAllowedExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "PENDING_ORDERS_ALLOWED_EXCEEDED",
+        models::OrderCancelReason::PendingOrdersAllowedExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        models::OrderCancelReason::TakeProfitOnFillClientOrderIdAlreadyExists,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        models::OrderCancelReason::StopLossOnFillClientOrderIdAlreadyExists,
+    );
     round_trip::<models::OrderCancelReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        models::OrderCancelReason::GuaranteedStopLossOnFillClientOrderIdAlreadyExists,
     );
     round_trip::<models::OrderCancelReason>(
         "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        models::OrderCancelReason::TrailingStopLossOnFillClientOrderIdAlreadyExists,
     );
-    round_trip::<models::OrderCancelReason>("POSITION_SIZE_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("HEDGING_GSLO_VIOLATION");
-    round_trip::<models::OrderCancelReason>("ACCOUNT_POSITION_VALUE_LIMIT_EXCEEDED");
-    round_trip::<models::OrderCancelReason>("INSTRUMENT_BID_REDUCE_ONLY");
-    round_trip::<models::OrderCancelReason>("INSTRUMENT_ASK_REDUCE_ONLY");
-    round_trip::<models::OrderCancelReason>("INSTRUMENT_BID_HALTED");
-    round_trip::<models::OrderCancelReason>("INSTRUMENT_ASK_HALTED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GUARANTEED_BID_HALTED");
-    round_trip::<models::OrderCancelReason>("STOP_LOSS_ON_FILL_GUARANTEED_ASK_HALTED");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_BID_HALTED");
-    round_trip::<models::OrderCancelReason>("GUARANTEED_STOP_LOSS_ON_FILL_ASK_HALTED");
-    round_trip::<models::OrderCancelReason>("FIFO_VIOLATION_SAFEGUARD_VIOLATION");
-    round_trip::<models::OrderCancelReason>("FIFO_VIOLATION_SAFEGUARD_PARTIAL_CLOSE_VIOLATION");
+    round_trip::<models::OrderCancelReason>(
+        "POSITION_SIZE_EXCEEDED",
+        models::OrderCancelReason::PositionSizeExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "HEDGING_GSLO_VIOLATION",
+        models::OrderCancelReason::HedgingGsloViolation,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "ACCOUNT_POSITION_VALUE_LIMIT_EXCEEDED",
+        models::OrderCancelReason::AccountPositionValueLimitExceeded,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSTRUMENT_BID_REDUCE_ONLY",
+        models::OrderCancelReason::InstrumentBidReduceOnly,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSTRUMENT_ASK_REDUCE_ONLY",
+        models::OrderCancelReason::InstrumentAskReduceOnly,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSTRUMENT_BID_HALTED",
+        models::OrderCancelReason::InstrumentBidHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "INSTRUMENT_ASK_HALTED",
+        models::OrderCancelReason::InstrumentAskHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_BID_HALTED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedBidHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_ASK_HALTED",
+        models::OrderCancelReason::StopLossOnFillGuaranteedAskHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_BID_HALTED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillBidHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_ASK_HALTED",
+        models::OrderCancelReason::GuaranteedStopLossOnFillAskHalted,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "FIFO_VIOLATION_SAFEGUARD_VIOLATION",
+        models::OrderCancelReason::FifoViolationSafeguardViolation,
+    );
+    round_trip::<models::OrderCancelReason>(
+        "FIFO_VIOLATION_SAFEGUARD_PARTIAL_CLOSE_VIOLATION",
+        models::OrderCancelReason::FifoViolationSafeguardPartialCloseViolation,
+    );
     round_trip::<models::OrderCancelReason>(
         "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        models::OrderCancelReason::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation,
     );
-    round_trip::<models::MarketOrderMarginCloseoutReason>("MARGIN_CHECK_VIOLATION");
-    round_trip::<models::MarketOrderMarginCloseoutReason>("REGULATORY_MARGIN_CALL_VIOLATION");
-    round_trip::<models::MarketOrderMarginCloseoutReason>("REGULATORY_MARGIN_CHECK_VIOLATION");
-    round_trip::<models::TransactionRejectReason>("INTERNAL_SERVER_ERROR");
-    round_trip::<models::TransactionRejectReason>("INSTRUMENT_PRICE_UNKNOWN");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_NOT_ACTIVE");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_LOCKED");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_ORDER_CREATION_LOCKED");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_CONFIGURATION_LOCKED");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_DEPOSIT_LOCKED");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_WITHDRAWAL_LOCKED");
-    round_trip::<models::TransactionRejectReason>("ACCOUNT_ORDER_CANCEL_LOCKED");
-    round_trip::<models::TransactionRejectReason>("INSTRUMENT_NOT_TRADEABLE");
-    round_trip::<models::TransactionRejectReason>("PENDING_ORDERS_ALLOWED_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("ORDER_ID_UNSPECIFIED");
-    round_trip::<models::TransactionRejectReason>("ORDER_DOESNT_EXIST");
-    round_trip::<models::TransactionRejectReason>("ORDER_IDENTIFIER_INCONSISTENCY");
-    round_trip::<models::TransactionRejectReason>("TRADE_ID_UNSPECIFIED");
-    round_trip::<models::TransactionRejectReason>("TRADE_DOESNT_EXIST");
-    round_trip::<models::TransactionRejectReason>("TRADE_IDENTIFIER_INCONSISTENCY");
-    round_trip::<models::TransactionRejectReason>("INSUFFICIENT_MARGIN");
-    round_trip::<models::TransactionRejectReason>("INSTRUMENT_MISSING");
-    round_trip::<models::TransactionRejectReason>("INSTRUMENT_UNKNOWN");
-    round_trip::<models::TransactionRejectReason>("UNITS_MISSING");
-    round_trip::<models::TransactionRejectReason>("UNITS_INVALID");
-    round_trip::<models::TransactionRejectReason>("UNITS_PRECISION_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("UNITS_LIMIT_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("UNITS_MINIMUM_NOT_MET");
-    round_trip::<models::TransactionRejectReason>("PRICE_MISSING");
-    round_trip::<models::TransactionRejectReason>("PRICE_INVALID");
-    round_trip::<models::TransactionRejectReason>("PRICE_PRECISION_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("PRICE_DISTANCE_MISSING");
-    round_trip::<models::TransactionRejectReason>("PRICE_DISTANCE_INVALID");
-    round_trip::<models::TransactionRejectReason>("PRICE_DISTANCE_PRECISION_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("PRICE_DISTANCE_MAXIMUM_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("PRICE_DISTANCE_MINIMUM_NOT_MET");
-    round_trip::<models::TransactionRejectReason>("TIME_IN_FORCE_MISSING");
-    round_trip::<models::TransactionRejectReason>("TIME_IN_FORCE_INVALID");
-    round_trip::<models::TransactionRejectReason>("TIME_IN_FORCE_GTD_TIMESTAMP_MISSING");
-    round_trip::<models::TransactionRejectReason>("TIME_IN_FORCE_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::TransactionRejectReason>("PRICE_BOUND_INVALID");
-    round_trip::<models::TransactionRejectReason>("PRICE_BOUND_PRECISION_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("ORDERS_ON_FILL_DUPLICATE_CLIENT_ORDER_IDS");
-    round_trip::<models::TransactionRejectReason>("TRADE_ON_FILL_CLIENT_EXTENSIONS_NOT_SUPPORTED");
-    round_trip::<models::TransactionRejectReason>("CLIENT_ORDER_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_ORDER_ID_ALREADY_EXISTS");
-    round_trip::<models::TransactionRejectReason>("CLIENT_ORDER_TAG_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_ORDER_COMMENT_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_TRADE_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_TRADE_ID_ALREADY_EXISTS");
-    round_trip::<models::TransactionRejectReason>("CLIENT_TRADE_TAG_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_TRADE_COMMENT_INVALID");
-    round_trip::<models::TransactionRejectReason>("ORDER_FILL_POSITION_ACTION_MISSING");
-    round_trip::<models::TransactionRejectReason>("ORDER_FILL_POSITION_ACTION_INVALID");
-    round_trip::<models::TransactionRejectReason>("TRIGGER_CONDITION_MISSING");
-    round_trip::<models::TransactionRejectReason>("TRIGGER_CONDITION_INVALID");
-    round_trip::<models::TransactionRejectReason>("ORDER_PARTIAL_FILL_OPTION_MISSING");
-    round_trip::<models::TransactionRejectReason>("ORDER_PARTIAL_FILL_OPTION_INVALID");
-    round_trip::<models::TransactionRejectReason>("INVALID_REISSUE_IMMEDIATE_PARTIAL_FILL");
+    round_trip::<models::MarketOrderMarginCloseoutReason>(
+        "MARGIN_CHECK_VIOLATION",
+        models::MarketOrderMarginCloseoutReason::MarginCheckViolation,
+    );
+    round_trip::<models::MarketOrderMarginCloseoutReason>(
+        "REGULATORY_MARGIN_CALL_VIOLATION",
+        models::MarketOrderMarginCloseoutReason::RegulatoryMarginCallViolation,
+    );
+    round_trip::<models::MarketOrderMarginCloseoutReason>(
+        "REGULATORY_MARGIN_CHECK_VIOLATION",
+        models::MarketOrderMarginCloseoutReason::RegulatoryMarginCheckViolation,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INTERNAL_SERVER_ERROR",
+        models::TransactionRejectReason::InternalServerError,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSTRUMENT_PRICE_UNKNOWN",
+        models::TransactionRejectReason::InstrumentPriceUnknown,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_NOT_ACTIVE",
+        models::TransactionRejectReason::AccountNotActive,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_LOCKED",
+        models::TransactionRejectReason::AccountLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_ORDER_CREATION_LOCKED",
+        models::TransactionRejectReason::AccountOrderCreationLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_CONFIGURATION_LOCKED",
+        models::TransactionRejectReason::AccountConfigurationLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_DEPOSIT_LOCKED",
+        models::TransactionRejectReason::AccountDepositLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_WITHDRAWAL_LOCKED",
+        models::TransactionRejectReason::AccountWithdrawalLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ACCOUNT_ORDER_CANCEL_LOCKED",
+        models::TransactionRejectReason::AccountOrderCancelLocked,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSTRUMENT_NOT_TRADEABLE",
+        models::TransactionRejectReason::InstrumentNotTradeable,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PENDING_ORDERS_ALLOWED_EXCEEDED",
+        models::TransactionRejectReason::PendingOrdersAllowedExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_ID_UNSPECIFIED",
+        models::TransactionRejectReason::OrderIdUnspecified,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_DOESNT_EXIST",
+        models::TransactionRejectReason::OrderDoesntExist,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_IDENTIFIER_INCONSISTENCY",
+        models::TransactionRejectReason::OrderIdentifierInconsistency,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRADE_ID_UNSPECIFIED",
+        models::TransactionRejectReason::TradeIdUnspecified,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRADE_DOESNT_EXIST",
+        models::TransactionRejectReason::TradeDoesntExist,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRADE_IDENTIFIER_INCONSISTENCY",
+        models::TransactionRejectReason::TradeIdentifierInconsistency,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSUFFICIENT_MARGIN",
+        models::TransactionRejectReason::InsufficientMargin,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSTRUMENT_MISSING",
+        models::TransactionRejectReason::InstrumentMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSTRUMENT_UNKNOWN",
+        models::TransactionRejectReason::InstrumentUnknown,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "UNITS_MISSING",
+        models::TransactionRejectReason::UnitsMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "UNITS_INVALID",
+        models::TransactionRejectReason::UnitsInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "UNITS_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::UnitsPrecisionExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "UNITS_LIMIT_EXCEEDED",
+        models::TransactionRejectReason::UnitsLimitExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "UNITS_MINIMUM_NOT_MET",
+        models::TransactionRejectReason::UnitsMinimumNotMet,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_MISSING",
+        models::TransactionRejectReason::PriceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_INVALID",
+        models::TransactionRejectReason::PriceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::PricePrecisionExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_DISTANCE_MISSING",
+        models::TransactionRejectReason::PriceDistanceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_DISTANCE_INVALID",
+        models::TransactionRejectReason::PriceDistanceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_DISTANCE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::PriceDistancePrecisionExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::TransactionRejectReason::PriceDistanceMaximumExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_DISTANCE_MINIMUM_NOT_MET",
+        models::TransactionRejectReason::PriceDistanceMinimumNotMet,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TIME_IN_FORCE_MISSING",
+        models::TransactionRejectReason::TimeInForceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TIME_IN_FORCE_INVALID",
+        models::TransactionRejectReason::TimeInForceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TIME_IN_FORCE_GTD_TIMESTAMP_MISSING",
+        models::TransactionRejectReason::TimeInForceGtdTimestampMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TIME_IN_FORCE_GTD_TIMESTAMP_IN_PAST",
+        models::TransactionRejectReason::TimeInForceGtdTimestampInPast,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_BOUND_INVALID",
+        models::TransactionRejectReason::PriceBoundInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "PRICE_BOUND_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::PriceBoundPrecisionExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDERS_ON_FILL_DUPLICATE_CLIENT_ORDER_IDS",
+        models::TransactionRejectReason::OrdersOnFillDuplicateClientOrderIds,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRADE_ON_FILL_CLIENT_EXTENSIONS_NOT_SUPPORTED",
+        models::TransactionRejectReason::TradeOnFillClientExtensionsNotSupported,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_ORDER_ID_INVALID",
+        models::TransactionRejectReason::ClientOrderIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_ORDER_ID_ALREADY_EXISTS",
+        models::TransactionRejectReason::ClientOrderIdAlreadyExists,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_ORDER_TAG_INVALID",
+        models::TransactionRejectReason::ClientOrderTagInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_ORDER_COMMENT_INVALID",
+        models::TransactionRejectReason::ClientOrderCommentInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_TRADE_ID_INVALID",
+        models::TransactionRejectReason::ClientTradeIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_TRADE_ID_ALREADY_EXISTS",
+        models::TransactionRejectReason::ClientTradeIdAlreadyExists,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_TRADE_TAG_INVALID",
+        models::TransactionRejectReason::ClientTradeTagInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_TRADE_COMMENT_INVALID",
+        models::TransactionRejectReason::ClientTradeCommentInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_FILL_POSITION_ACTION_MISSING",
+        models::TransactionRejectReason::OrderFillPositionActionMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_FILL_POSITION_ACTION_INVALID",
+        models::TransactionRejectReason::OrderFillPositionActionInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRIGGER_CONDITION_MISSING",
+        models::TransactionRejectReason::TriggerConditionMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TRIGGER_CONDITION_INVALID",
+        models::TransactionRejectReason::TriggerConditionInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_PARTIAL_FILL_OPTION_MISSING",
+        models::TransactionRejectReason::OrderPartialFillOptionMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_PARTIAL_FILL_OPTION_INVALID",
+        models::TransactionRejectReason::OrderPartialFillOptionInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INVALID_REISSUE_IMMEDIATE_PARTIAL_FILL",
+        models::TransactionRejectReason::InvalidReissueImmediatePartialFill,
+    );
     round_trip::<models::TransactionRejectReason>(
         "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        models::TransactionRejectReason::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        models::TransactionRejectReason::OrdersOnFillRmoMutualExclusivityGsloExcludesOthersViolation,
     );
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ORDER_ALREADY_EXISTS");
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ORDER_ALREADY_EXISTS",
+        models::TransactionRejectReason::TakeProfitOrderAlreadyExists,
+    );
     round_trip::<models::TransactionRejectReason>(
         "TAKE_PROFIT_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        models::TransactionRejectReason::TakeProfitOrderWouldViolateFifoViolationSafeguard,
     );
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_PRICE_MISSING");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_PRICE_INVALID");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_PRICE_PRECISION_EXCEEDED");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_MISSING");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_INVALID");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_MISSING");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_CLIENT_ORDER_TAG_INVALID");
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_PRICE_MISSING",
+        models::TransactionRejectReason::TakeProfitOnFillPriceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_PRICE_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillPriceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::TakeProfitOnFillPricePrecisionExceeded,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_MISSING",
+        models::TransactionRejectReason::TakeProfitOnFillTimeInForceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillTimeInForceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_MISSING",
+        models::TransactionRejectReason::TakeProfitOnFillGtdTimestampMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::TransactionRejectReason::TakeProfitOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillClientOrderIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillClientOrderTagInvalid,
+    );
     round_trip::<models::TransactionRejectReason>(
         "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillClientOrderCommentInvalid,
     );
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_MISSING");
-    round_trip::<models::TransactionRejectReason>("TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_ALREADY_EXISTS");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_GUARANTEED_REQUIRED");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_GUARANTEED_PRICE_WITHIN_SPREAD");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_GUARANTEED_NOT_ALLOWED");
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_MISSING",
+        models::TransactionRejectReason::TakeProfitOnFillTriggerConditionMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::TransactionRejectReason::TakeProfitOnFillTriggerConditionInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_ALREADY_EXISTS",
+        models::TransactionRejectReason::StopLossOrderAlreadyExists,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_GUARANTEED_REQUIRED",
+        models::TransactionRejectReason::StopLossOrderGuaranteedRequired,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_GUARANTEED_PRICE_WITHIN_SPREAD",
+        models::TransactionRejectReason::StopLossOrderGuaranteedPriceWithinSpread,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_GUARANTEED_NOT_ALLOWED",
+        models::TransactionRejectReason::StopLossOrderGuaranteedNotAllowed,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_GUARANTEED_HALTED_CREATE_VIOLATION",
+        models::TransactionRejectReason::StopLossOrderGuaranteedHaltedCreateViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_GUARANTEED_HALTED_TIGHTEN_VIOLATION",
+        models::TransactionRejectReason::StopLossOrderGuaranteedHaltedTightenViolation,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_GUARANTEED_HEDGING_NOT_ALLOWED");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_GUARANTEED_HEDGING_NOT_ALLOWED",
+        models::TransactionRejectReason::StopLossOrderGuaranteedHedgingNotAllowed,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        models::TransactionRejectReason::StopLossOrderGuaranteedMinimumDistanceNotMet,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_NOT_CANCELABLE");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ORDER_NOT_REPLACEABLE");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_NOT_CANCELABLE",
+        models::TransactionRejectReason::StopLossOrderNotCancelable,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ORDER_NOT_REPLACEABLE",
+        models::TransactionRejectReason::StopLossOrderNotReplaceable,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        models::TransactionRejectReason::StopLossOrderGuaranteedLevelRestrictionExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        models::TransactionRejectReason::StopLossOrderPriceAndDistanceBothSpecified,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING",
+        models::TransactionRejectReason::StopLossOrderPriceAndDistanceBothMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        models::TransactionRejectReason::StopLossOrderWouldViolateFifoViolationSafeguard,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        models::TransactionRejectReason::StopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        models::TransactionRejectReason::StopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_PRICE_MISSING");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_PRICE_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER",
+        models::TransactionRejectReason::StopLossOnFillRequiredForPendingOrder,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
+        models::TransactionRejectReason::StopLossOnFillGuaranteedNotAllowed,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
+        models::TransactionRejectReason::StopLossOnFillGuaranteedRequired,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_PRICE_MISSING",
+        models::TransactionRejectReason::StopLossOnFillPriceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_PRICE_INVALID",
+        models::TransactionRejectReason::StopLossOnFillPriceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::StopLossOnFillPricePrecisionExceeded,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        models::TransactionRejectReason::StopLossOnFillGuaranteedMinimumDistanceNotMet,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        models::TransactionRejectReason::StopLossOnFillGuaranteedLevelRestrictionExceeded,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_DISTANCE_INVALID");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_DISTANCE_INVALID",
+        models::TransactionRejectReason::StopLossOnFillDistanceInvalid,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::TransactionRejectReason::StopLossOnFillPriceDistanceMaximumExceeded,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::StopLossOnFillDistancePrecisionExceeded,
+    );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        models::TransactionRejectReason::StopLossOnFillPriceAndDistanceBothSpecified,
     );
     round_trip::<models::TransactionRejectReason>(
         "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING",
+        models::TransactionRejectReason::StopLossOnFillPriceAndDistanceBothMissing,
     );
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING");
-    round_trip::<models::TransactionRejectReason>("STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_ALREADY_EXISTS");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_REQUIRED");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_PRICE_WITHIN_SPREAD");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_NOT_ALLOWED");
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        models::TransactionRejectReason::StopLossOnFillTimeInForceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::TransactionRejectReason::StopLossOnFillTimeInForceInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        models::TransactionRejectReason::StopLossOnFillGtdTimestampMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::TransactionRejectReason::StopLossOnFillGtdTimestampInPast,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        models::TransactionRejectReason::StopLossOnFillClientOrderIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        models::TransactionRejectReason::StopLossOnFillClientOrderTagInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        models::TransactionRejectReason::StopLossOnFillClientOrderCommentInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        models::TransactionRejectReason::StopLossOnFillTriggerConditionMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::TransactionRejectReason::StopLossOnFillTriggerConditionInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_ALREADY_EXISTS",
+        models::TransactionRejectReason::GuaranteedStopLossOrderAlreadyExists,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_REQUIRED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderRequired,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_PRICE_WITHIN_SPREAD",
+        models::TransactionRejectReason::GuaranteedStopLossOrderPriceWithinSpread,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_NOT_ALLOWED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderNotAllowed,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_HALTED_CREATE_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderHaltedCreateViolation,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_CREATE_VIOLATION");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_CREATE_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderCreateViolation,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_HALTED_TIGHTEN_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderHaltedTightenViolation,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_TIGHTEN_VIOLATION");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_HEDGING_NOT_ALLOWED");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_TIGHTEN_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderTightenViolation,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_HEDGING_NOT_ALLOWED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderHedgingNotAllowed,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_MINIMUM_DISTANCE_NOT_MET",
+        models::TransactionRejectReason::GuaranteedStopLossOrderMinimumDistanceNotMet,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_NOT_CANCELABLE");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_NOT_CANCELABLE",
+        models::TransactionRejectReason::GuaranteedStopLossOrderNotCancelable,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_CANCELABLE",
+        models::TransactionRejectReason::GuaranteedStopLossOrderHaltedNotCancelable,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ORDER_NOT_REPLACEABLE");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ORDER_NOT_REPLACEABLE",
+        models::TransactionRejectReason::GuaranteedStopLossOrderNotReplaceable,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_REPLACEABLE",
+        models::TransactionRejectReason::GuaranteedStopLossOrderHaltedNotReplaceable,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderLevelRestrictionVolumeExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderLevelRestrictionPriceRangeExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        models::TransactionRejectReason::GuaranteedStopLossOrderPriceAndDistanceBothSpecified,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOrderPriceAndDistanceBothMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        models::TransactionRejectReason::GuaranteedStopLossOrderWouldViolateFifoViolationSafeguard,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        models::TransactionRejectReason::GuaranteedStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillRequiredForPendingOrder,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ON_FILL_PRICE_MISSING");
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ON_FILL_PRICE_INVALID");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillNotAllowed,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillRequired,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPriceMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPriceInvalid,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPricePrecisionExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillMinimumDistanceNotMet,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded,
     );
-    round_trip::<models::TransactionRejectReason>("GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_INVALID");
+    round_trip::<models::TransactionRejectReason>(
+        "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillDistanceInvalid,
+    );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillDistancePrecisionExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPriceAndDistanceBothSpecified,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillPriceAndDistanceBothMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillTimeInForceMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillTimeInForceInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillGtdTimestampMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillGtdTimestampInPast,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillClientOrderIdInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillClientOrderTagInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillClientOrderCommentInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillTriggerConditionMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::TransactionRejectReason::GuaranteedStopLossOnFillTriggerConditionInvalid,
     );
-    round_trip::<models::TransactionRejectReason>("TRAILING_STOP_LOSS_ORDER_ALREADY_EXISTS");
+    round_trip::<models::TransactionRejectReason>(
+        "TRAILING_STOP_LOSS_ORDER_ALREADY_EXISTS",
+        models::TransactionRejectReason::TrailingStopLossOrderAlreadyExists,
+    );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        models::TransactionRejectReason::TrailingStopLossOrderWouldViolateFifoViolationSafeguard,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        models::TransactionRejectReason::TrailingStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        models::TransactionRejectReason::TrailingStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MISSING",
+        models::TransactionRejectReason::TrailingStopLossOnFillPriceDistanceMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillPriceDistanceInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_PRECISION_EXCEEDED",
+        models::TransactionRejectReason::TrailingStopLossOnFillPriceDistancePrecisionExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        models::TransactionRejectReason::TrailingStopLossOnFillPriceDistanceMaximumExceeded,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MINIMUM_NOT_MET",
+        models::TransactionRejectReason::TrailingStopLossOnFillPriceDistanceMinimumNotMet,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        models::TransactionRejectReason::TrailingStopLossOnFillTimeInForceMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillTimeInForceInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        models::TransactionRejectReason::TrailingStopLossOnFillGtdTimestampMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        models::TransactionRejectReason::TrailingStopLossOnFillGtdTimestampInPast,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillClientOrderIdInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillClientOrderTagInvalid,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillClientOrderCommentInvalid,
     );
-    round_trip::<models::TransactionRejectReason>("TRAILING_STOP_LOSS_ORDERS_NOT_SUPPORTED");
+    round_trip::<models::TransactionRejectReason>(
+        "TRAILING_STOP_LOSS_ORDERS_NOT_SUPPORTED",
+        models::TransactionRejectReason::TrailingStopLossOrdersNotSupported,
+    );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        models::TransactionRejectReason::TrailingStopLossOnFillTriggerConditionMissing,
     );
     round_trip::<models::TransactionRejectReason>(
         "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        models::TransactionRejectReason::TrailingStopLossOnFillTriggerConditionInvalid,
     );
-    round_trip::<models::TransactionRejectReason>("CLOSE_TRADE_TYPE_MISSING");
-    round_trip::<models::TransactionRejectReason>("CLOSE_TRADE_PARTIAL_UNITS_MISSING");
-    round_trip::<models::TransactionRejectReason>("CLOSE_TRADE_UNITS_EXCEED_TRADE_SIZE");
-    round_trip::<models::TransactionRejectReason>("CLOSEOUT_POSITION_DOESNT_EXIST");
-    round_trip::<models::TransactionRejectReason>("CLOSEOUT_POSITION_INCOMPLETE_SPECIFICATION");
-    round_trip::<models::TransactionRejectReason>("CLOSEOUT_POSITION_UNITS_EXCEED_POSITION_SIZE");
-    round_trip::<models::TransactionRejectReason>("CLOSEOUT_POSITION_REJECT");
-    round_trip::<models::TransactionRejectReason>("CLOSEOUT_POSITION_PARTIAL_UNITS_MISSING");
-    round_trip::<models::TransactionRejectReason>("MARKUP_GROUP_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("POSITION_AGGREGATION_MODE_INVALID");
-    round_trip::<models::TransactionRejectReason>("ADMIN_CONFIGURE_DATA_MISSING");
-    round_trip::<models::TransactionRejectReason>("MARGIN_RATE_INVALID");
-    round_trip::<models::TransactionRejectReason>("MARGIN_RATE_WOULD_TRIGGER_CLOSEOUT");
-    round_trip::<models::TransactionRejectReason>("ALIAS_INVALID");
-    round_trip::<models::TransactionRejectReason>("CLIENT_CONFIGURE_DATA_MISSING");
-    round_trip::<models::TransactionRejectReason>("MARGIN_RATE_WOULD_TRIGGER_MARGIN_CALL");
-    round_trip::<models::TransactionRejectReason>("AMOUNT_INVALID");
-    round_trip::<models::TransactionRejectReason>("INSUFFICIENT_FUNDS");
-    round_trip::<models::TransactionRejectReason>("AMOUNT_MISSING");
-    round_trip::<models::TransactionRejectReason>("FUNDING_REASON_MISSING");
-    round_trip::<models::TransactionRejectReason>("OCA_ORDER_IDS_STOP_LOSS_NOT_ALLOWED");
-    round_trip::<models::TransactionRejectReason>("CLIENT_EXTENSIONS_DATA_MISSING");
-    round_trip::<models::TransactionRejectReason>("REPLACING_ORDER_INVALID");
-    round_trip::<models::TransactionRejectReason>("REPLACING_TRADE_ID_INVALID");
-    round_trip::<models::TransactionRejectReason>("ORDER_CANCEL_WOULD_TRIGGER_CLOSEOUT");
-    round_trip::<models::TransactionFilter>("ORDER");
-    round_trip::<models::TransactionFilter>("FUNDING");
-    round_trip::<models::TransactionFilter>("ADMIN");
-    round_trip::<models::TransactionFilter>("CREATE");
-    round_trip::<models::TransactionFilter>("CLOSE");
-    round_trip::<models::TransactionFilter>("REOPEN");
-    round_trip::<models::TransactionFilter>("CLIENT_CONFIGURE");
-    round_trip::<models::TransactionFilter>("CLIENT_CONFIGURE_REJECT");
-    round_trip::<models::TransactionFilter>("TRANSFER_FUNDS");
-    round_trip::<models::TransactionFilter>("TRANSFER_FUNDS_REJECT");
-    round_trip::<models::TransactionFilter>("MARKET_ORDER");
-    round_trip::<models::TransactionFilter>("MARKET_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("LIMIT_ORDER");
-    round_trip::<models::TransactionFilter>("LIMIT_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("STOP_ORDER");
-    round_trip::<models::TransactionFilter>("STOP_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("MARKET_IF_TOUCHED_ORDER");
-    round_trip::<models::TransactionFilter>("MARKET_IF_TOUCHED_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("TAKE_PROFIT_ORDER");
-    round_trip::<models::TransactionFilter>("TAKE_PROFIT_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("STOP_LOSS_ORDER");
-    round_trip::<models::TransactionFilter>("STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("GUARANTEED_STOP_LOSS_ORDER");
-    round_trip::<models::TransactionFilter>("GUARANTEED_STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("TRAILING_STOP_LOSS_ORDER");
-    round_trip::<models::TransactionFilter>("TRAILING_STOP_LOSS_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("ONE_CANCELS_ALL_ORDER");
-    round_trip::<models::TransactionFilter>("ONE_CANCELS_ALL_ORDER_REJECT");
-    round_trip::<models::TransactionFilter>("ONE_CANCELS_ALL_ORDER_TRIGGERED");
-    round_trip::<models::TransactionFilter>("ORDER_FILL");
-    round_trip::<models::TransactionFilter>("ORDER_CANCEL");
-    round_trip::<models::TransactionFilter>("ORDER_CANCEL_REJECT");
-    round_trip::<models::TransactionFilter>("ORDER_CLIENT_EXTENSIONS_MODIFY");
-    round_trip::<models::TransactionFilter>("ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT");
-    round_trip::<models::TransactionFilter>("TRADE_CLIENT_EXTENSIONS_MODIFY");
-    round_trip::<models::TransactionFilter>("TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT");
-    round_trip::<models::TransactionFilter>("MARGIN_CALL_ENTER");
-    round_trip::<models::TransactionFilter>("MARGIN_CALL_EXTEND");
-    round_trip::<models::TransactionFilter>("MARGIN_CALL_EXIT");
-    round_trip::<models::TransactionFilter>("DELAYED_TRADE_CLOSURE");
-    round_trip::<models::TransactionFilter>("DAILY_FINANCING");
-    round_trip::<models::TransactionFilter>("RESET_RESETTABLE_PL");
-    round_trip::<models::PriceStatus>("tradeable");
-    round_trip::<models::PriceStatus>("non-tradeable");
-    round_trip::<models::PriceStatus>("invalid");
-    round_trip::<models::InstrumentType>("CURRENCY");
-    round_trip::<models::InstrumentType>("CFD");
-    round_trip::<models::InstrumentType>("METAL");
-    round_trip::<models::DayOfWeek>("SUNDAY");
-    round_trip::<models::DayOfWeek>("MONDAY");
-    round_trip::<models::DayOfWeek>("TUESDAY");
-    round_trip::<models::DayOfWeek>("WEDNESDAY");
-    round_trip::<models::DayOfWeek>("THURSDAY");
-    round_trip::<models::DayOfWeek>("FRIDAY");
-    round_trip::<models::DayOfWeek>("SATURDAY");
-    round_trip::<models::AcceptDatetimeFormat>("UNIX");
-    round_trip::<models::AcceptDatetimeFormat>("RFC3339");
-    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>("DISABLED");
-    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>("ALLOWED");
-    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>("REQUIRED");
-    round_trip::<models::Direction>("LONG");
-    round_trip::<models::Direction>("SHORT");
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSE_TRADE_TYPE_MISSING",
+        models::TransactionRejectReason::CloseTradeTypeMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSE_TRADE_PARTIAL_UNITS_MISSING",
+        models::TransactionRejectReason::CloseTradePartialUnitsMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSE_TRADE_UNITS_EXCEED_TRADE_SIZE",
+        models::TransactionRejectReason::CloseTradeUnitsExceedTradeSize,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSEOUT_POSITION_DOESNT_EXIST",
+        models::TransactionRejectReason::CloseoutPositionDoesntExist,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSEOUT_POSITION_INCOMPLETE_SPECIFICATION",
+        models::TransactionRejectReason::CloseoutPositionIncompleteSpecification,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSEOUT_POSITION_UNITS_EXCEED_POSITION_SIZE",
+        models::TransactionRejectReason::CloseoutPositionUnitsExceedPositionSize,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSEOUT_POSITION_REJECT",
+        models::TransactionRejectReason::CloseoutPositionReject,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLOSEOUT_POSITION_PARTIAL_UNITS_MISSING",
+        models::TransactionRejectReason::CloseoutPositionPartialUnitsMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "MARKUP_GROUP_ID_INVALID",
+        models::TransactionRejectReason::MarkupGroupIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "POSITION_AGGREGATION_MODE_INVALID",
+        models::TransactionRejectReason::PositionAggregationModeInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ADMIN_CONFIGURE_DATA_MISSING",
+        models::TransactionRejectReason::AdminConfigureDataMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "MARGIN_RATE_INVALID",
+        models::TransactionRejectReason::MarginRateInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "MARGIN_RATE_WOULD_TRIGGER_CLOSEOUT",
+        models::TransactionRejectReason::MarginRateWouldTriggerCloseout,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ALIAS_INVALID",
+        models::TransactionRejectReason::AliasInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_CONFIGURE_DATA_MISSING",
+        models::TransactionRejectReason::ClientConfigureDataMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "MARGIN_RATE_WOULD_TRIGGER_MARGIN_CALL",
+        models::TransactionRejectReason::MarginRateWouldTriggerMarginCall,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "AMOUNT_INVALID",
+        models::TransactionRejectReason::AmountInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "INSUFFICIENT_FUNDS",
+        models::TransactionRejectReason::InsufficientFunds,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "AMOUNT_MISSING",
+        models::TransactionRejectReason::AmountMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "FUNDING_REASON_MISSING",
+        models::TransactionRejectReason::FundingReasonMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "OCA_ORDER_IDS_STOP_LOSS_NOT_ALLOWED",
+        models::TransactionRejectReason::OcaOrderIdsStopLossNotAllowed,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "CLIENT_EXTENSIONS_DATA_MISSING",
+        models::TransactionRejectReason::ClientExtensionsDataMissing,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "REPLACING_ORDER_INVALID",
+        models::TransactionRejectReason::ReplacingOrderInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "REPLACING_TRADE_ID_INVALID",
+        models::TransactionRejectReason::ReplacingTradeIdInvalid,
+    );
+    round_trip::<models::TransactionRejectReason>(
+        "ORDER_CANCEL_WOULD_TRIGGER_CLOSEOUT",
+        models::TransactionRejectReason::OrderCancelWouldTriggerCloseout,
+    );
+    round_trip::<models::TransactionFilter>("ORDER", models::TransactionFilter::Order);
+    round_trip::<models::TransactionFilter>("FUNDING", models::TransactionFilter::Funding);
+    round_trip::<models::TransactionFilter>("ADMIN", models::TransactionFilter::Admin);
+    round_trip::<models::TransactionFilter>("CREATE", models::TransactionFilter::Create);
+    round_trip::<models::TransactionFilter>("CLOSE", models::TransactionFilter::Close);
+    round_trip::<models::TransactionFilter>("REOPEN", models::TransactionFilter::Reopen);
+    round_trip::<models::TransactionFilter>(
+        "CLIENT_CONFIGURE",
+        models::TransactionFilter::ClientConfigure,
+    );
+    round_trip::<models::TransactionFilter>(
+        "CLIENT_CONFIGURE_REJECT",
+        models::TransactionFilter::ClientConfigureReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRANSFER_FUNDS",
+        models::TransactionFilter::TransferFunds,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRANSFER_FUNDS_REJECT",
+        models::TransactionFilter::TransferFundsReject,
+    );
+    round_trip::<models::TransactionFilter>("MARKET_ORDER", models::TransactionFilter::MarketOrder);
+    round_trip::<models::TransactionFilter>(
+        "MARKET_ORDER_REJECT",
+        models::TransactionFilter::MarketOrderReject,
+    );
+    round_trip::<models::TransactionFilter>("LIMIT_ORDER", models::TransactionFilter::LimitOrder);
+    round_trip::<models::TransactionFilter>(
+        "LIMIT_ORDER_REJECT",
+        models::TransactionFilter::LimitOrderReject,
+    );
+    round_trip::<models::TransactionFilter>("STOP_ORDER", models::TransactionFilter::StopOrder);
+    round_trip::<models::TransactionFilter>(
+        "STOP_ORDER_REJECT",
+        models::TransactionFilter::StopOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "MARKET_IF_TOUCHED_ORDER",
+        models::TransactionFilter::MarketIfTouchedOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "MARKET_IF_TOUCHED_ORDER_REJECT",
+        models::TransactionFilter::MarketIfTouchedOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TAKE_PROFIT_ORDER",
+        models::TransactionFilter::TakeProfitOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TAKE_PROFIT_ORDER_REJECT",
+        models::TransactionFilter::TakeProfitOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "STOP_LOSS_ORDER",
+        models::TransactionFilter::StopLossOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "STOP_LOSS_ORDER_REJECT",
+        models::TransactionFilter::StopLossOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "GUARANTEED_STOP_LOSS_ORDER",
+        models::TransactionFilter::GuaranteedStopLossOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "GUARANTEED_STOP_LOSS_ORDER_REJECT",
+        models::TransactionFilter::GuaranteedStopLossOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRAILING_STOP_LOSS_ORDER",
+        models::TransactionFilter::TrailingStopLossOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRAILING_STOP_LOSS_ORDER_REJECT",
+        models::TransactionFilter::TrailingStopLossOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "ONE_CANCELS_ALL_ORDER",
+        models::TransactionFilter::OneCancelsAllOrder,
+    );
+    round_trip::<models::TransactionFilter>(
+        "ONE_CANCELS_ALL_ORDER_REJECT",
+        models::TransactionFilter::OneCancelsAllOrderReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "ONE_CANCELS_ALL_ORDER_TRIGGERED",
+        models::TransactionFilter::OneCancelsAllOrderTriggered,
+    );
+    round_trip::<models::TransactionFilter>("ORDER_FILL", models::TransactionFilter::OrderFill);
+    round_trip::<models::TransactionFilter>("ORDER_CANCEL", models::TransactionFilter::OrderCancel);
+    round_trip::<models::TransactionFilter>(
+        "ORDER_CANCEL_REJECT",
+        models::TransactionFilter::OrderCancelReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "ORDER_CLIENT_EXTENSIONS_MODIFY",
+        models::TransactionFilter::OrderClientExtensionsModify,
+    );
+    round_trip::<models::TransactionFilter>(
+        "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        models::TransactionFilter::OrderClientExtensionsModifyReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRADE_CLIENT_EXTENSIONS_MODIFY",
+        models::TransactionFilter::TradeClientExtensionsModify,
+    );
+    round_trip::<models::TransactionFilter>(
+        "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        models::TransactionFilter::TradeClientExtensionsModifyReject,
+    );
+    round_trip::<models::TransactionFilter>(
+        "MARGIN_CALL_ENTER",
+        models::TransactionFilter::MarginCallEnter,
+    );
+    round_trip::<models::TransactionFilter>(
+        "MARGIN_CALL_EXTEND",
+        models::TransactionFilter::MarginCallExtend,
+    );
+    round_trip::<models::TransactionFilter>(
+        "MARGIN_CALL_EXIT",
+        models::TransactionFilter::MarginCallExit,
+    );
+    round_trip::<models::TransactionFilter>(
+        "DELAYED_TRADE_CLOSURE",
+        models::TransactionFilter::DelayedTradeClosure,
+    );
+    round_trip::<models::TransactionFilter>(
+        "DAILY_FINANCING",
+        models::TransactionFilter::DailyFinancing,
+    );
+    round_trip::<models::TransactionFilter>(
+        "RESET_RESETTABLE_PL",
+        models::TransactionFilter::ResetResettablePl,
+    );
+    round_trip::<models::PriceStatus>("tradeable", models::PriceStatus::Tradeable);
+    round_trip::<models::PriceStatus>("non-tradeable", models::PriceStatus::NonTradeable);
+    round_trip::<models::PriceStatus>("invalid", models::PriceStatus::Invalid);
+    round_trip::<models::InstrumentType>("CURRENCY", models::InstrumentType::Currency);
+    round_trip::<models::InstrumentType>("CFD", models::InstrumentType::Cfd);
+    round_trip::<models::InstrumentType>("METAL", models::InstrumentType::Metal);
+    round_trip::<models::DayOfWeek>("SUNDAY", models::DayOfWeek::Sunday);
+    round_trip::<models::DayOfWeek>("MONDAY", models::DayOfWeek::Monday);
+    round_trip::<models::DayOfWeek>("TUESDAY", models::DayOfWeek::Tuesday);
+    round_trip::<models::DayOfWeek>("WEDNESDAY", models::DayOfWeek::Wednesday);
+    round_trip::<models::DayOfWeek>("THURSDAY", models::DayOfWeek::Thursday);
+    round_trip::<models::DayOfWeek>("FRIDAY", models::DayOfWeek::Friday);
+    round_trip::<models::DayOfWeek>("SATURDAY", models::DayOfWeek::Saturday);
+    round_trip::<models::AcceptDatetimeFormat>("UNIX", models::AcceptDatetimeFormat::Unix);
+    round_trip::<models::AcceptDatetimeFormat>("RFC3339", models::AcceptDatetimeFormat::Rfc3339);
+    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>(
+        "DISABLED",
+        models::GuaranteedStopLossOrderModeForInstrument::Disabled,
+    );
+    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>(
+        "ALLOWED",
+        models::GuaranteedStopLossOrderModeForInstrument::Allowed,
+    );
+    round_trip::<models::GuaranteedStopLossOrderModeForInstrument>(
+        "REQUIRED",
+        models::GuaranteedStopLossOrderModeForInstrument::Required,
+    );
+    round_trip::<models::Direction>("LONG", models::Direction::Long);
+    round_trip::<models::Direction>("SHORT", models::Direction::Short);
+}
+
+#[test]
+fn an_undocumented_enum_value_fails_the_round_trip() {
+    // Any string used to pass behind the Unknown arm, so a variant the
+    // generator lost was invisible. An unrecognized spelling must now fail,
+    // and the panic is the documented-variant assertion itself.
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
+    let result = std::panic::catch_unwind(|| {
+        round_trip::<models::OrderType>("GARBAGE", models::OrderType::Market);
+    });
+    std::panic::set_hook(previous);
+    let panic = result.expect_err("an unrecognized spelling must fail");
+    let text = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or_default();
+    assert!(
+        text.contains("must decode to its documented variant"),
+        "panic message {text:?} is not the documented-variant assertion"
+    );
 }

@@ -105,10 +105,14 @@ environment variables set, run `cargo run --example practice_account`. Select
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
   account and transaction state before calling `acknowledge_reconciliation`, which reports whether
   it released the fence.
-- Pricing and transaction streams are incremental, bounded, newline-delimited HTTP streams with
-  typed heartbeats. Malformed records, oversized records, timeouts, and connection loss end that
-  stream generation and require caller-owned recovery. The library does not reconnect or maintain
-  account and price projections.
+- Pricing and transaction streams are incremental, newline-delimited HTTP streams with typed
+  heartbeats. Records are bounded individually by a local hostile-input limit of 1 MiB, and the
+  buffered backlog by a local cap of 16 MiB that ends the generation explicitly rather than evicting
+  records already accepted. HTTP chunk segmentation is a transport read, not a provider record
+  boundary, so a large chunk carrying many valid records is processed in order rather than
+  rejected, and buffered records are never evicted for a slow caller. Malformed or oversized records, timeouts, and connection loss end that stream
+  generation and require caller-owned recovery. The library does not reconnect or maintain account
+  and price projections.
 - OANDA's [pricing stream](https://developer.oanda.com/rest-live-v20/pricing-ep/) is sampled at most
   four prices per second per instrument. It does not carry every price update.
 

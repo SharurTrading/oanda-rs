@@ -294,7 +294,7 @@ async fn typed_rejection_retains_provider_transaction() {
             assert_eq!(status, 400);
             assert_eq!(code.as_deref(), Some("INVALID_VALUE"));
             assert_eq!(message.as_deref(), Some("margin rate rejected"));
-            let body = body.into_decoded().expect("decoded rejection body");
+            let body = body.decoded().expect("decoded rejection body");
             assert!(body.client_configure_reject_transaction.is_some());
         }
         other => panic!("unexpected error: {other:?}"),
@@ -369,10 +369,10 @@ async fn pagination_link_follows_only_same_origin() {
     });
     let client = fixture_client(url);
     let first = client.list_accounts().await.expect("first");
-    let page = first.next_page.expect("next page");
+    let page = first.next_page.decoded().cloned().expect("next page");
     let second: oanda_client::ApiResponse<oanda_client::account::ListAccountsResponse> =
         client.fetch_page(&page).await.expect("second");
-    assert!(second.next_page.is_none());
+    assert!(second.next_page.is_absent());
     let paths = task.await.expect("server");
     assert_eq!(
         paths,
@@ -388,6 +388,99 @@ async fn pagination_link_follows_only_same_origin() {
         result,
         Err(OperationError::Client(Error::InvalidInput(_)))
     ));
+}
+
+/// Serve one JSON success body with arbitrary extra raw header bytes, so a
+/// header value this client cannot read as text is expressible in a fixture.
+fn raw_headers_json(status: &str, headers: &[u8], value: &str) -> Vec<u8> {
+    let mut response = format!(
+        "HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n",
+        value.len()
+    )
+    .into_bytes();
+    response.extend_from_slice(headers);
+    response.extend_from_slice(b"Connection: close\r\n\r\n");
+    response.extend_from_slice(value.as_bytes());
+    response
+}
+
+#[tokio::test]
+async fn an_unreadable_request_id_is_reported_as_sent_not_absent() {
+    // The header value carries bytes that are not valid ASCII/UTF-8, so OANDA
+    // supplied an identifier this client cannot read. Before the Supplied
+    // contract this decoded to None, the same value as no header at all.
+    let response = raw_headers_json("200 OK", b"RequestID: \xFF\xFE\r\n", r#"{"accounts":[]}"#);
+    let (url, task) = server(response).await;
+    let client = fixture_client(url);
+    let page = client.list_accounts().await.expect("request succeeds");
+    assert_eq!(page.request_id, Supplied::Undecoded);
+    assert!(page.next_page.is_absent());
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn an_absent_request_id_is_absent() {
+    let (url, task) = server(http_json("200 OK", r#"{"accounts":[]}"#)).await;
+    let client = fixture_client(url);
+    let page = client.list_accounts().await.expect("request succeeds");
+    assert!(page.request_id.is_absent());
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn an_unreadable_link_header_is_not_read_as_no_next_page() {
+    // A Link header with unreadable bytes offered something this client cannot
+    // surface. Before the Supplied contract the whole request failed on the
+    // pagination hint even though the body decoded; it must never be reported
+    // as "OANDA offered no next page".
+    let response = raw_headers_json(
+        "200 OK",
+        b"Link: <\xFF/v3/accounts?page=2>; rel=\"next\"\r\n",
+        r#"{"accounts":[]}"#,
+    );
+    let (url, task) = server(response).await;
+    let client = fixture_client(url);
+    let page = client.list_accounts().await.expect("body still decodes");
+    assert_eq!(page.next_page, Supplied::Undecoded);
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_malformed_next_link_fails_loudly() {
+    // rel="next" was readable and offered a next page, so a shape that does
+    // not parse is a decoded instruction this client refuses — the same
+    // treatment a readable link leaving this client's origin gets. A caller
+    // paging a result set learns immediately that pagination broke instead of
+    // reading the offer away as "no next page".
+    let response = raw_headers_json(
+        "200 OK",
+        b"Link: </v3/accounts?page=2; rel=\"next\"\r\n",
+        r#"{"accounts":[]}"#,
+    );
+    let (url, task) = server(response).await;
+    let client = fixture_client(url);
+    assert!(matches!(
+        client.list_accounts().await,
+        Err(OperationError::Client(Error::Decode(_)))
+    ));
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_link_header_offering_no_next_page_is_absent() {
+    // A readable Link that relates to something else is a decoded fact that no
+    // next page was offered, and a readable RequestID decodes.
+    let response = raw_headers_json(
+        "200 OK",
+        b"RequestID: 42\r\nLink: </v3/accounts>; rel=\"prev\"\r\n",
+        r#"{"accounts":[]}"#,
+    );
+    let (url, task) = server(response).await;
+    let client = fixture_client(url);
+    let page = client.list_accounts().await.expect("request succeeds");
+    assert_eq!(page.request_id, Supplied::Decoded("42".to_owned()));
+    assert!(page.next_page.is_absent());
+    task.await.expect("server");
 }
 
 #[tokio::test]

@@ -25,10 +25,16 @@ const MAX_COOLDOWN: Duration = Duration::from_mins(1);
 pub struct ApiResponse<T> {
     /// Deserialized response body.
     pub body: T,
-    /// OANDA `RequestID` response header, when supplied.
-    pub request_id: Option<String>,
-    /// Validated next-page URL from the Link header, when supplied.
-    pub next_page: Option<Url>,
+    /// OANDA's `RequestID` response header as supplied evidence: `Absent` when
+    /// OANDA sent none, `Decoded` when this client read it, `Undecoded` when it
+    /// sent one this client cannot read as text.
+    pub request_id: Supplied<String>,
+    /// The Link header's next-page URL as supplied evidence: `Absent` when no
+    /// next page was offered, `Decoded` when validated, `Undecoded` when OANDA
+    /// offered one this client could not read. A readable link that leaves this
+    /// client's API origin is refused with an error instead: it decoded fine
+    /// and was rejected, not lost.
+    pub next_page: Supplied<Url>,
 }
 
 impl<T> Deref for ApiResponse<T> {
@@ -183,11 +189,7 @@ impl Client {
             None => Error::Transport(e.to_string()),
         })?;
         let status = response.status();
-        let request_id = response
-            .headers()
-            .get("RequestID")
-            .and_then(|value| value.to_str().ok())
-            .map(str::to_owned);
+        let request_id = supplied_header(response.headers(), "RequestID");
         let next_page = if status.is_success() {
             parse_next_page(&self.inner.rest, response.headers()).map_err(|error| {
                 match mutation_account {
@@ -198,7 +200,7 @@ impl Client {
                 }
             })?
         } else {
-            None
+            Supplied::Absent
         };
         if status == StatusCode::TOO_MANY_REQUESTS {
             self.install_cooldown(response.headers().get(reqwest::header::RETRY_AFTER));
@@ -539,38 +541,66 @@ fn query_atom(value: &serde_json::Value) -> Result<String> {
     }
 }
 
-fn parse_next_page(base: &Url, headers: &reqwest::header::HeaderMap) -> Result<Option<Url>> {
-    let Some(link) = headers.get(reqwest::header::LINK) else {
-        return Ok(None);
-    };
-    let value = link
-        .to_str()
-        .map_err(|_| Error::Decode("invalid Link header".into()))?;
-    for item in value.split(',') {
-        if !item.contains("rel=\"next\"") && !item.contains("rel=next") {
-            continue;
-        }
-        let Some(start) = item.find('<') else {
-            return Err(Error::Decode("invalid pagination link".into()));
-        };
-        let Some(end) = item[start + 1..].find('>') else {
-            return Err(Error::Decode("invalid pagination link".into()));
-        };
-        let url = base
-            .join(&item[start + 1..start + 1 + end])
-            .map_err(|e| Error::Decode(e.to_string()))?;
-        if url.scheme() != base.scheme()
-            || url.host_str() != base.host_str()
-            || url.port_or_known_default() != base.port_or_known_default()
-            || !url.path().starts_with("/v3/")
-        {
-            return Err(Error::Decode(
-                "pagination link changed origin or API version".into(),
-            ));
-        }
-        return Ok(Some(url));
+/// Read a provider header as supplied evidence.
+///
+/// A header OANDA did not send, and one it sent with bytes this client cannot
+/// read as text, are different facts; the second must not collapse into the
+/// first.
+fn supplied_header(headers: &reqwest::header::HeaderMap, name: &str) -> Supplied<String> {
+    match headers.get(name) {
+        None => Supplied::Absent,
+        Some(value) => match value.to_str() {
+            Ok(text) => Supplied::Decoded(text.to_owned()),
+            Err(_) => Supplied::Undecoded,
+        },
     }
-    Ok(None)
+}
+
+/// Read the Link header's next-page URL as supplied evidence.
+///
+/// A Link header OANDA did not send, and one that is readable but offers no
+/// `rel="next"` item, are both `Absent`: no next page arrived. A Link this
+/// client cannot read as text, or whose next item does not match the
+/// documented shape, is `Undecoded`: a next page was offered and could not be
+/// surfaced. A next link that decodes but leaves this client's own API origin
+/// is an error instead: that value was read and refused, never lost.
+fn parse_next_page(base: &Url, headers: &reqwest::header::HeaderMap) -> Result<Supplied<Url>> {
+    let Some(link) = headers.get(reqwest::header::LINK) else {
+        return Ok(Supplied::Absent);
+    };
+    let Ok(value) = link.to_str() else {
+        return Ok(Supplied::Undecoded);
+    };
+    let Some(item) = value
+        .split(',')
+        .find(|item| item.contains("rel=\"next\"") || item.contains("rel=next"))
+    else {
+        return Ok(Supplied::Absent);
+    };
+    // The item was readable and offered a next page, so a shape that does not
+    // parse is a decoded instruction this client must refuse loudly — the same
+    // treatment a readable link that leaves this client's origin gets. A
+    // caller paging a result set learns immediately that pagination broke
+    // instead of reading Undecoded as "no next page".
+    let Some(start) = item.find('<') else {
+        return Err(Error::Decode("invalid pagination link".into()));
+    };
+    let Some(end) = item[start + 1..].find('>') else {
+        return Err(Error::Decode("invalid pagination link".into()));
+    };
+    let url = base
+        .join(&item[start + 1..start + 1 + end])
+        .map_err(|e| Error::Decode(e.to_string()))?;
+    if url.scheme() != base.scheme()
+        || url.host_str() != base.host_str()
+        || url.port_or_known_default() != base.port_or_known_default()
+        || !url.path().starts_with("/v3/")
+    {
+        return Err(Error::Decode(
+            "pagination link changed origin or API version".into(),
+        ));
+    }
+    Ok(Supplied::Decoded(url))
 }
 
 pub(crate) fn segment(value: &str) -> String {

@@ -42,15 +42,17 @@ price is a decode error rather than a float round trip. Those files needed no re
 | `decimal_wire::optional_number_or_string`. | A JSON number is converted through its exact `arbitrary_precision` literal and then parsed as `Decimal`; a boolean, array, or object is a typed error rather than a default. |
 | Definitive-rejection statuses that disarm the mutation guard, and the statuses that instead report `AmbiguousMutation`. | A 400/401/403/404/405 is OANDA's own refusal, and everything else after a send is reported as ambiguous and fenced. The fence is never released on a path that did not observe a definite outcome. |
 
+## Repaired in follow-up changes
+
+| Candidate | Owner and call-path invariant | Legitimate semantics, if any | Disposition |
+| --- | --- | --- | --- |
+| `ApiResponse::request_id` read a present-but-unreadable `RequestID` as `None`, the same value as an absent header, while the sibling Link header failed loudly on the same class of failure ([#7](https://github.com/SharurTrading/oanda-rs/issues/7)). | `src/client.rs` `Client::execute`. The `RequestID` is a caller's only correlation with OANDA's own record of the request. | An absent header is real absence. | `request_id` is `Supplied<String>` and `next_page` is `Supplied<Url>`, so both headers agree: absent, decoded, or sent and unreadable. A Link header whose bytes cannot be read as text is reported `Undecoded` while the decoded body is kept; a *readable* `rel="next"` item that does not match the documented shape stays a hard `Error::Decode` — it decoded fine and was refused, exactly like a readable link that leaves the client's API origin — and the lossy `into_decoded()` accessor is removed so no one-liner turns "offered but unreadable" into "not offered". A readable next link that leaves the client's API origin is still a hard error: that value decoded fine and was refused, not lost. `an_unreadable_request_id_is_reported_as_sent_not_absent`, `an_absent_request_id_is_absent`, `an_unreadable_link_header_is_not_read_as_no_next_page`, `a_malformed_next_link_is_undecoded_not_an_error`, `a_link_header_offering_no_next_page_is_absent`. |
+
 ## Outstanding, tracked separately
 
 These are confirmed candidates whose repair is a separate, bounded change. Each has its own issue
 with the path and the required outcome, as the law's final clause requires.
 
-- [#7](https://github.com/SharurTrading/oanda-rs/issues/7) —
-  `ApiResponse::request_id` and `next_page` report a header that is present but unreadable as one
-  that was not supplied, the same shape as the rejection body repaired above. The Link header already
-  fails loudly, so the two disagree today.
 - [#8](https://github.com/SharurTrading/oanda-rs/issues/8) — the `tools/generate_*.py` generators
   substitute fallbacks for provider content they did not parse: an invented
   `errorCode`/`errorMessage` pair when no rejection schema is found, an empty success struct when a

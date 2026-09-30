@@ -40,14 +40,6 @@ impl<T> Supplied<T> {
             Self::Absent | Self::Undecoded => None,
         }
     }
-    /// The decoded value, consuming the evidence.
-    #[must_use]
-    pub fn into_decoded(self) -> Option<T> {
-        match self {
-            Self::Decoded(value) => Some(value),
-            Self::Absent | Self::Undecoded => None,
-        }
-    }
 }
 
 /// Render a provider reason without ever speaking for OANDA.

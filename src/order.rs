@@ -184,22 +184,6 @@ pub struct ListOrdersResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// list_orders documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ListOrdersRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// List orders.
     pub async fn list_orders(
@@ -208,7 +192,7 @@ impl Client {
         query: Option<&ListOrdersQuery>,
     ) -> std::result::Result<
         crate::ApiResponse<ListOrdersResponse>,
-        crate::OperationError<ListOrdersRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/orders");
@@ -233,22 +217,6 @@ pub struct ListPendingOrdersResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// list_pending_orders documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ListPendingOrdersRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// List pending orders.
     pub async fn list_pending_orders(
@@ -256,7 +224,7 @@ impl Client {
         account_id: &AccountID,
     ) -> std::result::Result<
         crate::ApiResponse<ListPendingOrdersResponse>,
-        crate::OperationError<ListPendingOrdersRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/pendingOrders");
@@ -281,22 +249,6 @@ pub struct OrderDetailsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// order_details documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct OrderDetailsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Order details.
     pub async fn order_details(
@@ -305,7 +257,7 @@ impl Client {
         order_specifier: &OrderSpecifier,
     ) -> std::result::Result<
         crate::ApiResponse<OrderDetailsResponse>,
-        crate::OperationError<OrderDetailsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let order_specifier_encoded = crate::client::segment(order_specifier.as_str());

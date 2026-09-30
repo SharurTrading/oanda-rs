@@ -28,10 +28,17 @@ for op in ledger['operations']:
         if not re.search(r'pub async fn\s+' + re.escape(op['public_method']) + r'\s*\(', source):
             errors.append(f'missing public method: {key}')
         if op['kind'] != 'stream':
+            rejection = op.get('rejection')
+            if rejection not in {'endpoint', 'generic'}:
+                errors.append(f'operation records no rejection decision: {key}: {rejection!r}')
             stem = ''.join(word.capitalize() for word in op['public_method'].split('_'))
-            for suffix in ('Response', 'Rejection'):
-                if not re.search(r'pub struct\s+' + stem + suffix + r'\b', source):
-                    errors.append(f'missing typed {suffix.lower()}: {key}')
+            if not re.search(r'pub struct\s+' + stem + 'Response' + r'\b', source):
+                errors.append(f'missing typed response: {key}')
+            if rejection == 'endpoint':
+                if not re.search(r'pub struct\s+' + stem + 'Rejection' + r'\b', source):
+                    errors.append(f'missing typed rejection: {key}')
+            elif not re.search(r'OperationError<crate::GenericRejection>', source):
+                errors.append(f'generic rejection not typed: {key}')
         elif op['public_method'] == 'stream_pricing' and 'pub enum PriceStreamEvent' not in source:
             errors.append(f'missing typed stream event: {key}')
         elif op['public_method'] == 'stream_transactions' and 'pub enum TransactionStreamEvent' not in source:

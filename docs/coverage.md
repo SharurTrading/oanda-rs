@@ -22,6 +22,20 @@ transaction it has already accounted for from one it is missing. `ApiResponse::r
 `::next_page` carry the same three-state evidence: `Undecoded` reports a header OANDA sent that
 this client could not read, never no header at all.
 
+## Rejection typing
+
+`docs/coverage.json` records each operation's rejection decision. The nine endpoints whose pages
+document a rejection body — the mutations and `configure_account` — carry a schema-derived
+`XRejection` struct (`"rejection": "endpoint"`). The remaining GET endpoints document no rejection
+body, so their methods reject through the reviewed
+[`GenericRejection`](https://docs.rs/oanda-rs) common error fields
+(`"rejection": "generic"`) instead of a per-endpoint struct with fields OANDA never documented; the
+`Supplied<R>` evidence contract and the `errorCode`/`errorMessage` read from the body apply
+unchanged. The generator refuses to run without one of these two decisions: it no longer invents a
+rejection pair, an empty success struct, a `String` alias, or a field description. The 22 removed
+per-endpoint structs are a breaking change for callers naming them; stream operations record
+`"rejection": "stream"` and reject through `Error::Provider`, whose `code`/`message` fields carry
+the same evidence contract.
 ## Stream record and transport bounds
 
 Pricing and transaction streams bound each newline-delimited record at a local hostile-input limit

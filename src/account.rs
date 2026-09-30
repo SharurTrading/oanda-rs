@@ -24,29 +24,13 @@ pub struct ListAccountsResponse {
     pub accounts: Option<Vec<AccountProperties>>,
 }
 
-/// list_accounts documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ListAccountsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// List accounts.
     pub async fn list_accounts(
         &self,
     ) -> std::result::Result<
         crate::ApiResponse<ListAccountsResponse>,
-        crate::OperationError<ListAccountsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let path = "/v3/accounts".to_owned();
         self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
@@ -70,22 +54,6 @@ pub struct AccountDetailsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// account_details documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountDetailsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Account details.
     pub async fn account_details(
@@ -93,7 +61,7 @@ impl Client {
         account_id: &AccountID,
     ) -> std::result::Result<
         crate::ApiResponse<AccountDetailsResponse>,
-        crate::OperationError<AccountDetailsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}");
@@ -118,22 +86,6 @@ pub struct AccountSummaryResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// account_summary documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountSummaryRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Account summary.
     pub async fn account_summary(
@@ -141,7 +93,7 @@ impl Client {
         account_id: &AccountID,
     ) -> std::result::Result<
         crate::ApiResponse<AccountSummaryResponse>,
-        crate::OperationError<AccountSummaryRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/summary");
@@ -183,22 +135,6 @@ pub struct AccountInstrumentsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// account_instruments documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountInstrumentsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Account instruments.
     pub async fn account_instruments(
@@ -207,7 +143,7 @@ impl Client {
         query: Option<&AccountInstrumentsQuery>,
     ) -> std::result::Result<
         crate::ApiResponse<AccountInstrumentsResponse>,
-        crate::OperationError<AccountInstrumentsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/instruments");
@@ -340,22 +276,6 @@ pub struct AccountChangesResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// account_changes documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct AccountChangesRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Account changes.
     pub async fn account_changes(
@@ -364,7 +284,7 @@ impl Client {
         query: Option<&AccountChangesQuery>,
     ) -> std::result::Result<
         crate::ApiResponse<AccountChangesResponse>,
-        crate::OperationError<AccountChangesRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/changes");

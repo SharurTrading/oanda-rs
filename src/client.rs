@@ -577,15 +577,20 @@ fn parse_next_page(base: &Url, headers: &reqwest::header::HeaderMap) -> Result<S
     else {
         return Ok(Supplied::Absent);
     };
+    // The item was readable and offered a next page, so a shape that does not
+    // parse is a decoded instruction this client must refuse loudly — the same
+    // treatment a readable link that leaves this client's origin gets. A
+    // caller paging a result set learns immediately that pagination broke
+    // instead of reading Undecoded as "no next page".
     let Some(start) = item.find('<') else {
-        return Ok(Supplied::Undecoded);
+        return Err(Error::Decode("invalid pagination link".into()));
     };
     let Some(end) = item[start + 1..].find('>') else {
-        return Ok(Supplied::Undecoded);
+        return Err(Error::Decode("invalid pagination link".into()));
     };
-    let Ok(url) = base.join(&item[start + 1..start + 1 + end]) else {
-        return Ok(Supplied::Undecoded);
-    };
+    let url = base
+        .join(&item[start + 1..start + 1 + end])
+        .map_err(|e| Error::Decode(e.to_string()))?;
     if url.scheme() != base.scheme()
         || url.host_str() != base.host_str()
         || url.port_or_known_default() != base.port_or_known_default()

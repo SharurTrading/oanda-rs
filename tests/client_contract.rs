@@ -294,7 +294,7 @@ async fn typed_rejection_retains_provider_transaction() {
             assert_eq!(status, 400);
             assert_eq!(code.as_deref(), Some("INVALID_VALUE"));
             assert_eq!(message.as_deref(), Some("margin rate rejected"));
-            let body = body.into_decoded().expect("decoded rejection body");
+            let body = body.decoded().expect("decoded rejection body");
             assert!(body.client_configure_reject_transaction.is_some());
         }
         other => panic!("unexpected error: {other:?}"),
@@ -369,7 +369,7 @@ async fn pagination_link_follows_only_same_origin() {
     });
     let client = fixture_client(url);
     let first = client.list_accounts().await.expect("first");
-    let page = first.next_page.into_decoded().expect("next page");
+    let page = first.next_page.decoded().cloned().expect("next page");
     let second: oanda_client::ApiResponse<oanda_client::account::ListAccountsResponse> =
         client.fetch_page(&page).await.expect("second");
     assert!(second.next_page.is_absent());
@@ -446,10 +446,12 @@ async fn an_unreadable_link_header_is_not_read_as_no_next_page() {
 }
 
 #[tokio::test]
-async fn a_malformed_next_link_is_undecoded_not_an_error() {
-    // rel="next" with no closing bracket: a next page was offered and does not
-    // match the documented shape, so the body succeeds and the offer is
-    // reported as unreadable rather than failing the decoded body with it.
+async fn a_malformed_next_link_fails_loudly() {
+    // rel="next" was readable and offered a next page, so a shape that does
+    // not parse is a decoded instruction this client refuses — the same
+    // treatment a readable link leaving this client's origin gets. A caller
+    // paging a result set learns immediately that pagination broke instead of
+    // reading the offer away as "no next page".
     let response = raw_headers_json(
         "200 OK",
         b"Link: </v3/accounts?page=2; rel=\"next\"\r\n",
@@ -457,8 +459,10 @@ async fn a_malformed_next_link_is_undecoded_not_an_error() {
     );
     let (url, task) = server(response).await;
     let client = fixture_client(url);
-    let page = client.list_accounts().await.expect("body still decodes");
-    assert_eq!(page.next_page, Supplied::Undecoded);
+    assert!(matches!(
+        client.list_accounts().await,
+        Err(OperationError::Client(Error::Decode(_)))
+    ));
     task.await.expect("server");
 }
 

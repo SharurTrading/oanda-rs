@@ -1666,12 +1666,22 @@ fn all_documented_scalar_enum_variants_round_trip() {
 #[test]
 fn an_undocumented_enum_value_fails_the_round_trip() {
     // Any string used to pass behind the Unknown arm, so a variant the
-    // generator lost was invisible. An unrecognized spelling must now fail.
+    // generator lost was invisible. An unrecognized spelling must now fail,
+    // and the panic is the documented-variant assertion itself.
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(|_| {}));
     let result = std::panic::catch_unwind(|| {
         round_trip::<models::OrderType>("GARBAGE", models::OrderType::Market);
     });
+    std::panic::set_hook(previous);
+    let panic = result.expect_err("an unrecognized spelling must fail");
+    let text = panic
+        .downcast_ref::<String>()
+        .map(String::as_str)
+        .or_else(|| panic.downcast_ref::<&str>().copied())
+        .unwrap_or_default();
     assert!(
-        result.is_err(),
-        "an unrecognized spelling must fail, not pass behind the Unknown arm"
+        text.contains("must decode to its documented variant"),
+        "panic message {text:?} is not the documented-variant assertion"
     );
 }

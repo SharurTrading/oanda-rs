@@ -88,6 +88,15 @@ class ReleaseNoteTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no readable version"):
             checker.release_versions(html)
 
+    def test_continuation_rows_are_reported_not_vanished(self):
+        # A structurally-continuation-shaped row is indistinguishable offline
+        # from a brand-new release whose version cell cannot be read, so the
+        # row is skipped only with its detail text named in the message.
+        status, message = checker.check(page("3.0.25", ""), "3.0.25")
+        self.assertEqual(status, 0)
+        self.assertIn("Skipped 1 structural continuation row", message)
+        self.assertIn("Example change", message)
+
     def test_cli_reports_an_unreadable_version_row_as_incomplete(self):
         with tempfile.TemporaryDirectory() as directory:
             baseline = Path(directory) / "baseline.json"
@@ -127,7 +136,7 @@ class ReleaseNoteTests(unittest.TestCase):
     def test_fetch_uses_bounded_read_and_timeout(self):
         with patch.object(checker, "urlopen") as fetch:
             fetch.return_value.__enter__.return_value.read.return_value = page("3.0.25").encode()
-            self.assertEqual(checker.release_versions(checker.fetch_html()), ["3.0.25"])
+            self.assertEqual(checker.release_versions(checker.fetch_html())[0], ["3.0.25"])
             self.assertEqual(fetch.call_args.args[0].full_url, checker.URL)
             self.assertEqual(fetch.call_args.kwargs["timeout"], 30)
             fetch.return_value.__enter__.return_value.read.assert_called_once_with(checker.MAX_BYTES + 1)

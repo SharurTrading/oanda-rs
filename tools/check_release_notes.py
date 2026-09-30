@@ -94,6 +94,7 @@ def release_versions(html):
     if len(tables) != 1:
         raise ValueError("expected exactly one OANDA release-note table")
     versions = set()
+    continuations = []
     for row in tables[0][1:]:
         if len(row) != len(HEADERS):
             raise ValueError("unexpected release-note row shape")
@@ -107,9 +108,15 @@ def release_versions(html):
             # a release this checker cannot identify and must not vanish from
             # the compared set.
             raise ValueError(f"release-note row with no readable version: {row!r}")
+        else:
+            # The shape is indistinguishable offline from a brand-new release
+            # whose version cell this checker cannot read, so the row is
+            # reported rather than vanishing: every message below names each
+            # continuation row this check treated as one.
+            continuations.append(row[3])
     if not versions:
         raise ValueError("release-note table contains no versions")
-    return sorted(versions, key=version_tuple)
+    return sorted(versions, key=version_tuple), continuations
 
 
 def fetch_html():
@@ -123,17 +130,26 @@ def fetch_html():
 
 def check(html, reviewed):
     baseline = version_tuple(reviewed)
-    versions = release_versions(html)
+    versions, continuations = release_versions(html)
+    skipped = ""
+    if continuations:
+        quoted = "; ".join(repr(row[:60]) for row in continuations[:3])
+        more = f" (+{len(continuations) - 3} more)" if len(continuations) > 3 else ""
+        skipped = f" Skipped {len(continuations)} structural continuation rows: {quoted}{more}."
     newer = [version for version in versions if version_tuple(version) > baseline]
     if newer:
         return 1, (
             f"OANDA release-note review needed: last reviewed {reviewed}; "
             f"newer versions: {', '.join(newer)}. Review {URL} and the authoritative "
             "endpoint/definition pages, then update docs/release-notes.json in a reviewed PR."
+            f"{skipped}"
         )
     if version_tuple(versions[-1]) < baseline:
         raise ValueError("latest published version is below the reviewed baseline")
-    return 0, f"OANDA release notes are current: latest {versions[-1]}, last reviewed {reviewed}."
+    return 0, (
+        f"OANDA release notes are current: latest {versions[-1]}, last reviewed {reviewed}."
+        f"{skipped}"
+    )
 
 
 def main(argv=None):

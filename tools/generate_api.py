@@ -31,6 +31,15 @@ def simple_type(s):
     return typ(s)
 
 def make_struct(name, desc, fs, all_optional=False):
+    # The endpoint DTOs are the largest generated surfaces; a struct or field
+    # without a provider description is the same fabrication
+    # generate_models refuses, and the description text is also where the
+    # requiredness marker lives, so an empty one is never benign here.
+    if not desc.strip():
+        fail(f'{name}: endpoint DTO has no provider description')
+    for fname,t,required,fd in fs:
+        if not fd.strip():
+            fail(f'{name}.{fname}: endpoint DTO field has no provider description')
     out=docs(desc)+['#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]', '#[serde(rename_all = "camelCase")]','pub struct '+name+' {']
     for fname,t,required,fd in fs:
         field=ident(fname)
@@ -45,6 +54,46 @@ def make_struct(name, desc, fs, all_optional=False):
     out+=['}','']
     if all_optional: out.insert(len(docs(desc))+1,'#[derive(Default)]')
     return out
+
+def load_spec():
+    """The pinned OpenAPI spec, an independent second document.
+
+    Parameter requiredness is cross-checked against it by name for every
+    endpoint the spec also carries, so a partial drift of the website's
+    [required] marker fails the run instead of silently demoting a parameter
+    to Option and changing a generated signature. Name-set differences are
+    expected — the spec models request bodies as parameters — so only
+    parameters both documents name are compared.
+    """
+    return json.loads((ROOT / 'spec' / 'official' / 'v20-openapi.json').read_bytes())
+
+
+def spec_requiredness(spec, method, path):
+    item = spec['paths'].get(path.removeprefix('/v3'))
+    operation = item.get(method.lower()) if item else None
+    if not operation:
+        return None
+    out = {}
+    for parameter in operation.get('parameters', []):
+        if '$ref' in parameter:
+            parameter = spec.get('parameters', {}).get(
+                parameter['$ref'].split('/')[-1], {})
+        out[parameter.get('name')] = bool(parameter.get('required', False))
+    return out
+
+
+def cross_check_requiredness(spec, method, path, params, label):
+    expected = spec_requiredness(spec, method, path)
+    if expected is None:
+        return
+    website = {p[0]: p[3] for p in params}
+    for name in sorted(set(website) & set(expected)):
+        if website[name] != expected[name]:
+            fail(f'{label}: parameter {name} is '
+                 f'{"required" if website[name] else "optional"} on the website but '
+                 f'{"required" if expected[name] else "optional"} in the pinned spec; '
+                 'refusing to guess requiredness')
+
 
 def endpoint_chunks(page):
     raw=page.read_text()
@@ -129,6 +178,7 @@ def main(source=None, root_dir=None):
     old_operations={(o['method'],o['path']):o for o in previous['operations']}
     old_definitions={d['name']:d for d in previous['definitions']}
     manifest={'reviewed_at':'2026-09-25','authority':'https://developer.oanda.com/rest-live-v20/introduction/','openapi_commit':'70324cfee31ff0074ed0bf1f93e67d8ee6c84444','operations':[],'definitions':[]}
+    spec=load_spec()
     outputs={}
     for cap in CAPS:
         lines=['//! OANDA '+cap+' endpoint contracts.', '// Generated shared imports vary by capability; unused ones are deliberately allowed.', '#[allow(unused_imports)]','use crate::{Client, Result};','#[allow(unused_imports)]','use crate::ids::*;','#[allow(unused_imports)]','use crate::models::*;','#[allow(unused_imports)]','use crate::Timestamp;','#[allow(unused_imports)]','use reqwest::Method;','#[allow(unused_imports)]','use rust_decimal::Decimal;','#[allow(unused_imports)]','use serde::{Serialize, Deserialize};','']
@@ -140,6 +190,7 @@ def main(source=None, root_dir=None):
             summary=' '.join(root.xpath('.//span[contains(@class,"path")]/p//text()')).strip()
             label=f'{cap}-ep {method} {path}'
             params=parse_params(root, label)
+            cross_check_requiredness(spec, method, path, params, label)
             query=[(p[0],p[2],p[3],p[4]) for p in params if p[1]=='query']
             body=first_body(root, label)
             reject=rejections(root)

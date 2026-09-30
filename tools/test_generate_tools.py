@@ -163,6 +163,30 @@ class GenerateApiFailures(GeneratorTestCase):
         self.assert_api_fail_untouched(
             source, root, 'no parameter is marked [required]')
 
+    def test_endpoint_dto_without_provider_description_fails(self):
+        import tempfile
+        bare = '{\n    accounts : (array[Account]),\n}'
+        source, _ = self.scaffold(ep_pages={'account': ep_page(response_schema=bare)})
+        with tempfile.TemporaryDirectory() as directory:
+            self.assert_api_fail_untouched(
+                source, Path(directory), 'endpoint DTO field has no provider description')
+
+    def test_partial_requiredness_drift_against_the_spec_fails(self):
+        # Authorization keeps its marker, so the all-optional guard passes;
+        # accountID alone loses [required], which only the independent pinned
+        # spec can contradict.
+        rows = ('<tr><td>Authorization</td><td>header</td><td>string</td>'
+                '<td>The authorization bearer token [required]</td></tr>'
+                '<tr><td>accountID</td><td>path</td><td>accountID</td>'
+                '<td>Account Identifier</td></tr>')
+        source, _ = self.scaffold(ep_pages={'account': ep_page(
+            method='GET', path='/v3/accounts/{accountID}/orders', parameters=rows)})
+        import tempfile
+        with tempfile.TemporaryDirectory() as directory:
+            self.assert_api_fail_untouched(
+                source, Path(directory),
+                'parameter accountID is optional on the website but required in the pinned spec')
+
     def test_missing_parameter_table_fails(self):
         source, _ = self.scaffold(ep_pages={'account': ep_page(parameters=None)})
         base = Path(self.temporary.name)

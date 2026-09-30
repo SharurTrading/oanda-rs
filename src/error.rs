@@ -13,7 +13,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Supplied<T> {
-    /// OANDA sent no value for this field.
+    /// OANDA sent no value for this field. A body (or field) that arrived
+    /// empty — only whitespace — is the same fact: nothing was sent to read.
     Absent,
     /// OANDA sent a value that matched the documented shape.
     Decoded(T),

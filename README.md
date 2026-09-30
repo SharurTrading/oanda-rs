@@ -91,7 +91,9 @@ environment variables set, run `cargo run --example practice_account`. Select
 - A definitive rejection reports only what OANDA sent. Its `code` and `message` are `None` when
   OANDA supplied no readable reason, and its typed `body` is a `Supplied<T>` that separates a body
   OANDA did not send from one that arrived and could not be decoded. The client never invents a
-  reason.
+  reason. Upgrading from an earlier build: `Rejected::message` and `Error::Provider::message` are
+  now `Option<String>`, `Rejected::body` is `Supplied<R>`, and `acknowledge_reconciliation`
+  returns `Result` — match arms and acknowledgement call sites need updating.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
   Provider IDs and timestamps have dedicated types.

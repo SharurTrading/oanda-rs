@@ -1,0 +1,1110 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    
+    <title>Release Notes</title>
+    
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="icon" href="/images/favicon.ico" type="image/ico" sizes="16x16">
+    <script type="text/javascript">
+    if(location.hostname !== "developer.oanda.com") {
+    	var script = document.createElement("script");
+    	script.type = "text/javascript";
+    	script.src = "//localhost:35729/livereload.js";
+    	document.getElementsByTagName("head")[0].appendChild(script);
+    
+    }
+    </script> 
+    
+    <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="/js/libs/bootstrap.js"></script>
+    <script src="/js/main.min.js"></script>
+    
+    <meta name="google-translate-customization" content="613de8f134fa1dd4-d28c93d267de3976-g4696095b5a32dcda-13"></meta>
+    
+    <script type="text/javascript" src="//js.maxmind.com/js/apis/geoip2/v2.1/geoip2.js"></script>
+    <script type="text/javascript">
+    var onSuccess = function(location){
+    
+                var countries = ["BE","BF","BG","BA","WF", "BL","BH","BJ","BV","WS",  "BQ","JE","BY", "RU", "RW" ,"TL", "RE" ,"TM", "TJ" ,"RO","GW", "GS", "GR" ,"GQ", "GG", "GF","GE", "GD" ,"GB", "GA", "GN" ,"GM", "GL", "GI", "OM", "IL","JO", "HR", "HU" ,"PW", "PT", "SJ", "PN", "PL","PM", "ZM", "EH", "EE", "EG","ZA" ,"IT", "SA" ,"ES" ,"ER", "ME", "MD" ,"MG", "MA" ,"MC", "UZ", "ML" , "MH" ,"MK", "MU", "MT", "MW" ,"MQ" ,"MS" ,"MR", "IM", "UG","AT" ,"FR", "IO", "SH", "FI","FK","FM", "FO",  "NL", "NO", "NA", "NC", "NE" ,"NR", "NU", "XK", "CI","CH", "CM","LB","CZ", "CY", "CV","SZ","KG" ,"KE", "SR" ,"KI","KM", "ST" ,"SK", "SI", "KW", "SN","SM" ,"SC" ,"KZ", "SE", "DJ", "DK" ,"DE" ,"DZ", "YT" ,"TZ", "LA" ,"LI", "LV","LT","LU", "LR", "LS",  "TF","TG", "VA", "VC", "AE", "AD",  "AI", "IS",  "AM", "AL", "AO", "AQ" , "AX", "AZ","IE", "UA","QA", "MZ"];
+    	 var loc = location.country.iso_code;
+               if(countries.indexOf(loc) > -1)
+                {
+                  $('.oeldisclaimer').show();
+                }
+    };
+    var onError = function(error){
+     console.log('error ',e)
+    };
+    geoip2.country(onSuccess, onError);
+    </script>
+    
+    <style>
+    .header {margin: 0 auto;padding: 5px 5px;}
+    .sticky {position: fixed; top: 0; left: 0; width: 100%; margin: 0; padding: 5px; background-color: #F2F2F2;; color: black; z-index: 900; font:14px;font-family:"helvetica neue,Helvetica,Arial,sans-serif";}</style>
+    
+          <div class="oeldisclaimer" id="myHeader" hidden="true">
+            <div style="background-color:#F2F2F2;font:8px;font-family:helvetica neue,Helvetica,Arial,sans-serif;">
+              <span style="display: block; text-align: center;"><span class="white-links"> CFDs are complex instruments and come with a high risk of losing money rapidly due to leverage.
+                <br> <strong> 76.6% of retail investor accounts lose money when trading CFDs with this provider.</strong> 
+              <br> You should consider whether you understand how CFDs work and whether you can afford to take the high risk of losing your money.</span></span></div></div>
+    <script>
+    window.onscroll = function() {myFunction()};
+    
+    var header = document.getElementById("myHeader");
+    var sticky = header.offsetTop;
+    function myFunction() { if (window.pageYOffset > sticky) {header.classList.add("sticky"); } else {header.classList.remove("sticky");}}
+    </script>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+<style>
+table.parameter_table {
+    margin: 0px !important;
+    table-layout: fixed;
+    width: 100%;
+}
+table.parameter_table td,th {
+    padding-top: 5px !important;
+    padding-bottom: 5px !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+}
+
+table.parameter_table .pt_small {
+    width: 15% !important;
+}
+
+table.parameter_table .pt_medium {
+    width: 30% !important;
+}
+
+table.parameter_table .pt_15 {
+    width: 15% !important;
+}
+
+table.parameter_table .pt_25 {
+    width: 25% !important;
+}
+
+table.parameter_table .pt_75 {
+    width: 75% !important;
+}
+
+table.parameter_table .pt_85 {
+    width: 85% !important;
+}
+
+div.endpoint_header {
+    background: #edf5d6;
+    border-left: 3px solid black;
+    border-top: 1px solid #A6CE39;
+    border-bottom: 1px solid #A6CE39;
+    border-right: 1px solid #A6CE39;
+    padding: 0px;
+}
+
+
+div.method_get {
+    background: #cfebf0;
+}
+
+div.method_post {
+    background: #cbecd8;
+}
+
+div.method_put {
+    background: #efdfc8;
+}
+
+div.method_patch {
+    background: #f0e0d8;
+}
+
+div.method_delete {
+    background: #;
+}
+
+div.endpoint_header span {
+    font-size: 20px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    display: table-cell;
+    vertical-align: middle;
+}
+
+div.endpoint_header a {
+    display: block;
+    color: black;
+    text-decoration: none
+}
+
+div.endpoint_header span.method {
+    width: 100px;
+    text-align: center;
+    padding-left: 14px;
+    padding-right: 14px;
+    font-weight: bold;
+    background: #A6CE39;
+    color: black;
+}
+
+div.method_post {
+    border-top: 1px solid #10a54a;
+    border-bottom: 1px solid #10a54a;
+    border-right: 1px solid #10a54a;
+}
+
+div.method_post span.method {
+    background: #10a54a;
+    color: white;
+}
+
+div.method_patch {
+    border-top: 1px solid #a54010;
+    border-bottom: 1px solid #a54010;
+    border-right: 1px solid #a54010;
+}
+
+div.method_patch span.method {
+    background: #a54010;
+    color: white;
+}
+
+div.method_get {
+    border-top: 1px solid #0f6ab4;
+    border-bottom: 1px solid #0f6ab4;
+    border-right: 1px solid #0f6ab4;
+}
+
+div.method_get span.method {
+    background: #0f6ab4;
+    color: white;
+}
+
+div.method_put {
+    border-top: 1px solid #c5862b;
+    border-bottom: 1px solid #c5862b;
+    border-right: 1px solid #c5862b;
+}
+
+div.method_put span.method {
+    background: #c5862b;
+    color: white;
+}
+
+div.method_delete {
+    border-top: 1px solid #a41e22;
+    border-bottom: 1px solid #a41e22;
+    border-right: 1px solid #a41e22;
+}
+
+div.method_delete span.method {
+    background: #a41e22;
+    color: white;
+}
+
+div.endpoint_header span.definition {
+    padding-left: 14px;
+    padding-right: 14px;
+    font-size: 14px;
+}
+
+div.endpoint_header span.path {
+    padding-left: 14px;
+}
+
+div.endpoint_header span.path p {
+    font-size: 12px;
+    margin-bottom: 0px;
+}
+
+div.endpoint_body {
+    margin-bottom: 20px;
+}
+
+div.definition_body {
+    padding: 10px;
+    margin-bottom: 20px;
+}
+
+
+div.body_schema {
+    padding: 10px;
+}
+
+button.config {
+    float: right;
+    margin-left: 5px;
+}
+
+button.clip {
+    float: right;
+}
+
+pre.snippet {
+    clear: both;
+}
+
+pre.code {
+    margin-top: 10px;
+}
+
+</style>
+    <script src="/js/libs/clipboard.min.js"></script>
+</head>
+
+<body id="api">
+    <div id="wrap">
+        <div id="main">
+            <nav id="navigation" class="navbar navbar-default" role="navigation">
+                <div class="container">
+                    <!-- Brand and toggle get grouped for better mobile display -->
+                    <div style="margin-top:4px;background-color:white;width:100%;float:right;" id="google_translate_element"></div>
+                    
+                    <div class="navbar-header">
+            
+                        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+                            <span class="sr-only">Toggle navigation</span>
+                            <span class="icon-bar"></span>
+                            <span class="icon-bar"></span>
+                        </button>
+                        <a class="navbar-brand" href="/"><img src="/images/logo.png"></a>
+                    </div>
+            
+                    <!-- Collect the nav links, forms, and other content for toggling -->
+                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+            
+                        <form id="cse-search" action="http://google.com/cse">
+                            <div class="navbar-form navbar-right search-box" >
+                                <input type="hidden" name="cx" value="012645304776227016943:krqdhx97yts" />
+                                <input type="hidden" name="ie" value="UTF-8" />
+                                <i class="icon-search i-search"></i>
+                                <i class="icon-cancel i-close"></i>
+                                <input type="text" name="q" class="form-control" placeholder="Search" data-toggle="modal" data-target="#search-modal">
+                            </div>
+                        </form>
+            
+                        <ul class="nav navbar-nav navbar-right">
+                            <li class="active"><a href="/rest-live-v20/introduction/" class="uc">REST-V20</a></li> 
+                            <li class=""><a href="/fix-live/introduction/" class="uc">fix</a></li>
+                            <li class=""><a href="/mt4-live/introduction/" class="uc">mt4</a></li>
+                        </ul>
+            
+                    </div><!-- /.navbar-collapse -->
+                  </div><!-- /.container-fluid -->
+            </nav>
+
+            <div class="container" id="api-body">
+                <div class="row">
+
+                    <div class="col-lg-3 col-sm-4 col-xs-12" id="side-menu-api-section">
+                        <div id="main-api-menu">
+                            <ul class="nav">
+                                          <li><a href="/rest-live-v20/introduction/"><i class="icon icon-introduction"></i>Introduction</a></li>
+                                          <li><a href="/rest-live-v20/development-guide/"><i class="icon icon-development-guide"></i>Development Guide</a></li>
+                                          <li><a href="/rest-live-v20/best-practices/"><i class="icon icon-best-practices"></i>Best Practices</a></li>
+                                          <li><a href="/rest-live-v20/authentication/"><i class="icon icon-authentication"></i>Authentication</a></li>
+                                          <li><a href="/rest-live-v20/troubleshooting-errors/"><i class="icon icon-troubleshooting-errors"></i>Troubleshooting &amp; Errors</a></li>
+                                          <li><a href="/rest-live-v20/sample-code/"><i class="icon icon-sample-code"></i>Sample Code</a></li>
+                                          <li><a href="/rest-live-v20/release-notes/"><i class="icon icon-release-notes"></i>Release Notes</a></li>
+                                          <li><a href="/rest-live-v20/api-comparison/"><i class="icon icon-api-comparison"></i>API Comparison</a></li>
+                            </ul>
+                        </div>
+                        <hr>
+                    
+                        <div id="resources-api-menu">             
+                            <h4>Endpoints</h4>
+                            <div class="panel-group" id="accordion">
+                                <div class="panel">
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/account-ep/">Account</a>
+                                        </div>
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/order-ep/">Order</a>
+                                        </div>
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/trade-ep/">Trade</a>
+                                        </div>
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/position-ep/">Position</a>
+                                        </div>
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/transaction-ep/">Transaction</a>
+                                        </div>
+                                        <div class="subMenu_item">
+                                            <a href="/rest-live-v20/pricing-ep/">Pricing</a>
+                                        </div>
+                                        
+                                            
+                                        
+                                </div>
+                            </div>
+                            <h4>Definitions</h4>
+                            <div class="panel-group" id="accordion">
+                            <div class="panel">
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/account-df/">Account</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/instrument-df/">Instrument</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/order-df/">Order</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/trade-df/">Trade</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/position-df/">Position</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/transaction-df/">Transaction</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/pricing-df/">Pricing</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/pricing-common-df/">Pricing Common</a>
+                                      <br>
+                                    </div>
+                    					 <div class="subMenu_item">
+                                  <a href="/rest-live-v20/primitives-df/">Primitives</a>
+                                      <br>
+                                    </div>
+                            </div>
+                          </div>        
+                        </div>
+                    </div>
+
+                    <div class="col-lg-9 col-sm-8 col-xs-12" id="main-api-section">
+ 
+                        
+                        <div class="row" id="big-notice-section"  >
+                                
+                        </div>
+                        
+
+                            <div id="api-head-section" class="row">
+                                <h1>Release Notes</h1>
+                            </div>
+
+                            <div id="content-api-section" class="row">
+                                <div id="single-column" class="col-xs-12 subsection">
+                                    <hr>
+<p><div id="single-column" class="col-xs-12 subsection notes"></p>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Date</th>
+<th>Compatibility Changes</th>
+<th>Details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>3.0.25</td>
+<td>September 28, 2018</td>
+<td></td>
+<td><strong>All - Added orderBook and PositionBook endpoints. Issue-29 (<a href="https://github.com/oanda/v20-python/issues/29">https://github.com/oanda/v20-python/issues/29</a>)</strong></td>
+</tr>
+<tr>
+<td>3.0.24</td>
+<td>May 11, 2018</td>
+<td></td>
+<td><strong>Java - Added support for Accept-Datetime-Format and additional custom headers.  Issue-8 (<a href="https://github.com/oanda/v20-java/issues/8">https://github.com/oanda/v20-java/issues/8</a>)</strong></td>
+</tr>
+<tr>
+<td>3.0.23</td>
+<td>May 04, 2018</td>
+<td></td>
+<td><strong>Java - Fixed using null in a TradeSetDependentOrdersRequest Issue-7 (<a href="https://github.com/oanda/v20-java/issues/7">https://github.com/oanda/v20-java/issues/7</a>)</strong></td>
+</tr>
+<tr>
+<td>3.0.22</td>
+<td>April 11, 2018</td>
+<td></td>
+<td><strong>Various documentation and example improvements</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Added Guaranteed Stop Loss Order support</strong></td>
+</tr>
+<tr>
+<td>3.0.21</td>
+<td>November 08, 2017</td>
+<td></td>
+<td><strong>Include error code and error message in request exceptions (Java)</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Improved README.md (Java)</strong></td>
+</tr>
+<tr>
+<td>3.0.20</td>
+<td>September 26, 2017</td>
+<td></td>
+<td><strong>Added toString() methods to Java classes</strong></td>
+</tr>
+<tr>
+<td>3.0.19</td>
+<td>September 12, 2017</td>
+<td></td>
+<td><strong>Corrected encoding of CSV query parameters in Java</strong></td>
+</tr>
+<tr>
+<td>3.0.18</td>
+<td>May 12, 2017</td>
+<td></td>
+<td><strong>Corrected handling of Collections in Java implementation</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Published commission related fields</strong></td>
+</tr>
+<tr>
+<td>3.0.17</td>
+<td>April 21, 2017</td>
+<td></td>
+<td><strong>Initial Java implementation</strong></td>
+</tr>
+<tr>
+<td>3.0.16</td>
+<td>April 04, 2017</td>
+<td></td>
+<td><strong>Added streaming support for v20 Javascript wrapper</strong></td>
+</tr>
+<tr>
+<td>3.0.15</td>
+<td>March 28, 2017</td>
+<td></td>
+<td><strong>Various bug fixes</strong></td>
+</tr>
+<tr>
+<td>3.0.14</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Changed v20-python entity <strong>str</strong> representation to use yaml</strong></td>
+</tr>
+<tr>
+<td>3.0.13</td>
+<td>December 08, 2016</td>
+<td></td>
+<td><strong>Fixed v20-python string-to-float regression</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>First OpenAPI specification release</strong></td>
+</tr>
+<tr>
+<td>3.0.12</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>v20-python fixed bug when parsing an Instrument from ctx.account.instruments() request</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python intercept requests.exceptions.ChunkedEncodingError when a stream is interrupted</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>prepping for first openapi specification release</strong></td>
+</tr>
+<tr>
+<td>3.0.11</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>stop using custom Boolean definition</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>publish Header specifications for responses</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>fixed the MarginCallExitTransaction description</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>added missing ORDER_CANCEL_REJECT to appropriate enums</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>fixed some candlestick documentation</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>added delayed trade closure transaction type</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>added response Headers to documentation</strong></td>
+</tr>
+<tr>
+<td>3.0.10</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>v20-python accepts floats for numeric values, and will convert them to their string representation before sending them over the wire</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python automatically decodes string-encoded floats into native python floats. This behaviour can be disabled/enabled through the Context</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python Context initialiser sets default values port=443, ssl=True</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python Context initialiser allows configuration of token, string to float conversion, stream_chunk_size, stream_timeout, datetime_format and poll_timeout</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python poll_timeout default changed from 10 to 2</strong></td>
+</tr>
+<tr>
+<td>3.0.9</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>v20-python uses ujson instead of json for improved performance</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python wrapped some requests exceptions with v20 exceptions</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python library change v20 class definitions to explicitly declare properties (with comments) instead of using the property metadata attached to each class</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python library isolate property metadata in a single file</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>v20-python object instantiation from dict simplified and cleaned up</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>more v20-python library documentation</strong></td>
+</tr>
+<tr>
+<td>3.0.8</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>v20-python supports setting timeouts for polling and streaming requests</strong></td>
+</tr>
+<tr>
+<td>3.0.7</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Stream chunk size if now configurable in each context and defaults to 512 bytes</strong></td>
+</tr>
+<tr>
+<td>3.0.6</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added time format support to v20 python bindings</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Extended Transaction filtering to support Transaction Types</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Factored all common HTTP error responses out of API</strong></td>
+</tr>
+<tr>
+<td>3.0.5</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added v20 python aliases for creation and replacement of orders</strong></td>
+</tr>
+<tr>
+<td>3.0.4</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added instrument endpoints with support for Candles.</strong></td>
+</tr>
+<tr>
+<td>3.0.3</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added support for Pricing and Transaction streaming endpoints.</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Deprecated “includeUnitsAvailable” for REST pricing endpoint.</strong></td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td><strong>Deprecated “quoteHomeConversionFactors” and “unitsAvailable” for the Price object.</strong></td>
+</tr>
+<tr>
+<td>3.0.2</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added support for Python 3.5</strong></td>
+</tr>
+<tr>
+<td>3.0.1</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Added TransactRejectReason enum</strong></td>
+</tr>
+<tr>
+<td>3.0.0</td>
+<td>Unreleased</td>
+<td></td>
+<td><strong>Initial Release</strong></td>
+</tr>
+</tbody>
+</table>
+<p></div></p>
+
+                                </div>
+                            </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="apiConfigModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title" id="apiConfigModalLabel">Configure Examples</h4>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-success" id="apiConfigReset">
+                        <span>Configuration has been reset</span>
+                    </div>
+                    <div class="alert alert-success" id="apiConfigSaved">
+                        <span>Configuration has been saved</span>
+                    </div>
+        
+                    <p>Setting the following values will modify all examples to use the 
+                    provided configuration. This may help to generate examples that
+                    can be copied and without further modification.</p>
+
+                    <form class="form-horizontal">
+                        <div class="form-group">
+                            <label for="inputURL" class="col-sm-2 control-label">URL</label>
+                            <div class="col-sm-10">
+                                <select class="form-control" id="inputURL"></select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputUsername" class="col-sm-2 control-label">Username</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="inputUsername">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputAccount" class="col-sm-2 control-label">Account</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="inputAccount">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="inputToken" class="col-sm-2 control-label">Token</label>
+                            <div class="col-sm-10">
+                                <input type="text" class="form-control" id="inputToken">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal" id="apiClose">Close</button>
+                    <button type="button" class="btn btn-primary" id="apiReset">Reset</button>
+                    <button type="button" class="btn btn-primary" id="apiSave">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="footer">
+    
+            <div id="footer-links" class="container">
+                <div class="row">
+                    <div class="left-links col-xs-12 col-md-8">
+                        <span class="copyright" >Copyright OANDA 2014</span>
+                        <a href="http://www.oanda.com/site/terms-of-use" class="main-link">TERMS OF USE</a>
+                        <a href="http://www.oanda.com/site/privacy/" class="main-link">PRIVACY POLICY</a>
+                        <a href="http://www.oanda.com/corp/contact/" class="main-link">CONTACT US</a>
+                        <a href="/about" class="main-link">ABOUT US</a>
+    
+                    </div>
+                    <div class="right-links col-xs-12 col-md-4">
+                        <a href="https://www.facebook.com/OANDAfx"><i class="icon-facebook"></i></a>
+                        <a href="http://www.youtube.com/user/oanda"><i class="icon-youtube"></i></a>
+                        <a href="https://twitter.com/OANDA"><i class="icon-twitter"></i></a>
+                        <a href="https://plus.google.com/+oanda/posts"><i class="icon-gplus"></i></a>
+                        <a href="http://www.linkedin.com/company/oanda"><i class="icon-linkedin-1"></i></a>
+                        <a href="https://github.com/oanda"><i class="icon-github-squared"></i></a>
+                    </div>
+    
+        
+                </div>
+            </div>
+    
+     <div class="wide-separator"></div>
+    
+    <div id="footer-text" class="container">
+      <div id="global-disclaimer">
+    <p>&#169; 1996 - 2019 OANDA Corporation. All rights reserved. "OANDA", "fxTrade" and OANDA's "fx" family of trademarks are owned by OANDA Corporation. All other trademarks appearing on this Website are the property of their respective owners.</p>
+    <p>Leveraged trading in foreign currency contracts or other off-exchange products on margin carries a high level of risk and may not be suitable for everyone. We advise you to carefully consider whether trading is appropriate for you in light of your personal circumstances. You may lose more than you invest (except for OANDA Europe Ltd customers who have negative balance protection). Information on this website is general in nature. We recommend that you seek independent financial advice and ensure you fully understand the risks involved before trading. Trading through an online platform carries additional risks. <a href="https://www1.oanda.com/resources/legal/">Refer to our legal section here</a>.</p>
+    </div>
+    
+    <p><strong>OANDA Corporation</strong> is a registered Futures Commission Merchant and Retail Foreign Exchange Dealer with the <a href="http://www.cftc.gov/index.htm" rel="nofollow">Commodity Futures Trading Commission</a> and is a member of the <a href="https://www.nfa.futures.org/" rel="nofollow">National Futures Association</a>. No: 0325821. Please refer to the <a class="external-link" href="http://www.nfa.futures.org/NFA-investor-information/investor-alerts/forex-investor-alert-february2007.HTML" rel="nofollow">NFA's FOREX INVESTOR ALERT</a> where appropriate.</p>
+    <p><strong>OANDA (Canada) Corporation ULC</strong> accounts are available to anyone with a Canadian bank account. OANDA (Canada) Corporation ULC is regulated by the <a href="http://www.iiroc.ca/Pages/default.aspx" rel="nofollow">Investment Industry Regulatory Organization of Canada </a> (IIROC), which includes IIROC's online advisor check database (<a href="http://www.iiroc.ca/investors/knowyouradvisor/Pages/default.aspx" rel="nofollow">IIROC AdvisorReport</a>), and customer accounts are protected by the Canadian Investor Protection Fund within specified limits. A brochure describing the nature and limits of coverage is available upon request or at <a href="http://www.cipf.ca/Public/CIPFCoverage/CoveragePolicy.aspx" rel="nofollow">www.cipf.ca</a>.</p>
+    <p><strong>OANDA Europe Limited</strong> is a company registered in England number 7110087, and has its registered office at Floor 9a, Tower 42, 25 Old Broad St, London EC2N 1HQ. It is authorised and regulated by the&#160;<a href="http://www.fca.org.uk/" rel="nofollow">Financial Conduct Authority</a>, No: 542574.</p>
+    <p><strong>OANDA Asia Pacific Pte Ltd</strong> (Co. Reg. No 200704926K) holds a Capital Markets Services Licence issued by the <a href="http://www.mas.gov.sg/" rel="nofollow">Monetary Authority of Singapore</a>.</p>
+    <p><strong>OANDA Australia Pty Ltd</strong>&#160;is regulated by the Australian Securities and Investments Commission ASIC (ABN 26 152 088 349, AFSL No. 412981) and is the issuer of the products and/or services on this website. It's important for you to consider the current <a href="https://www.oanda.com/assets/documents/395/OAU_Financial_Services_Guide_-_October_2021.pdf">Financial Service Guide (FSG)</a>, <a href="https://www.oanda.com/assets/documents/396/OAU_Product_Disclosure_Statement_-_v11_18th_February_2023.pdf">Product Disclosure Statement ('PDS')</a>, Account Terms and any other relevant OANDA documents before making any financial investment decisions. These documents can be found <a href="https://www.oanda.com/au-en/legal/">here</a>.</p>
+    <p><strong>OANDA Japan Co., Ltd.</strong> First Type I Financial Instruments Business Director of the Kanto Local Financial Bureau (Kin-sho) No. 2137 Institute Financial Futures Association subscriber number 1571.</p> <br><br><br>
+    
+    <script type="text/javascript" src="//js.maxmind.com/js/apis/geoip2/v2.1/geoip2.js"></script>
+    
+    <script type="text/javascript"> 
+    
+    var onSuccess = function(location){
+              var countries =["HK","SG"];
+     var oaucountries = ["BD","BM","BN","BO","BT","JM","BR","BZ","TK","GT","GP","GY","SV","HT","HN","HM","VE","PY","PA","PF","PG","PE","PH","EC","VN","SB","MF","MO","MN","MV","MY","MX","FJ","NI","NF","NP","CK","CO","CL","CC","CX","CR","CW","SX","KN","KY","DO","DM","VG","UY","LC","TV","TW","TO","TH","TC","AG","AR","AU","VU","AW","ID"];
+              var loc = location.country.iso_code;
+        	     if(countries.indexOf(loc) > -1)
+                  {
+                  $('.oapdisclaimer').show();
+                  }
+          	     else if(oaucountries.indexOf(loc) > -1)
+        	      {
+                   $('.oaudisclaimer').show();
+                 }
+    };
+    
+    var onError = function(error){console.log('error ',e)};
+    geoip2.country(onSuccess, onError);
+    </script>
+    
+        <div class="oapdisclaimer" id="fixed-risk-warning" hidden="true">
+       <div  style="position: fixed; bottom: 0; left: 0; width: 100%; margin: 0 auto; padding: 5px; background-color: #000; color: #fff; z-index: 900;"><span style="display: block; text-align: center;"><span class="white-links">Leverage trading is high risk. Losses can exceed investments.This advertisement has not been reviewed by the Monetary Authority of Singapore.</span></span></div></div>
+            
+     <div class="oaudisclaimer" id="fixed-risk-warning" hidden="true">
+       <div  style="position: fixed; bottom: 0; left: 0; width: 100%; margin: 0 auto; padding: 5px; background-color: #000; ;font:6px;font-family:helvetica neue,Helvetica,Arial,sans-serif;color: #fff; z-index: 500;"><span style="display: block; text-align: center;"><span class="white-links"> CFDs are complex financial products and come with a high risk of losing money.
+                <br> <strong> 76.8% of retail client accounts lose money when trading CFDs with this provider.</strong>
+              <br> You should consider whether you can afford to take the high risk of losing your money.</span></span></div></div>
+    
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+    
+      ga('create', 'UA-47661500-1', 'auto');
+      ga('send', 'pageview');
+    
+    </script>
+    
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: 'de,es,fr,it,ja,ko,pt,ru,vi,zh-CN,zh-TW', layout: google.translate.TranslateElement.InlineLayout.SIMPLE, gaTrack: true, gaId: 'UA-47661500-1'}, 'google_translate_element');
+    }
+    </script><script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    
+    <script type="text/javascript">
+    setTimeout(function(){var a=document.createElement("script");
+    var b=document.getElementsByTagName("script")[0];
+    a.src=document.location.protocol+"//script.crazyegg.com/pages/scripts/0028/8860.js?"+Math.floor(new Date().getTime()/3600000);
+    a.async=true;a.type="text/javascript";b.parentNode.insertBefore(a,b)}, 1);
+    </script>
+    
+    <style>
+    * {
+      box-sizing: border-box;
+    }
+    .column {
+       float: left;
+      width: 15%;
+      padding: 25px;
+      font-size:8px;
+      
+    }
+    </style>
+    
+    </div>
+
+    <script>
+    var clipboardSnippets = new Clipboard(
+        '[data-clipboard-snippet]',
+        { target: function(trigger){ return trigger.nextElementSibling; } }
+    );
+
+    clipboardSnippets.on('success', function(e) { e.clearSelection(); });
+
+    function APIDetails() {
+        this.urls = [
+            "https://api-fxtrade.oanda.com",
+            "https://api-fxpractice.oanda.com"
+        ];
+
+        this.stream_urls = [
+            "https://stream-fxtrade.oanda.com",
+            "https://stream-fxpractice.oanda.com"
+        ];
+
+        this.reset();
+
+        this.load();
+
+        this.cache_examples();
+    }
+      
+
+    APIDetails.prototype.reset = function() {
+        this.url = this.urls[0];
+        this.stream_url = this.stream_urls[0];
+        this.token = "<AUTHENTICATION TOKEN>";
+        this.account = "<ACCOUNT>";
+        this.userid = "<USERID>";
+        this.username = "<USERNAME>";
+    }
+
+    APIDetails.prototype.load = function() {
+        if (typeof(Storage) === "undefined") { return; }
+
+        this.url = localStorage.getItem("api_url") || this.url;
+        this.token = localStorage.getItem("api_token") || this.token;
+        this.account = localStorage.getItem("api_account") || this.account;
+        this.userid = localStorage.getItem("api_userid") || this.userid;
+        this.username = localStorage.getItem("api_username") || this.username;
+    }
+
+    APIDetails.prototype.save = function(tokens) {
+        if (typeof(Storage) === "undefined") { return; }
+
+        localStorage.setItem("api_url", this.url);
+        localStorage.setItem("api_stream_url", this.stream_url);
+        localStorage.setItem("api_token", this.token);
+        localStorage.setItem("api_account", this.account);
+        localStorage.setItem("api_userid", this.userid);
+        localStorage.setItem("api_username", this.username);
+    }
+
+    APIDetails.prototype.cache_examples = function() {
+        this.example_cache = {};
+
+        $("[tokenized-example]").each(function(i, v) {
+            this.example_cache[i] = $(v).text();
+        }.bind(this));
+    }
+
+    APIDetails.prototype.update_page = function () {
+        $("#inputURL").find('option').remove();
+
+        this.urls.forEach(function(url) {
+            $("#inputURL").append($('<option>', {
+                value: url,
+                text: url
+            }));
+        });
+
+
+        //$("#inputStreamURL").val(this.stream_url);
+        $("#inputToken").val(this.token);
+        $("#inputAccount").val(this.account);
+        $("#inputUsername").val(this.username);
+
+        $("[tokenized-example]").each(function(i, v) {
+            var text = this.example_cache[i];
+            
+            $("#inputURL").find('option').remove();
+
+            //var urls = this.urls;
+            if (text.search("<STREAM_URL>") >= 0 ) {
+                this.stream_urls.forEach(function(url) {
+                   $("#inputURL").append($('<option>', {
+                       value: url,
+                       text: url
+                   }));
+
+
+                });
+                $("#inputURL").val(this.stream_url);
+            }
+            else {
+                this.urls.forEach(function(url) {
+                   $("#inputURL").append($('<option>', {
+                       value: url,
+                       text: url
+                   }));
+
+
+                });
+                $("#inputURL").val(this.url);
+            }
+               
+
+
+            text = text.replace(
+                new RegExp("<URL>", 'g'), this.url
+            );
+            text = text.replace(
+                new RegExp("<STREAM_URL>", 'g'), this.stream_url
+            );
+            text = text.replace(
+                new RegExp("<TOKEN>", 'g'), this.token
+            );
+            text = text.replace(
+                new RegExp("<ACCOUNT>", 'g'), this.account
+            );
+            text = text.replace(
+                new RegExp("<USERID>", 'g'), this.userid
+            );
+            text = text.replace(
+                new RegExp("<USERNAME>", 'g'), this.username
+            );
+
+            $(v).text(text);
+        }.bind(this));
+    }
+
+    APIDetails.prototype.get_input = function() {
+        var url = $("#inputURL").val();
+        var token = $("#inputToken").val();
+        var account = $("#inputAccount").val();
+        var username = $("#inputUsername").val();
+
+
+        var account_tokens = account.split("-");
+
+        if (account_tokens.length == 4)
+        {
+            this.userid = account_tokens[2];
+        }
+
+        this.url = url;
+        this.token = token;
+        this.account = account;
+        this.username = username;
+    }
+
+    var apiDetails = new APIDetails();
+
+    apiDetails.update_page();
+
+    $('#apiConfigReset').hide();
+    $('#apiConfigSaved').hide();
+
+    $('#apiClose').click(function() {
+        $('#apiConfigReset').hide();
+        $('#apiConfigSaved').hide();
+    });
+
+    $('#apiSave').click(function() {
+        apiDetails.get_input();
+        apiDetails.save();
+        apiDetails.update_page();
+        $('#apiConfigReset').hide();
+        $('#apiConfigSaved').show();
+    });
+
+    $('#apiReset').click(function() {
+        apiDetails.reset();
+        apiDetails.save();
+        apiDetails.update_page();
+        $('#apiConfigReset').show();
+        $('#apiConfigSaved').hide();
+    });
+
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a430daabdbdb14dc',t:'MTc5MDc0NjQyMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+</html>

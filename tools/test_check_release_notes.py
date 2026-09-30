@@ -194,5 +194,20 @@ class ReleaseNoteTests(unittest.TestCase):
                         fetch.assert_not_called()
 
 
+class RealPageSnapshot(unittest.TestCase):
+    def test_the_committed_live_page_snapshot_parses_and_reports(self):
+        # The snapshot is a fetched copy of OANDA's release-note page kept
+        # under docs/fixtures so the structural continuation rule is
+        # reproducible offline against real page content, not only synthetic
+        # tables.
+        snapshot = Path(__file__).resolve().parents[1] / "docs" / "fixtures" / "release-notes-2026-09-30.html"
+        versions, continuations = checker.release_versions(snapshot.read_text(encoding="utf-8"))
+        self.assertEqual(versions[-1], "3.0.25")
+        self.assertEqual(len(continuations), 25)
+        status, message = checker.check(snapshot.read_text(encoding="utf-8"), "3.0.25")
+        self.assertEqual(status, 0)
+        self.assertIn("Skipped 25 structural continuation rows", message)
+
+
 if __name__ == "__main__":
     unittest.main()

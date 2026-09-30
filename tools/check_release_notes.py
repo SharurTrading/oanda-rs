@@ -107,7 +107,9 @@ def release_versions(html):
             # release before it) may be skipped; any other empty version cell is
             # a release this checker cannot identify and must not vanish from
             # the compared set.
-            raise ValueError(f"release-note row with no readable version: {row!r}")
+            quoted = "; ".join(repr(cell[:120]) for cell in row)
+            raise ValueError(
+                f"release-note row with no readable version: [{quoted}]")
         else:
             # The shape is indistinguishable offline from a brand-new release
             # whose version cell this checker cannot read, so the row is

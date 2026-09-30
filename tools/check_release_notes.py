@@ -3,6 +3,13 @@
 Uses only the Python standard library. Network access is reserved for scheduled
 or manually dispatched CI; --html replays a saved page without network access.
 Exit codes: 0 = current, 1 = review needed, 2 = check could not be completed.
+
+A release row whose version cell is empty is a continuation row only when it
+structurally continues the release above it: empty version, date, and
+compatibility cells with detail text below a release that named a version.
+Any other row without a readable version is reported as exit 2 — "could not be
+completed" — with the offending row named, never silently dropped from the
+compared set.
 """
 
 import argparse
@@ -90,9 +97,16 @@ def release_versions(html):
     for row in tables[0][1:]:
         if len(row) != len(HEADERS):
             raise ValueError("unexpected release-note row shape")
-        if row[0]:  # Empty version cells continue the preceding release's details.
+        if row[0]:
             version_tuple(row[0])
             versions.add(row[0])
+        elif row[1] or row[2] or not row[3] or not versions:
+            # Only a row that structurally continues the release above it (empty
+            # version, date, and compatibility cells, detail text, and a named
+            # release before it) may be skipped; any other empty version cell is
+            # a release this checker cannot identify and must not vanish from
+            # the compared set.
+            raise ValueError(f"release-note row with no readable version: {row!r}")
     if not versions:
         raise ValueError("release-note table contains no versions")
     return sorted(versions, key=version_tuple)

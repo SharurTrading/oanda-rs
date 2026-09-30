@@ -16,11 +16,26 @@ import check_release_notes as checker
 
 def page(*versions):
     header = "<tr>" + "".join(f"<th>{value}</th>" for value in checker.HEADERS) + "</tr>"
-    rows = "".join(
-        f"<tr><td><strong>{version}</strong></td><td>Unreleased</td>"
-        "<td></td><td>Example change</td></tr>" for version in versions
+    rows = []
+    for version in versions:
+        if version:
+            rows.append(
+                f"<tr><td><strong>{version}</strong></td><td>Unreleased</td>"
+                "<td></td><td>Example change</td></tr>"
+            )
+        else:
+            # A continuation row on OANDA's page carries text only in Details;
+            # the version, date, and compatibility cells stay empty.
+            rows.append("<tr><td></td><td></td><td></td><td>Example change</td></tr>")
+    return f"<html><table>{header}{''.join(rows)}</table></html>"
+
+
+def unreadable_version_row(date="September 28, 2018"):
+    """A row whose version cell is empty but which is not a continuation."""
+    return (
+        f"<tr><td></td><td>{date}</td><td></td>"
+        "<td>Unreadable release detail</td></tr>"
     )
-    return f"<html><table>{header}{rows}</table></html>"
 
 
 class ReleaseNoteTests(unittest.TestCase):
@@ -59,6 +74,50 @@ class ReleaseNoteTests(unittest.TestCase):
         for html in examples:
             with self.subTest(html=html), self.assertRaises(ValueError):
                 checker.release_versions(html)
+
+    def test_empty_version_row_with_a_date_is_reported_not_skipped(self):
+        # A release whose version cell is empty for any reason other than a
+        # structural continuation must never vanish from the compared set: the
+        # checker reports it and exits 2 instead of judging "current".
+        html = "<html><table>" + (
+            "<tr><th>Version</th><th>Date</th><th>Compatibility Changes</th><th>Details</th></tr>"
+            "<tr><td><strong>3.0.25</strong></td><td>Unreleased</td><td></td><td>Example change</td></tr>"
+            + unreadable_version_row()
+            + "</table></html>"
+        )
+        with self.assertRaisesRegex(ValueError, "no readable version"):
+            checker.release_versions(html)
+
+    def test_cli_reports_an_unreadable_version_row_as_incomplete(self):
+        with tempfile.TemporaryDirectory() as directory:
+            baseline = Path(directory) / "baseline.json"
+            baseline.write_text(json.dumps({"last_reviewed_version": "3.0.25", "reviewed_at": "2026-09-27"}))
+            html = Path(directory) / "page.html"
+            html.write_text(
+                "<html><table>"
+                "<tr><th>Version</th><th>Date</th><th>Compatibility Changes</th><th>Details</th></tr>"
+                "<tr><td><strong>3.0.25</strong></td><td>Unreleased</td><td></td><td>Example change</td></tr>"
+                + unreadable_version_row()
+                + "</table></html>"
+            )
+            with patch.dict(os.environ, {}, clear=True):
+                with redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(
+                        checker.main(["--html", str(html), "--baseline", str(baseline)]), 2
+                    )
+            self.assertIn("could not be completed", output.getvalue())
+            self.assertIn("Unreadable release detail", output.getvalue())
+
+    def test_first_row_cannot_be_a_continuation(self):
+        html = (
+            "<html><table>"
+            "<tr><th>Version</th><th>Date</th><th>Compatibility Changes</th><th>Details</th></tr>"
+            "<tr><td></td><td></td><td></td><td>Example change</td></tr>"
+            "<tr><td><strong>3.0.25</strong></td><td>Unreleased</td><td></td><td>Example change</td></tr>"
+            "</table></html>"
+        )
+        with self.assertRaisesRegex(ValueError, "no readable version"):
+            checker.release_versions(html)
 
     def test_unsupported_versions_fail_instead_of_being_skipped(self):
         for version in ["v3.0.26", "3.0.26-rc1", "3.0", "3.0.26.1", "3.00.26", "unknown"]:

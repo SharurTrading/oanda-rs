@@ -133,7 +133,13 @@ def emit_enum(name, desc, table):
     for row in rows[1:]:
         val=' '.join(row.xpath('./td[1]//text()')).strip()
         description=' '.join(row.xpath('./td[2]//text()')).strip()
-        if val: values.append((val,description))
+        if not val:
+            # Same rule as generate_variants.values: any row without a value
+            # cell is a failure, so a table-layout change cannot mean two
+            # different things in the two tools.
+            cells=[' '.join(td.text_content().split()) for td in row.xpath('./td')]
+            fail(f'{name}: enum row has an empty value cell: {cells[:3]}')
+        values.append((val,description))
     if not values:
         fail(f'{name}: value table has no parseable rows')
     for value,description in values:
@@ -143,7 +149,13 @@ def emit_enum(name, desc, table):
     used=set()
     for value,description in values:
         var=variant(value)
-        if var in used: var+='Value'
+        if var in used:
+            # Two provider values normalizing to one Rust ident stay lossless
+            # (as_str keeps the exact spellings), but the rename is a decision,
+            # not a silence: it is printed for the review of the diff.
+            print(f'{name}: value {value!r} collides with an earlier variant; '
+                  f'rust ident becomes {var}')
+            var+='Value'
         used.add(var)
         lines+=docs(description, '    ')+['    '+var+',']
     lines+=['    /// An unrecognized provider value, preserved for forward compatibility.','    Unknown(String),','}', '']

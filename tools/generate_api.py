@@ -7,7 +7,13 @@ from __future__ import annotations
 import json, re, sys
 from pathlib import Path
 from lxml import html
-from generate_models import fields, docs, ident, typ, fail
+from generate_models import fields, docs, ident, typ
+
+
+def fail(message: str):
+    """Same contract as generate_models.fail, naming this script."""
+    raise SystemExit(f'generate_api.py: {message}')
+
 
 ROOT=Path(__file__).resolve().parents[1]
 SOURCE=Path(sys.argv[1]) if len(sys.argv)>1 else Path('/private/tmp')

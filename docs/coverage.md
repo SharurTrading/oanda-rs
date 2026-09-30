@@ -28,7 +28,10 @@ body, so their methods reject through the reviewed
 (`"rejection": "generic"`) instead of a per-endpoint struct with fields OANDA never documented; the
 `Supplied<R>` evidence contract and the `errorCode`/`errorMessage` read from the body apply
 unchanged. The generator refuses to run without one of these two decisions: it no longer invents a
-rejection pair, an empty success struct, a `String` alias, or a field description.
+rejection pair, an empty success struct, a `String` alias, or a field description. The 22 removed
+per-endpoint structs are a breaking change for callers naming them; stream operations record
+`"rejection": "stream"` and reject through `Error::Provider`, whose `code`/`message` fields carry
+the same evidence contract.
 
 ## Law-invariant audit
 

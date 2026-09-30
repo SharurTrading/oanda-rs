@@ -57,13 +57,12 @@ price is a decode error rather than a float round trip. Those files needed no re
 
 | `tests/tagged_variants.rs` asserted a `type` value the serializer wrote rather than one the provider sent, and `tests/enum_variants.rs` round-tripped any string through the `Unknown` arm, so a variant the generator lost was invisible behind 500+ passing assertions ([#12](https://github.com/SharurTrading/oanda-rs/issues/12)). | The verification suites are the repo's own evidence that a documented contract is implemented; an assertion that cannot fail is not evidence. | A forward-compatibility arm that preserves unrecognized spellings is legitimate in the models; the defect was in what the tests asserted about it. | `tests/tagged_variants.rs` now asserts the reserialized payload equals the provider wire payload field-for-field, and the 21 type-only Transaction fixtures carry the fields OANDA sends on every transaction (id, time, userID, accountID, batchID, requestID) so those fields' round trip is asserted. `tests/enum_variants.rs` asserts each wire value decodes to its named documented variant, not to `Unknown`. Negative tests prove both assertions can fail: `a_normalized_field_value_fails_the_round_trip`, `an_undocumented_enum_value_fails_the_round_trip`. |
 
+| `tools/check_release_notes.py` dropped a release row whose version cell was empty and could then report "current" while a newer OANDA version went uncompared ([#11](https://github.com/SharurTrading/oanda-rs/issues/11)). | The compared set is what the weekly drift alarm judges; a silently dropped release defeats it. | A structural continuation row is a legitimate skip — indistinguishable offline from an unreadable new release that also emptied its date and compatibility cells — so the skip stays, reported. | Continuation rows are identified structurally from the live page's shape and every message reports how many rows were skipped and quotes their text; any other empty version cell is exit 2 with the row named. The fetched page is committed under `docs/fixtures` and a test replays it. |
+
 ## Outstanding, tracked separately
 
 These are confirmed candidates whose repair is a separate, bounded change. Each has its own issue
 with the path and the required outcome, as the law's final clause requires.
 
 
-- [#11](https://github.com/SharurTrading/oanda-rs/issues/11) — `tools/check_release_notes.py` drops a
-  release row whose version cell is empty and can then report "current" while a newer version went
-  uncompared.
 

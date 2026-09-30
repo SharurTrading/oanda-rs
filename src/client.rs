@@ -854,12 +854,17 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let until = rate.cooldown_until.expect("cooldown installed");
+        // An RFC 9110 date carries whole seconds, so formatting a later
+        // instant floors it and `num_seconds` floors again; a slow runner can
+        // legitimately land one second under the nominal span. One second of
+        // tolerance each way keeps the bound meaningful without flaking.
+        let tolerance = Duration::from_secs(1);
         assert!(
-            until >= start + expected,
+            until + tolerance >= start + expected,
             "cooldown shorter than {expected:?}"
         );
         assert!(
-            until <= Instant::now() + expected,
+            until <= Instant::now() + expected + tolerance,
             "cooldown longer than {expected:?}"
         );
     }

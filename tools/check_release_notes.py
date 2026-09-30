@@ -3,6 +3,13 @@
 Uses only the Python standard library. Network access is reserved for scheduled
 or manually dispatched CI; --html replays a saved page without network access.
 Exit codes: 0 = current, 1 = review needed, 2 = check could not be completed.
+
+A release row whose version cell is empty is a continuation row only when it
+structurally continues the release above it: empty version, date, and
+compatibility cells with detail text below a release that named a version.
+Any other row without a readable version is reported as exit 2 — "could not be
+completed" — with the offending row named, never silently dropped from the
+compared set.
 """
 
 import argparse
@@ -87,15 +94,31 @@ def release_versions(html):
     if len(tables) != 1:
         raise ValueError("expected exactly one OANDA release-note table")
     versions = set()
+    continuations = []
     for row in tables[0][1:]:
         if len(row) != len(HEADERS):
             raise ValueError("unexpected release-note row shape")
-        if row[0]:  # Empty version cells continue the preceding release's details.
+        if row[0]:
             version_tuple(row[0])
             versions.add(row[0])
+        elif row[1] or row[2] or not row[3] or not versions:
+            # Only a row that structurally continues the release above it (empty
+            # version, date, and compatibility cells, detail text, and a named
+            # release before it) may be skipped; any other empty version cell is
+            # a release this checker cannot identify and must not vanish from
+            # the compared set.
+            quoted = "; ".join(repr(cell[:120]) for cell in row)
+            raise ValueError(
+                f"release-note row with no readable version: [{quoted}]")
+        else:
+            # The shape is indistinguishable offline from a brand-new release
+            # whose version cell this checker cannot read, so the row is
+            # reported rather than vanishing: every message below names each
+            # continuation row this check treated as one.
+            continuations.append(row[3])
     if not versions:
         raise ValueError("release-note table contains no versions")
-    return sorted(versions, key=version_tuple)
+    return sorted(versions, key=version_tuple), continuations
 
 
 def fetch_html():
@@ -109,17 +132,26 @@ def fetch_html():
 
 def check(html, reviewed):
     baseline = version_tuple(reviewed)
-    versions = release_versions(html)
+    versions, continuations = release_versions(html)
+    skipped = ""
+    if continuations:
+        quoted = "; ".join(repr(row[:60]) for row in continuations[:3])
+        more = f" (+{len(continuations) - 3} more)" if len(continuations) > 3 else ""
+        skipped = f" Skipped {len(continuations)} structural continuation rows: {quoted}{more}."
     newer = [version for version in versions if version_tuple(version) > baseline]
     if newer:
         return 1, (
             f"OANDA release-note review needed: last reviewed {reviewed}; "
             f"newer versions: {', '.join(newer)}. Review {URL} and the authoritative "
             "endpoint/definition pages, then update docs/release-notes.json in a reviewed PR."
+            f"{skipped}"
         )
     if version_tuple(versions[-1]) < baseline:
         raise ValueError("latest published version is below the reviewed baseline")
-    return 0, f"OANDA release notes are current: latest {versions[-1]}, last reviewed {reviewed}."
+    return 0, (
+        f"OANDA release notes are current: latest {versions[-1]}, last reviewed {reviewed}."
+        f"{skipped}"
+    )
 
 
 def main(argv=None):

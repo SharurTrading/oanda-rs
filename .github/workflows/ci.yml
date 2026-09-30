@@ -38,7 +38,7 @@ jobs:
         run: RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked
       - name: Coverage ledger
         run: python3 tools/check_coverage.py
-      - name: Release-note checker tests (offline)
+      - name: Offline Python tool tests
         run: python3 -m unittest discover -s tools -p 'test_*.py'
       - name: Package verification
         run: cargo package --locked

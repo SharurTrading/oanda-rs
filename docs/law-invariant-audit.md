@@ -48,6 +48,8 @@ price is a decode error rather than a float round trip. Those files needed no re
 | --- | --- | --- | --- |
 | `ApiResponse::request_id` read a present-but-unreadable `RequestID` as `None`, the same value as an absent header, while the sibling Link header failed loudly on the same class of failure ([#7](https://github.com/SharurTrading/oanda-rs/issues/7)). | `src/client.rs` `Client::execute`. The `RequestID` is a caller's only correlation with OANDA's own record of the request. | An absent header is real absence. | `request_id` is `Supplied<String>` and `next_page` is `Supplied<Url>`, so both headers agree: absent, decoded, or sent and unreadable. A Link header whose bytes cannot be read as text is reported `Undecoded` while the decoded body is kept; a *readable* `rel="next"` item that does not match the documented shape stays a hard `Error::Decode` — it decoded fine and was refused, exactly like a readable link that leaves the client's API origin — and the lossy `into_decoded()` accessor is removed so no one-liner turns "offered but unreadable" into "not offered". A readable next link that leaves the client's API origin is still a hard error: that value decoded fine and was refused, not lost. `an_unreadable_request_id_is_reported_as_sent_not_absent`, `an_absent_request_id_is_absent`, `an_unreadable_link_header_is_not_read_as_no_next_page`, `a_malformed_next_link_is_undecoded_not_an_error`, `a_link_header_offering_no_next_page_is_absent`. |
 
+| `tests/tagged_variants.rs` asserted a `type` value the serializer wrote rather than one the provider sent, and `tests/enum_variants.rs` round-tripped any string through the `Unknown` arm, so a variant the generator lost was invisible behind 500+ passing assertions ([#12](https://github.com/SharurTrading/oanda-rs/issues/12)). | The verification suites are the repo's own evidence that a documented contract is implemented; an assertion that cannot fail is not evidence. | A forward-compatibility arm that preserves unrecognized spellings is legitimate in the models; the defect was in what the tests asserted about it. | `tests/tagged_variants.rs` now asserts the reserialized payload equals the provider wire payload field-for-field, and the 21 type-only Transaction fixtures carry the fields OANDA sends on every transaction (id, time, userID, accountID, batchID, requestID) so those fields' round trip is asserted. `tests/enum_variants.rs` asserts each wire value decodes to its named documented variant, not to `Unknown`. Negative tests prove both assertions can fail: `a_normalized_field_value_fails_the_round_trip`, `an_undocumented_enum_value_fails_the_round_trip`. |
+
 ## Outstanding, tracked separately
 
 These are confirmed candidates whose repair is a separate, bounded change. Each has its own issue
@@ -69,7 +71,4 @@ with the path and the required outcome, as the law's final clause requires.
 - [#11](https://github.com/SharurTrading/oanda-rs/issues/11) — `tools/check_release_notes.py` drops a
   release row whose version cell is empty and can then report "current" while a newer version went
   uncompared.
-- [#12](https://github.com/SharurTrading/oanda-rs/issues/12) — the verification tests lock in
-  fallback behaviour: `tests/tagged_variants.rs` asserts a `type` value the serializer wrote rather
-  than one the provider sent, and `tests/enum_variants.rs` round-trips any string through the
-  `Unknown` arm, so a variant the generator lost is invisible.
+

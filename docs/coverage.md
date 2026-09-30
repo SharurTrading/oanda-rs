@@ -14,7 +14,9 @@ A definitive provider rejection reports only what OANDA sent. `OperationError::R
 decoded (`Decoded`), and one that arrived but did not match the documented shape (`Undecoded`).
 `Error::Provider` uses the same `Option` fields for a refused stream. Neither path substitutes a
 message OANDA did not write, and a caller reconciling a refused mutation can tell a reject
-transaction it has already accounted for from one it is missing.
+transaction it has already accounted for from one it is missing. `ApiResponse::request_id` and
+`::next_page` carry the same three-state evidence: `Undecoded` reports a header OANDA sent that
+this client could not read, never no header at all.
 
 ## Law-invariant audit
 

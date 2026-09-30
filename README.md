@@ -93,7 +93,9 @@ environment variables set, run `cargo run --example practice_account`. Select
   OANDA did not send from one that arrived and could not be decoded. The client never invents a
   reason. Upgrading from an earlier build: `Rejected::message` and `Error::Provider::message` are
   now `Option<String>`, `Rejected::body` is `Supplied<R>`, and `acknowledge_reconciliation`
-  returns `Result` — match arms and acknowledgement call sites need updating.
+  returns `Result` — match arms and acknowledgement call sites need updating. A response's
+  `request_id` and `next_page` are likewise `Supplied`: `Undecoded` means OANDA offered a value
+  this client could not read, which is a different fact from no value being offered.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
   Provider IDs and timestamps have dedicated types.

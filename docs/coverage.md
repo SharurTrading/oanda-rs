@@ -22,6 +22,20 @@ transaction it has already accounted for from one it is missing. `ApiResponse::r
 `::next_page` carry the same three-state evidence: `Undecoded` reports a header OANDA sent that
 this client could not read, never no header at all.
 
+## Stream record and transport bounds
+
+Pricing and transaction streams bound each newline-delimited record at a local hostile-input limit
+of 1 MiB; OANDA documents no record size, and realistic payloads are orders of magnitude smaller.
+An HTTP chunk is a transport read, not a provider record boundary, so there is deliberately no
+aggregate chunk-size rejection: a chunk carrying more than 8 MiB of individually valid records is
+processed record-by-record in order (`a_large_transport_chunk_of_valid_records_invents_no_gap`).
+Buffered records are never evicted for a slow caller, because dropping records would invent a
+continuity gap the provider did not create. The buffered backlog is capped at a local 16 MiB: a
+fill episode that parks more than that ends the generation with an explicit gap
+(`a_backlog_beyond_the_local_bound_ends_the_generation`), because while undelivered records
+remain no further reading — and therefore no per-record check — happens. A malformed or oversized
+individual record still ends the generation explicitly.
+
 ## Law-invariant audit
 
 The [LAW-INVARIANT audit](law-invariant-audit.md) records every candidate inspected on 2026-09-30,

@@ -11,8 +11,26 @@ use std::{
     time::{Duration, Instant},
 };
 
+/// Local hostile-input bound on a single newline-delimited record.
+///
+/// This is the client's own memory bound, not a provider contract: OANDA
+/// documents no record size, and realistic pricing and transaction payloads are
+/// orders of magnitude smaller. A record over this limit ends the generation
+/// with an explicit gap. There is deliberately no bound on the transport chunk
+/// size or on the buffered backlog — HTTP chunk segmentation is not a provider
+/// record boundary, and a slow caller must never cause records to be evicted,
+/// because dropping records would invent a continuity gap that the provider did
+/// not create.
 const MAX_RECORD_BYTES: usize = 1024 * 1024;
-const MAX_CHUNK_BYTES: usize = 8 * 1024 * 1024;
+/// Local hostile-input bound on the total buffered-but-undelivered backlog.
+///
+/// Records already buffered are never evicted — a slow caller delays delivery
+/// rather than losing records — but a fill episode that parks more than this
+/// many bytes in the buffer, complete records included, ends the generation
+/// with an explicit gap. Without it a provider burst of complete records could
+/// occupy memory without bound, because no further reading — and therefore no
+/// per-record check — happens while undelivered records remain.
+const MAX_BACKLOG_BYTES: usize = 16 * 1024 * 1024;
 
 /// One event from OANDA's sampled pricing stream.
 #[derive(Debug, Clone, PartialEq)]
@@ -38,6 +56,7 @@ pub enum TransactionStreamEvent {
 pub struct HttpStream<E> {
     response: Option<Response>,
     buffer: Vec<u8>,
+    start: usize,
     decoder: fn(&[u8]) -> Result<E>,
     ended: bool,
     lease: Option<StreamLease>,
@@ -54,26 +73,53 @@ impl<E> HttpStream<E> {
         if self.ended {
             return None;
         }
+        // The backlog cap is enforced wherever the buffer could have grown:
+        // on entry, so no already-buffered burst larger than the cap is ever
+        // delivered from, and after each transport read. Records already
+        // delivered are never recalled; ending here is an explicit local gap.
+        if self.buffer.len() - self.start > MAX_BACKLOG_BYTES {
+            self.finish();
+            return Some(Err(Error::ResponseTooLarge));
+        }
         loop {
-            if let Some(position) = self.buffer.iter().position(|byte| *byte == b'\n') {
-                if position > MAX_RECORD_BYTES {
+            // Records are consumed through a cursor rather than by draining the
+            // buffer per record: a large transport read must not turn record
+            // delivery into quadratic copying, and buffered records are never
+            // evicted, because a dropped record would invent a provider gap.
+            if let Some(offset) = self.buffer[self.start..]
+                .iter()
+                .position(|byte| *byte == b'\n')
+            {
+                let newline = self.start + offset;
+                let mut end = newline;
+                if end > self.start && self.buffer[end - 1] == b'\r' {
+                    end -= 1;
+                }
+                if end - self.start > MAX_RECORD_BYTES {
                     self.finish();
                     return Some(Err(Error::ResponseTooLarge));
                 }
-                let line: Vec<u8> = self.buffer.drain(..=position).collect();
-                let line = line[..line.len() - 1]
-                    .strip_suffix(b"\r")
-                    .unwrap_or(&line[..line.len() - 1]);
+                let line: Vec<u8> = self.buffer[self.start..end].to_vec();
+                self.start = newline + 1;
+                if self.start == self.buffer.len() {
+                    self.buffer.clear();
+                    self.start = 0;
+                } else if self.start > MAX_RECORD_BYTES {
+                    self.buffer.drain(..self.start);
+                    self.start = 0;
+                }
                 if line.is_empty() {
                     continue;
                 }
-                let result = (self.decoder)(line);
+                let result = (self.decoder)(&line);
                 if result.is_err() {
                     self.finish();
                 }
                 return Some(result);
             }
-            if self.buffer.len() > MAX_RECORD_BYTES {
+            // No complete record is buffered. Bound the pending record, then
+            // read more transport data.
+            if self.buffer.len() - self.start > MAX_RECORD_BYTES {
                 self.finish();
                 return Some(Err(Error::ResponseTooLarge));
             }
@@ -89,11 +135,18 @@ impl<E> HttpStream<E> {
                     )));
                 }
                 Ok(Ok(Some(chunk))) => {
-                    if chunk.len() > MAX_CHUNK_BYTES {
+                    // An HTTP chunk is a transport read, not a record
+                    // boundary: one chunk may carry thousands of complete
+                    // records, so its size alone says nothing about provider
+                    // data. Records are bounded individually, before any
+                    // decode, and the buffered backlog is bounded in total:
+                    // refusing to buffer beyond the cap is a local, explicitly
+                    // reported limit, never eviction.
+                    self.buffer.extend_from_slice(&chunk);
+                    if self.buffer.len() - self.start > MAX_BACKLOG_BYTES {
                         self.finish();
                         return Some(Err(Error::ResponseTooLarge));
                     }
-                    self.buffer.extend_from_slice(&chunk);
                 }
                 Ok(Ok(None)) => {
                     self.finish();
@@ -195,6 +248,7 @@ impl Client {
         Ok(HttpStream {
             response: Some(response),
             buffer: Vec::new(),
+            start: 0,
             decoder,
             ended: false,
             lease: Some(lease),
@@ -302,6 +356,42 @@ mod tests {
         if let Ok(slots) = client.inner.stream_slots.lock() {
             assert_eq!(slots.active, 0);
         }
+    }
+
+    #[tokio::test]
+    async fn a_backlog_beyond_the_local_bound_ends_the_generation() {
+        // A provider burst can park many complete records in the buffer at
+        // once, and while undelivered records remain no further reading — and
+        // therefore no per-record check — happens. Refusing to deliver from a
+        // backlog past the cap is a local, explicitly reported limit, never
+        // eviction of records already accepted.
+        let mut buffer = Vec::new();
+        for index in 0..200_000_u32 {
+            buffer.extend_from_slice(
+                format!(
+                    "{{\"type\":\"HEARTBEAT\",\"lastTransactionID\":\"{index}\",\
+                     \"time\":\"2024-01-02T03:04:05.000000000Z\"}}\r\n"
+                )
+                .as_bytes(),
+            );
+        }
+        assert!(
+            buffer.len() > MAX_BACKLOG_BYTES,
+            "fixture must exceed the cap"
+        );
+        let mut stream = HttpStream {
+            response: None,
+            buffer,
+            start: 0,
+            decoder: decode_transaction,
+            ended: false,
+            lease: None,
+        };
+        assert!(matches!(
+            stream.next_event().await,
+            Some(Err(Error::ResponseTooLarge))
+        ));
+        assert!(stream.next_event().await.is_none());
     }
 
     #[tokio::test]

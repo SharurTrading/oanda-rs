@@ -9,6 +9,7 @@
       "public_method": "list_accounts",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -18,6 +19,7 @@
       "public_method": "account_details",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -27,6 +29,7 @@
       "public_method": "account_summary",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -36,6 +39,7 @@
       "public_method": "account_instruments",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -45,6 +49,7 @@
       "public_method": "configure_account",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -54,6 +59,7 @@
       "public_method": "account_changes",
       "source": "https://developer.oanda.com/rest-live-v20/account-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -63,6 +69,7 @@
       "public_method": "create_order",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -72,6 +79,7 @@
       "public_method": "list_orders",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -81,6 +89,7 @@
       "public_method": "list_pending_orders",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -90,6 +99,7 @@
       "public_method": "order_details",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -99,6 +109,7 @@
       "public_method": "replace_order",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -108,6 +119,7 @@
       "public_method": "cancel_order",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -117,6 +129,7 @@
       "public_method": "update_order_client_extensions",
       "source": "https://developer.oanda.com/rest-live-v20/order-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -126,6 +139,7 @@
       "public_method": "list_trades",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -135,6 +149,7 @@
       "public_method": "list_open_trades",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -144,6 +159,7 @@
       "public_method": "trade_details",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -153,6 +169,7 @@
       "public_method": "close_trade",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -162,6 +179,7 @@
       "public_method": "update_trade_client_extensions",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -171,6 +189,7 @@
       "public_method": "set_trade_dependent_orders",
       "source": "https://developer.oanda.com/rest-live-v20/trade-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -180,6 +199,7 @@
       "public_method": "list_positions",
       "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -189,6 +209,7 @@
       "public_method": "list_open_positions",
       "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -198,6 +219,7 @@
       "public_method": "position_details",
       "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -207,6 +229,7 @@
       "public_method": "close_position",
       "source": "https://developer.oanda.com/rest-live-v20/position-ep/",
       "kind": "mutation",
+      "rejection": "endpoint",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -216,6 +239,7 @@
       "public_method": "list_transactions",
       "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -225,6 +249,7 @@
       "public_method": "transaction_details",
       "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -234,6 +259,7 @@
       "public_method": "transactions_by_id_range",
       "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -243,6 +269,7 @@
       "public_method": "transactions_since_id",
       "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -252,6 +279,7 @@
       "public_method": "stream_transactions",
       "source": "https://developer.oanda.com/rest-live-v20/transaction-ep/",
       "kind": "stream",
+      "rejection": "stream",
       "status": "tested",
       "test": "transaction_stream_decodes_heartbeat_and_variant"
     },
@@ -261,6 +289,7 @@
       "public_method": "latest_candles",
       "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -270,6 +299,7 @@
       "public_method": "pricing",
       "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     },
@@ -279,6 +309,7 @@
       "public_method": "stream_pricing",
       "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
       "kind": "stream",
+      "rejection": "stream",
       "status": "tested",
       "test": "pricing_stream_handles_fragmented_lines_and_heartbeats"
     },
@@ -288,6 +319,7 @@
       "public_method": "instrument_candles",
       "source": "https://developer.oanda.com/rest-live-v20/pricing-ep/",
       "kind": "query",
+      "rejection": "generic",
       "status": "tested",
       "test": "all_documented_rest_operations_have_wire_fixtures"
     }

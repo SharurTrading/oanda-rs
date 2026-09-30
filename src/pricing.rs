@@ -70,22 +70,6 @@ pub struct LatestCandlesResponse {
     pub latest_candles: Option<Vec<CandlestickResponse>>,
 }
 
-/// latest_candles documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct LatestCandlesRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Latest candles.
     pub async fn latest_candles(
@@ -94,7 +78,7 @@ impl Client {
         query: &LatestCandlesQuery,
     ) -> std::result::Result<
         crate::ApiResponse<LatestCandlesResponse>,
-        crate::OperationError<LatestCandlesRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/candles/latest");
@@ -154,22 +138,6 @@ pub struct PricingResponse {
     pub time: Option<Timestamp>,
 }
 
-/// pricing documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct PricingRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Pricing.
     pub async fn pricing(
@@ -178,7 +146,7 @@ impl Client {
         query: &PricingQuery,
     ) -> std::result::Result<
         crate::ApiResponse<PricingResponse>,
-        crate::OperationError<PricingRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/pricing");
@@ -301,22 +269,6 @@ pub struct InstrumentCandlesResponse {
     pub candles: Option<Vec<Candlestick>>,
 }
 
-/// instrument_candles documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct InstrumentCandlesRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Instrument candles.
     pub async fn instrument_candles(
@@ -326,7 +278,7 @@ impl Client {
         query: Option<&InstrumentCandlesQuery>,
     ) -> std::result::Result<
         crate::ApiResponse<InstrumentCandlesResponse>,
-        crate::OperationError<InstrumentCandlesRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let instrument_encoded = crate::client::segment(instrument.as_str());

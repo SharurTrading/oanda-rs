@@ -31,22 +31,6 @@ pub struct ListPositionsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// list_positions documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ListPositionsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// List positions.
     pub async fn list_positions(
@@ -54,7 +38,7 @@ impl Client {
         account_id: &AccountID,
     ) -> std::result::Result<
         crate::ApiResponse<ListPositionsResponse>,
-        crate::OperationError<ListPositionsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/positions");
@@ -79,22 +63,6 @@ pub struct ListOpenPositionsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// list_open_positions documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct ListOpenPositionsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// List open positions.
     pub async fn list_open_positions(
@@ -102,7 +70,7 @@ impl Client {
         account_id: &AccountID,
     ) -> std::result::Result<
         crate::ApiResponse<ListOpenPositionsResponse>,
-        crate::OperationError<ListOpenPositionsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/openPositions");
@@ -127,22 +95,6 @@ pub struct PositionDetailsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// position_details documented rejection fields.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct PositionDetailsRejection {
-    /// Provider error code.
-    #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
-    pub error_code: Option<String>,
-    /// Provider error message.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
-}
-
 impl Client {
     /// Position details.
     pub async fn position_details(
@@ -151,7 +103,7 @@ impl Client {
         instrument: &InstrumentName,
     ) -> std::result::Result<
         crate::ApiResponse<PositionDetailsResponse>,
-        crate::OperationError<PositionDetailsRejection>,
+        crate::OperationError<crate::GenericRejection>,
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let instrument_encoded = crate::client::segment(instrument.as_str());

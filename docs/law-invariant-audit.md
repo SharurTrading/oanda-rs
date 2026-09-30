@@ -48,17 +48,13 @@ price is a decode error rather than a float round trip. Those files needed no re
 | --- | --- | --- | --- |
 | `ApiResponse::request_id` read a present-but-unreadable `RequestID` as `None`, the same value as an absent header, while the sibling Link header failed loudly on the same class of failure ([#7](https://github.com/SharurTrading/oanda-rs/issues/7)). | `src/client.rs` `Client::execute`. The `RequestID` is a caller's only correlation with OANDA's own record of the request. | An absent header is real absence. | `request_id` is `Supplied<String>` and `next_page` is `Supplied<Url>`, so both headers agree: absent, decoded, or sent and unreadable. A Link header whose bytes cannot be read as text is reported `Undecoded` while the decoded body is kept; a *readable* `rel="next"` item that does not match the documented shape stays a hard `Error::Decode` — it decoded fine and was refused, exactly like a readable link that leaves the client's API origin — and the lossy `into_decoded()` accessor is removed so no one-liner turns "offered but unreadable" into "not offered". A readable next link that leaves the client's API origin is still a hard error: that value decoded fine and was refused, not lost. `an_unreadable_request_id_is_reported_as_sent_not_absent`, `an_absent_request_id_is_absent`, `an_unreadable_link_header_is_not_read_as_no_next_page`, `a_malformed_next_link_is_undecoded_not_an_error`, `a_link_header_offering_no_next_page_is_absent`. |
 
+| The `tools/generate_*.py` generators substituted fallbacks for provider content they failed to parse: an invented `errorCode`/`errorMessage` pair for endpoints with no documented rejection schema (materialized in 22 checked-in structs), an empty success struct for a missing response schema, `pub type X = String` for an unparsed definition, and a fabricated field description ([#8](https://github.com/SharurTrading/oanda-rs/issues/8)). | The generators write the checked-in contracts; a default that survives into `src/` is provider content this repository never reviewed. | None: a parse miss is not a documented absence. | Every fabrication path is a hard failure with a non-zero exit, nothing written, and the endpoint or definition named on stderr; both generators now parse every page before writing any file. The 22 invented pairs are removed — those endpoints reject through the reviewed `GenericRejection`, and `docs/coverage.json` records each operation's decision as `"rejection": "endpoint" | "generic"`. The schema-token grammar is validated (`required`, `deprecated`, `default=…`), so a requiredness spelling drift fails instead of demoting a field to `Option`; a parameter table with no `[required]` row fails, since OANDA documents `Authorization` on every endpoint. `tools/test_generate_tools.py` covers each failure path offline. |
+
 ## Outstanding, tracked separately
 
 These are confirmed candidates whose repair is a separate, bounded change. Each has its own issue
 with the path and the required outcome, as the law's final clause requires.
 
-- [#8](https://github.com/SharurTrading/oanda-rs/issues/8) — the `tools/generate_*.py` generators
-  substitute fallbacks for provider content they did not parse: an invented
-  `errorCode`/`errorMessage` pair when no rejection schema is found, an empty success struct when a
-  response schema is not found, `pub type X = String` for an untyped definition, a fabricated field
-  description, and a requiredness substring probe. The invented rejection pair is already in 22
-  checked-in structs.
 - [#9](https://github.com/SharurTrading/oanda-rs/issues/9) — the generators bind page content to
   output by position (the *i*-th HTML chunk to the *i*-th hardcoded method name) and silently drop
   parameters, fields, definitions, and variants they cannot match.

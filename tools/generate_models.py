@@ -17,6 +17,15 @@ IDS = {'AccountID', 'OrderID', 'TradeID', 'TransactionID', 'InstrumentName', 'Or
 SKIP = {'DecimalNumber', 'AccountUnits', 'PriceValue', 'DateTime', 'Order', 'OrderRequest', 'Transaction'} | IDS
 
 
+def fail(message: str):
+    """A generator must never substitute a plausible default for provider content.
+
+    Every parse miss is a hard failure: non-zero exit, nothing written, the
+    offending definition named on stderr.
+    """
+    raise SystemExit(f'generate_models.py: {message}')
+
+
 def ident(s: str) -> str:
     s = re.sub(r'IDs\b', 'Ids', s)
     s = re.sub(r'ID\b', 'Id', s)
@@ -46,7 +55,6 @@ def typ(s: str) -> str:
 
 def docs(text: str, pad='') -> list[str]:
     clean = ' '.join(text.split()).replace('*/', '').replace('[', r'\[').replace(']', r'\]')
-    if not clean: clean = 'OANDA v20 field.'
     out=[]
     while clean:
         chunk=clean[:105]
@@ -56,7 +64,7 @@ def docs(text: str, pad='') -> list[str]:
     return out
 
 
-def fields(pre) -> list[tuple[str, str, bool, str]]:
+def fields(pre, label: str) -> list[tuple[str, str, bool, str]]:
     out=[]; comments=[]
     for raw in pre.text_content().splitlines():
         line=raw.strip()
@@ -68,7 +76,15 @@ def fields(pre) -> list[tuple[str, str, bool, str]]:
         fname, rhs = m.groups()
         parts=rhs.split(',')
         t=typ(parts[0])
-        required=any(x.strip()=='required' for x in parts[1:])
+        required=False
+        for part in parts[1:]:
+            token=part.strip()
+            if token=='required':
+                required=True
+            elif token=='deprecated' or token.startswith('default='):
+                pass
+            else:
+                fail(f'{label}.{fname}: unrecognized schema token {token!r}; refusing to guess requiredness')
         desc=' '.join(x for x in comments if x).strip()
         comments=[]
         out.append((fname,t,required,desc))
@@ -88,10 +104,14 @@ def extract(root):
 
 
 def emit_object(name, desc, pre):
+    if not desc.strip():
+        fail(f'{name}: definition has no provider description')
     lines=docs(desc)
     lines+=['#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]', '#[serde(rename_all = "camelCase")]','pub struct '+name+' {']
     seen=set()
-    for fname,t,required,fielddesc in fields(pre):
+    for fname,t,required,fielddesc in fields(pre, name):
+        if not fielddesc.strip():
+            fail(f'{name}.{fname}: field has no provider description')
         fid=ident(fname)
         if fid in seen: continue
         seen.add(fid)
@@ -106,13 +126,19 @@ def emit_object(name, desc, pre):
 
 
 def emit_enum(name, desc, table):
+    if not desc.strip():
+        fail(f'{name}: definition has no provider description')
     rows=table.xpath('.//tr')
     values=[]
     for row in rows[1:]:
         val=' '.join(row.xpath('./td[1]//text()')).strip()
         description=' '.join(row.xpath('./td[2]//text()')).strip()
         if val: values.append((val,description))
-    if not values: return []
+    if not values:
+        fail(f'{name}: value table has no parseable rows')
+    for value,description in values:
+        if not description.strip():
+            fail(f'{name}.{value}: enum value has no provider description')
     lines=docs(desc)+['#[derive(Debug, Clone, PartialEq, Eq, Hash)]','#[non_exhaustive]','pub enum '+name+' {']
     used=set()
     for value,description in values:
@@ -141,12 +167,14 @@ def emit_enum(name, desc, table):
     return lines
 
 
-def main():
-    DEST.mkdir(parents=True,exist_ok=True)
+def main(source=None, dest=None):
+    source = Path(source) if source else SOURCE
+    dest = Path(dest) if dest else DEST
     mods=[]
     names=[]
+    outputs={}
     for n in NAMES:
-        path=SOURCE / f'oanda-{n}-df.html'
+        path=source / f'oanda-{n}-df.html'
         root=html.fromstring(path.read_bytes())
         mod=n.replace('-','_')
         mods.append(mod)
@@ -162,15 +190,16 @@ def main():
                 header=' '.join(table[0].xpath('.//tr[1]/th//text()')).strip()
                 if 'Value' in header:
                     lines+=emit_enum(name,desc,table[0]);continue
-                if name=='CandleSpecification':
-                    lines+=docs(desc)+['pub type CandleSpecification = String;',''];continue
-                if name=='PricingComponent':
-                    lines+=docs(desc)+['pub type PricingComponent = String;',''];continue
-            lines+=docs(desc)+['pub type '+name+' = String;','']
-        (DEST/f'{mod}.rs').write_text('\n'.join(lines)+'\n')
+            fail(f'{n}-df {name}: definition has neither a schema block nor a value table; '
+                 f'refusing to emit a String alias the provider did not write')
+        outputs[mod]=lines
     modlines=['//! Provider-native OANDA v20 models.','pub use crate::ids::*;', 'pub use crate::timestamp::Timestamp as DateTime;', '/// Exact OANDA decimal number.','pub type DecimalNumber = rust_decimal::Decimal;', '/// Exact account-currency units.','pub type AccountUnits = rust_decimal::Decimal;', '/// Exact provider price.','pub type PriceValue = rust_decimal::Decimal;', 'mod variants;', 'pub use variants::*;', '']
     for mod in mods: modlines += [f'mod {mod};',f'pub use {mod}::*;']
-    (DEST/'mod.rs').write_text('\n'.join(modlines)+'\n')
+    outputs['__mod__']=modlines
+    dest.mkdir(parents=True,exist_ok=True)
+    for mod,lines in outputs.items():
+        name='mod.rs' if mod=='__mod__' else f'{mod}.rs'
+        (dest/name).write_text('\n'.join(lines)+'\n')
     print('generated',len(names),'definitions')
 
 if __name__=='__main__':main()

@@ -7,8 +7,8 @@
     unused_variables
 )]
 use oanda_client::{
-    AccountID, Client, Environment, InstrumentName, OperationError, OrderSpecifier, TradeSpecifier,
-    TransactionID,
+    AccountID, Client, Environment, InstrumentName, OperationError, OrderSpecifier, Supplied,
+    TradeSpecifier, TransactionID,
 };
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
@@ -92,7 +92,7 @@ where
                     result,
                     Err(OperationError::Rejected {
                         status: 400,
-                        body: Some(_),
+                        body: Supplied::Decoded(_),
                         ..
                     })
                 ),

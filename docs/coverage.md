@@ -6,6 +6,24 @@ The pinned [official OpenAPI](https://github.com/oanda/v20-openapi) revision is 
 
 The coverage ledger distinguishes inventoried, implemented, tested, and blocked capabilities. The offline `tools/check_coverage.py` requires all 32 operations and 168 definitions to be tested, verifies public methods and typed contracts, checks test markers, confirms the pinned OpenAPI checksum, and detects changes to the reviewed operation drift. The 30 REST operations each have a loopback success and rejection fixture; both streams have typed event fixtures. Every definition has a compile-time serde contract check. All 503 documented scalar enum values and 55 tagged order, order-request, and transaction variants have wire round-trip tests.
 
+## Rejection evidence
+
+A definitive provider rejection reports only what OANDA sent. `OperationError::Rejected::code` and
+`::message` are `Option<String>` and are `None` when OANDA supplied no readable reason, and
+`::body` is a `Supplied<R>` that separates a body OANDA did not send (`Absent`), one this client
+decoded (`Decoded`), and one that arrived but did not match the documented shape (`Undecoded`).
+`Error::Provider` uses the same `Option` fields for a refused stream. Neither path substitutes a
+message OANDA did not write, and a caller reconciling a refused mutation can tell a reject
+transaction it has already accounted for from one it is missing.
+
+## Law-invariant audit
+
+The [LAW-INVARIANT audit](law-invariant-audit.md) records every candidate inspected on 2026-09-30,
+the owner and call-path invariant of each, the legitimate absence or no-op semantics where they
+apply, and the disposition. It found no fabricated side, money, identity, account mode, or success
+in the generated models or endpoint contracts. Outstanding repairs are tracked as their own issues
+with the path and the required outcome.
+
 ## Release-note monitoring
 
 The weekly CI schedule (Monday at 06:17 UTC) and manual CI dispatch run

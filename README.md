@@ -42,7 +42,9 @@ are recorded rather than silently adopting older operations.
 
 The exhaustive [coverage ledger](docs/coverage.json) names each operation and definition, its
 source URL, public method or type, and local test. The [coverage notes](docs/coverage.md) explain
-the website/OpenAPI differences and the offline CI check.
+the website/OpenAPI differences, the offline CI check, and the rejection-evidence contract. The
+[LAW-INVARIANT audit](docs/law-invariant-audit.md) records the semantic review of fabricated
+fallbacks and swallowed failures, with a disposition for every candidate.
 
 ## Installation
 
@@ -86,13 +88,21 @@ environment variables set, run `cargo run --example practice_account`. Select
 - Account details, summary, instruments, configuration, and changes are available alongside order,
   trade, position, transaction, candle, and pricing methods. Responses include typed provider
   fields, typed rejection bodies, request IDs, and pagination metadata where documented.
+- A definitive rejection reports only what OANDA sent. Its `code` and `message` are `None` when
+  OANDA supplied no readable reason, and its typed `body` is a `Supplied<T>` that separates a body
+  OANDA did not send from one that arrived and could not be decoded. The client never invents a
+  reason. Upgrading from an earlier build: `Rejected::message` and `Error::Provider::message` are
+  now `Option<String>`, `Rejected::body` is `Supplied<R>`, and `acknowledge_reconciliation`
+  returns `Result` — match arms and acknowledgement call sites need updating.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
   Provider IDs and timestamps have dedicated types.
 - REST response bodies are bounded. Cloned clients share conservative rate admission and provider
-  cooldown. Requests are single-attempt; a mutation is never automatically retried.
+  cooldown, which honours both `Retry-After` forms RFC 9110 defines. Requests are single-attempt;
+  a mutation is never automatically retried.
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
-  account and transaction state before calling `acknowledge_reconciliation`.
+  account and transaction state before calling `acknowledge_reconciliation`, which reports whether
+  it released the fence.
 - Pricing and transaction streams are incremental, bounded, newline-delimited HTTP streams with
   typed heartbeats. Malformed records, oversized records, timeouts, and connection loss end that
   stream generation and require caller-owned recovery. The library does not reconnect or maintain

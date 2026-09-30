@@ -6,6 +6,7 @@ use oanda_client::pricing::{PricingQuery, StreamPricingQuery};
 use oanda_client::trade::SetTradeDependentOrdersBody;
 use oanda_client::{
     AccountID, Client, Environment, Error, InstrumentName, OperationError, Patch, PriceStreamEvent,
+    Supplied,
     models::{ClientPrice, Order, Transaction},
 };
 use rust_decimal::Decimal;
@@ -56,6 +57,53 @@ async fn server(response: Vec<u8>) -> (Url, tokio::task::JoinHandle<String>) {
             socket.flush().await.expect("flush");
         }
         String::from_utf8_lossy(&bytes).into_owned()
+    });
+    (url, task)
+}
+
+/// Serve one canned response per connection, returning every request received.
+async fn servers(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<String>>) {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("loopback bind");
+    let url = Url::parse(&format!(
+        "http://{}/",
+        listener.local_addr().expect("address")
+    ))
+    .expect("URL");
+    let task = tokio::spawn(async move {
+        let mut requests = Vec::new();
+        for response in responses {
+            let (mut socket, _) = listener.accept().await.expect("accept");
+            let mut bytes = Vec::new();
+            let mut buf = [0_u8; 4096];
+            loop {
+                let read = socket.read(&mut buf).await.expect("read");
+                if read == 0 {
+                    break;
+                }
+                bytes.extend_from_slice(&buf[..read]);
+                if let Some(header_end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let header_end = header_end + 4;
+                    let header = String::from_utf8_lossy(&bytes[..header_end]);
+                    let length = header
+                        .lines()
+                        .find_map(|l| {
+                            l.strip_prefix("content-length: ")
+                                .or_else(|| l.strip_prefix("Content-Length: "))
+                        })
+                        .and_then(|v| v.trim().parse::<usize>().ok())
+                        .unwrap_or(0);
+                    if bytes.len() >= header_end + length {
+                        break;
+                    }
+                }
+            }
+            socket.write_all(&response).await.expect("write");
+            socket.flush().await.expect("flush");
+            requests.push(String::from_utf8_lossy(&bytes).into_owned());
+        }
+        requests
     });
     (url, task)
 }
@@ -141,7 +189,9 @@ async fn ambiguous_mutation_fences_only_its_account() {
         second,
         OperationError::Client(Error::ReconciliationRequired { .. })
     ));
-    client.acknowledge_reconciliation(&account);
+    client
+        .acknowledge_reconciliation(&account)
+        .expect("acknowledge");
     task.await.expect("server");
 }
 
@@ -237,10 +287,14 @@ async fn typed_rejection_retains_provider_transaction() {
     match error {
         OperationError::Rejected {
             status,
-            body: Some(body),
-            ..
+            code,
+            message,
+            body,
         } => {
             assert_eq!(status, 400);
+            assert_eq!(code.as_deref(), Some("INVALID_VALUE"));
+            assert_eq!(message.as_deref(), Some("margin rate rejected"));
+            let body = body.into_decoded().expect("decoded rejection body");
             assert!(body.client_configure_reject_transaction.is_some());
         }
         other => panic!("unexpected error: {other:?}"),
@@ -412,4 +466,176 @@ fn remote_endpoint_override_cannot_redirect_credentials() {
             .build(),
         Err(Error::InvalidInput(_))
     ));
+}
+
+fn configure_body() -> oanda_client::account::ConfigureAccountBody {
+    oanda_client::account::ConfigureAccountBody {
+        alias: Some("renamed".into()),
+        margin_rate: None,
+    }
+}
+
+#[tokio::test]
+async fn a_mistyped_reason_key_erases_only_itself() {
+    // A struct-level read would fail on the first mistyped field and erase
+    // both keys; each key is read on its own, so the readable sibling survives
+    // exactly as it does on a refused stream.
+    let (url, task) = server(http_json(
+        "400 Bad Request",
+        r#"{"errorCode":5,"errorMessage":"margin rate rejected"}"#,
+    ))
+    .await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let error = client
+        .configure_account(&account, &configure_body())
+        .await
+        .expect_err("rejected");
+    match error {
+        OperationError::Rejected { code, message, .. } => {
+            assert!(code.is_none(), "a numeric code is not a readable one");
+            assert_eq!(message.as_deref(), Some("margin rate rejected"));
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn an_unreadable_rejection_body_is_reported_as_evidence_not_as_a_reason() {
+    let (url, task) = servers(vec![
+        http_json("400 Bad Request", "not-json"),
+        http_json(
+            "400 Bad Request",
+            r#"{"errorCode":"FIXTURE","errorMessage":"second"}"#,
+        ),
+    ])
+    .await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let first = client
+        .configure_account(&account, &configure_body())
+        .await
+        .expect_err("rejected");
+    match first {
+        OperationError::Rejected {
+            status,
+            code,
+            message,
+            body,
+        } => {
+            assert_eq!(status, 400);
+            // No code, no message, and above all no reason this client did not
+            // read presented as one OANDA supplied.
+            assert!(code.is_none());
+            assert!(message.is_none());
+            assert!(matches!(body, Supplied::Undecoded), "a body did arrive");
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    // The rejection is definitive, so the account must not be fenced. A second
+    // mutation has to reach the provider rather than stop at ReconciliationRequired.
+    let second = client
+        .configure_account(&account, &configure_body())
+        .await
+        .expect_err("rejected");
+    match second {
+        OperationError::Rejected {
+            status: 400,
+            code: Some(code),
+            message: Some(message),
+            body,
+        } => {
+            assert_eq!(code, "FIXTURE");
+            assert_eq!(message, "second");
+            assert!(
+                matches!(body, Supplied::Decoded(_)),
+                "the second body decoded"
+            );
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    let requests = task.await.expect("server");
+    assert_eq!(requests.len(), 2);
+}
+
+#[tokio::test]
+async fn a_rejection_with_no_body_is_absent_rather_than_guessed() {
+    let (url, task) = server(
+        b"HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\nConnection: close\r\n\r\n".to_vec(),
+    )
+    .await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let error = client
+        .configure_account(&account, &configure_body())
+        .await
+        .expect_err("rejected");
+    match error {
+        OperationError::Rejected {
+            status: 400,
+            code,
+            message,
+            body,
+        } => {
+            assert!(code.is_none());
+            assert!(message.is_none());
+            assert!(matches!(body, Supplied::Absent), "no body arrived");
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_readable_stream_rejection_keeps_its_reason() {
+    let reason = r#"{"errorCode":"AUTH","errorMessage":"bad token"}"#;
+    let (url, task) = server(http_json("401 Unauthorized", reason)).await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let Err(error) = client.stream_transactions(&account).await else {
+        panic!("expected a provider rejection")
+    };
+    match error {
+        Error::Provider {
+            status,
+            code,
+            message,
+        } => {
+            assert_eq!(status, 401);
+            assert_eq!(code.as_deref(), Some("AUTH"));
+            assert_eq!(message.as_deref(), Some("bad token"));
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn an_unreadable_stream_rejection_reports_no_reason() {
+    let (url, task) = server(
+        b"HTTP/1.1 401 Unauthorized\r\nContent-Length: 21\r\nConnection: close\r\n\r\ntoken rejected at edge".to_vec(),
+    )
+    .await;
+    let client = fixture_client(url);
+    let account = AccountID::new("101-001-1-001").expect("account");
+    let Err(error) = client.stream_transactions(&account).await else {
+        panic!("expected a provider rejection")
+    };
+    match error {
+        Error::Provider {
+            status,
+            code,
+            message,
+        } => {
+            assert_eq!(status, 401);
+            assert!(code.is_none(), "no code was readable: {code:?}");
+            assert!(
+                message.is_none(),
+                "no provider message was readable: {message:?}"
+            );
+        }
+        other => panic!("unexpected error: {other:?}"),
+    }
+    task.await.expect("server");
 }

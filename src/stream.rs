@@ -115,9 +115,15 @@ struct StreamLease {
 }
 impl Drop for StreamLease {
     fn drop(&mut self) {
-        if let Ok(mut slots) = self.inner.stream_slots.lock() {
-            slots.active = slots.active.saturating_sub(1);
-        }
+        // A dropped lease cannot report a failure, and skipping the release would
+        // report an exhausted connection slot as one the client may reuse. The
+        // slot counter holds plain integers, so a poisoned lock is still readable.
+        let mut slots = self
+            .inner
+            .stream_slots
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        slots.active = slots.active.saturating_sub(1);
     }
 }
 
@@ -165,16 +171,21 @@ impl Client {
         if !response.status().is_success() {
             let status = response.status().as_u16();
             let body = crate::client::read_bounded(response, self.inner.max_body).await?;
-            let value: serde_json::Value = serde_json::from_slice(&body).unwrap_or_default();
-            let code = value
-                .get("errorCode")
+            // A rejection body this client cannot read is not a rejection without a
+            // reason. Report the observed status and no reason; never a message or
+            // error code OANDA did not send. `Value::get` yields nothing for a
+            // document that is not an object, so no shape check is needed.
+            let reason = serde_json::from_slice::<serde_json::Value>(&body).ok();
+            let code = reason
+                .as_ref()
+                .and_then(|value| value.get("errorCode"))
                 .and_then(serde_json::Value::as_str)
                 .map(str::to_owned);
-            let message = value
-                .get("errorMessage")
+            let message = reason
+                .as_ref()
+                .and_then(|value| value.get("errorMessage"))
                 .and_then(serde_json::Value::as_str)
-                .unwrap_or("provider rejected stream")
-                .to_owned();
+                .map(str::to_owned);
             return Err(Error::Provider {
                 status,
                 code,
@@ -263,6 +274,9 @@ fn decode_transaction(line: &[u8]) -> Result<TransactionStreamEvent> {
 }
 
 #[cfg(test)]
+// Poisoning a lock requires a panic, and fixture failures are clearer as panics;
+// production paths return typed errors.
+#[allow(clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
     use crate::Environment;
@@ -288,5 +302,35 @@ mod tests {
         if let Ok(slots) = client.inner.stream_slots.lock() {
             assert_eq!(slots.active, 0);
         }
+    }
+
+    #[tokio::test]
+    async fn a_cancelled_stream_releases_its_slot_even_after_a_poisoned_lock() {
+        let client = Client::builder(Environment::Practice, "fixture").build();
+        assert!(client.is_ok());
+        let Ok(client) = client else { return };
+        if let Ok(mut slots) = client.inner.stream_slots.lock() {
+            slots.active = 1;
+        }
+        let lease = StreamLease {
+            inner: client.inner.clone(),
+        };
+        let poisoned = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let Ok(_held) = client.inner.stream_slots.lock() else {
+                return;
+            };
+            panic!("poison the lock");
+        }));
+        assert!(poisoned.is_err());
+        drop(lease);
+        let slots = client
+            .inner
+            .stream_slots
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(
+            slots.active, 0,
+            "a released connection must not be reported as capacity in use"
+        );
     }
 }

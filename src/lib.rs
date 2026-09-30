@@ -73,7 +73,7 @@ mod validation;
 
 pub use client::{ApiResponse, Client, ClientBuilder};
 pub use environment::Environment;
-pub use error::{Error, GenericRejection, OperationError, Result};
+pub use error::{Error, GenericRejection, OperationError, Result, Supplied};
 pub use ids::*;
 pub use patch::Patch;
 pub use stream::{HttpStream, PriceStreamEvent, TransactionStreamEvent};
@@ -90,7 +90,7 @@ pub mod instruments {
 pub mod transport {
     pub use crate::{
         ApiResponse, Client, ClientBuilder, Environment, Error, GenericRejection, HttpStream,
-        OperationError, PriceStreamEvent, TransactionStreamEvent,
+        OperationError, PriceStreamEvent, Supplied, TransactionStreamEvent,
     };
 }
 

@@ -35,7 +35,7 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 - **OA-HTTP-01:** Bound response bodies and stream records individually; an HTTP chunk is a transport read, not a record boundary, so no aggregate chunk-size rejection. Return typed errors for provider status and malformed or oversized input. Never log raw requests or headers.
 - **OA-MUTATION-01:** Never automatically retry account or trading mutations. An uncertain post-send outcome is explicitly ambiguous and fences further mutations for that account until caller-acknowledged reconciliation.
 - **OA-RATE-01:** Rate admission and provider cooldown are shared by cloned clients. A mutation that cannot be admitted immediately fails locally.
-- **OA-STREAM-01:** Pricing and transaction streams use incremental line-delimited JSON over HTTP. Surface malformed data, per-record overflow, and connection loss as gaps; never silently resume a sequence or claim every market tick arrived. The per-record bound is a local hostile-input limit, not a provider contract, and buffered records are never evicted: a slow caller delays delivery rather than losing records.
+- **OA-STREAM-01:** Pricing and transaction streams use incremental line-delimited JSON over HTTP. Surface malformed data, per-record overflow, and connection loss as gaps; never silently resume a sequence or claim every market tick arrived. The per-record bound and the total backlog cap are local hostile-input limits, not a provider contract, and buffered records are never evicted: a slow caller delays delivery rather than losing records, and a backlog past the cap ends the generation explicitly.
 
 ## Development
 

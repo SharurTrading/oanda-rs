@@ -22,6 +22,15 @@ use std::{
 /// because dropping records would invent a continuity gap that the provider did
 /// not create.
 const MAX_RECORD_BYTES: usize = 1024 * 1024;
+/// Local hostile-input bound on the total buffered-but-undelivered backlog.
+///
+/// Records already buffered are never evicted — a slow caller delays delivery
+/// rather than losing records — but a fill episode that parks more than this
+/// many bytes in the buffer, complete records included, ends the generation
+/// with an explicit gap. Without it a provider burst of complete records could
+/// occupy memory without bound, because no further reading — and therefore no
+/// per-record check — happens while undelivered records remain.
+const MAX_BACKLOG_BYTES: usize = 16 * 1024 * 1024;
 
 /// One event from OANDA's sampled pricing stream.
 #[derive(Debug, Clone, PartialEq)]
@@ -63,6 +72,14 @@ impl<E> HttpStream<E> {
     pub async fn next_event(&mut self) -> Option<Result<E>> {
         if self.ended {
             return None;
+        }
+        // The backlog cap is enforced wherever the buffer could have grown:
+        // on entry, so no already-buffered burst larger than the cap is ever
+        // delivered from, and after each transport read. Records already
+        // delivered are never recalled; ending here is an explicit local gap.
+        if self.buffer.len() - self.start > MAX_BACKLOG_BYTES {
+            self.finish();
+            return Some(Err(Error::ResponseTooLarge));
         }
         loop {
             // Records are consumed through a cursor rather than by draining the
@@ -122,8 +139,14 @@ impl<E> HttpStream<E> {
                     // boundary: one chunk may carry thousands of complete
                     // records, so its size alone says nothing about provider
                     // data. Records are bounded individually, before any
-                    // decode.
+                    // decode, and the buffered backlog is bounded in total:
+                    // refusing to buffer beyond the cap is a local, explicitly
+                    // reported limit, never eviction.
                     self.buffer.extend_from_slice(&chunk);
+                    if self.buffer.len() - self.start > MAX_BACKLOG_BYTES {
+                        self.finish();
+                        return Some(Err(Error::ResponseTooLarge));
+                    }
                 }
                 Ok(Ok(None)) => {
                     self.finish();
@@ -333,6 +356,42 @@ mod tests {
         if let Ok(slots) = client.inner.stream_slots.lock() {
             assert_eq!(slots.active, 0);
         }
+    }
+
+    #[tokio::test]
+    async fn a_backlog_beyond_the_local_bound_ends_the_generation() {
+        // A provider burst can park many complete records in the buffer at
+        // once, and while undelivered records remain no further reading — and
+        // therefore no per-record check — happens. Refusing to deliver from a
+        // backlog past the cap is a local, explicitly reported limit, never
+        // eviction of records already accepted.
+        let mut buffer = Vec::new();
+        for index in 0..200_000_u32 {
+            buffer.extend_from_slice(
+                format!(
+                    "{{\"type\":\"HEARTBEAT\",\"lastTransactionID\":\"{index}\",\
+                     \"time\":\"2024-01-02T03:04:05.000000000Z\"}}\r\n"
+                )
+                .as_bytes(),
+            );
+        }
+        assert!(
+            buffer.len() > MAX_BACKLOG_BYTES,
+            "fixture must exceed the cap"
+        );
+        let mut stream = HttpStream {
+            response: None,
+            buffer,
+            start: 0,
+            decoder: decode_transaction,
+            ended: false,
+            lease: None,
+        };
+        assert!(matches!(
+            stream.next_event().await,
+            Some(Err(Error::ResponseTooLarge))
+        ));
+        assert!(stream.next_event().await.is_none());
     }
 
     #[tokio::test]

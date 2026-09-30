@@ -589,12 +589,16 @@ async fn a_large_transport_chunk_of_valid_records_invents_no_gap() {
 #[tokio::test]
 async fn oversized_stream_record_is_bounded_and_ends_generation() {
     let body = vec![b'X'; 1024 * 1024 + 1];
+    // One declared chunked-transfer chunk carries the whole burst, so the
+    // transport hands the full backlog over in a single read and the cap is
+    // exercised deterministically.
     let mut response = format!(
-        "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+        "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\nConnection: close\r\n\r\n{:x}\r\n",
         body.len()
     )
     .into_bytes();
     response.extend_from_slice(&body);
+    response.extend_from_slice(b"\r\n0\r\n\r\n");
     let (url, task) = server(response).await;
     let client = fixture_client(url);
     let account = AccountID::new("101-001-1-001").expect("account");

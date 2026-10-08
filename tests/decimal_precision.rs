@@ -24,15 +24,14 @@ fn nonrepresentable_financial_tokens_are_refused() {
 }
 
 #[test]
-fn decimal_strings_and_numeric_liquidity_keep_their_exact_value() {
+fn decimal_strings_and_numeric_liquidity_keep_their_exact_value() -> Result<(), serde_json::Error> {
     let value: PriceBucket =
-        serde_json::from_str(r#"{"price":"-0.125","liquidity":0.0000000000000000000000000001}"#)
-            .unwrap();
+        serde_json::from_str(r#"{"price":"-0.125","liquidity":0.0000000000000000000000000001}"#)?;
     assert_eq!(value.price, Some(rust_decimal::Decimal::new(-125, 3)));
     assert_eq!(value.liquidity, Some(rust_decimal::Decimal::new(1, 28)));
     let value: PriceBucket =
-        serde_json::from_str(r#"{"price":"79228162514264337593543950335","liquidity":1e3}"#)
-            .unwrap();
+        serde_json::from_str(r#"{"price":"79228162514264337593543950335","liquidity":1e3}"#)?;
     assert_eq!(value.price, Some(rust_decimal::Decimal::MAX));
     assert_eq!(value.liquidity, Some(rust_decimal::Decimal::from(1000)));
+    Ok(())
 }

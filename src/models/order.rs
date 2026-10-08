@@ -45,6 +45,7 @@ pub struct MarketOrder {
     /// The quantity requested to be filled by the Market Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
     #[serde(rename = "timeInForce")]
@@ -55,6 +56,7 @@ pub struct MarketOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -229,10 +231,12 @@ pub struct FixedPriceOrder {
     /// The quantity requested to be filled by the Fixed Price Order. A positive number of units results in a
     /// long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price specified for the Fixed Price Order. This price is the exact price that the Fixed Price Order
     /// will be filled at.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -373,10 +377,12 @@ pub struct LimitOrder {
     /// The quantity requested to be filled by the Limit Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Limit Order. The Limit Order will only be filled by a market price
     /// that is equal to or better than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the Limit Order.
     #[serde(rename = "timeInForce")]
@@ -550,10 +556,12 @@ pub struct StopOrder {
     /// The quantity requested to be filled by the Stop Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Stop Order. The Stop Order will only be filled by a market price
     /// that is equal to or worse than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this Stop Order. If the market gaps and crosses through
     /// both the price and the priceBound, the Stop Order will be cancelled instead of being filled.
@@ -562,6 +570,7 @@ pub struct StopOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the Stop Order.
     #[serde(rename = "timeInForce")]
@@ -735,12 +744,14 @@ pub struct MarketIfTouchedOrder {
     /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
     /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this MarketIfTouched Order.
     #[serde(
@@ -748,6 +759,7 @@ pub struct MarketIfTouchedOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// MarketIfTouched Orders.
@@ -779,6 +791,7 @@ pub struct MarketIfTouchedOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_market_price: Option<Decimal>,
     /// TakeProfitDetails specifies the details of a Take Profit Order to be created on behalf of a client. This
     /// may happen when an Order is filled that opens a Trade requiring a Take Profit, or when a Trade’s
@@ -937,6 +950,7 @@ pub struct TakeProfitOrder {
     /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TakeProfit Orders.
@@ -1067,6 +1081,7 @@ pub struct StopLossOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_premium: Option<Decimal>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1081,10 +1096,12 @@ pub struct StopLossOrder {
     /// The price threshold specified for the Stop Loss Order. The associated Trade will be closed by a market
     /// price that is equal to or worse than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Stop Loss Order
     /// price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
     /// Orders.
@@ -1226,6 +1243,7 @@ pub struct GuaranteedStopLossOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_premium: Option<Decimal>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1240,11 +1258,13 @@ pub struct GuaranteedStopLossOrder {
     /// The price threshold specified for the Guaranteed Stop Loss Order. The associated Trade will be closed at
     /// this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Guaranteed Stop
     /// Loss Order price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask
     /// is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// GuaranteedStopLoss Orders.
@@ -1382,6 +1402,7 @@ pub struct TrailingStopLossOrder {
     pub client_trade_id: Option<ClientID>,
     /// The price distance (in price units) specified for the TrailingStopLoss Order.
     #[serde(rename = "distance")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
     /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TrailingStopLoss Orders.
@@ -1413,6 +1434,7 @@ pub struct TrailingStopLossOrder {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub trailing_stop_value: Option<Decimal>,
     /// ID of the Transaction that filled this Order (only provided when the Order’s state is FILLED)
     #[serde(
@@ -1497,6 +1519,7 @@ pub struct MarketOrderRequest {
     /// The quantity requested to be filled by the Market Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
     #[serde(rename = "timeInForce")]
@@ -1507,6 +1530,7 @@ pub struct MarketOrderRequest {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -1578,10 +1602,12 @@ pub struct LimitOrderRequest {
     /// The quantity requested to be filled by the Limit Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Limit Order. The Limit Order will only be filled by a market price
     /// that is equal to or better than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the Limit Order.
     #[serde(rename = "timeInForce")]
@@ -1673,10 +1699,12 @@ pub struct StopOrderRequest {
     /// The quantity requested to be filled by the Stop Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Stop Order. The Stop Order will only be filled by a market price
     /// that is equal to or worse than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this Stop Order. If the market gaps and crosses through
     /// both the price and the priceBound, the Stop Order will be cancelled instead of being filled.
@@ -1685,6 +1713,7 @@ pub struct StopOrderRequest {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the Stop Order.
     #[serde(rename = "timeInForce")]
@@ -1778,12 +1807,14 @@ pub struct MarketIfTouchedOrderRequest {
     /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
     /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this MarketIfTouched Order.
     #[serde(
@@ -1791,6 +1822,7 @@ pub struct MarketIfTouchedOrderRequest {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// MarketIfTouched Orders.
@@ -1890,6 +1922,7 @@ pub struct TakeProfitOrderRequest {
     /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TakeProfit Orders.
@@ -1943,10 +1976,12 @@ pub struct StopLossOrderRequest {
     /// The price threshold specified for the Stop Loss Order. The associated Trade will be closed by a market
     /// price that is equal to or worse than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Stop Loss Order
     /// price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
     /// Orders.
@@ -2010,11 +2045,13 @@ pub struct GuaranteedStopLossOrderRequest {
     /// The price threshold specified for the Guaranteed Stop Loss Order. The associated Trade will be closed at
     /// this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Guaranteed Stop
     /// Loss Order price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask
     /// is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// GuaranteedStopLoss Orders.
@@ -2068,6 +2105,7 @@ pub struct TrailingStopLossOrderRequest {
     pub client_trade_id: Option<ClientID>,
     /// The price distance (in price units) specified for the TrailingStopLoss Order.
     #[serde(rename = "distance")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
     /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TrailingStopLoss Orders.
@@ -2525,6 +2563,7 @@ pub struct DynamicOrderState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub trailing_stop_value: Option<Decimal>,
     /// The distance between the Trailing Stop Loss Order’s trailingStopValue and the current Market Price. This
     /// represents the distance (in price units) of the Order from a triggering price. If the distance could not
@@ -2534,6 +2573,7 @@ pub struct DynamicOrderState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub trigger_distance: Option<Decimal>,
     /// True if an exact trigger distance could be calculated. If false, it means the provided trigger distance
     /// is a best estimate. If the distance could not be determined, this value will not be set.
@@ -2551,9 +2591,11 @@ pub struct DynamicOrderState {
 pub struct UnitsAvailableDetails {
     /// The units available for long Orders.
     #[serde(rename = "long", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub long: Option<Decimal>,
     /// The units available for short Orders.
     #[serde(rename = "short", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub short: Option<Decimal>,
 }
 
@@ -2600,10 +2642,12 @@ pub struct GuaranteedStopLossOrderEntryData {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub minimum_distance: Option<Decimal>,
     /// The amount that is charged to the account if a guaranteed Stop Loss Order is triggered and filled. The
     /// value is in price units and is charged for each unit of the Trade.
     #[serde(rename = "premium", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub premium: Option<Decimal>,
     /// The guaranteed Stop Loss Order level restriction for this instrument.
     #[serde(

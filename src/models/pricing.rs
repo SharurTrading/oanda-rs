@@ -49,6 +49,7 @@ pub struct ClientPrice {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub closeout_bid: Option<Decimal>,
     /// The closeout ask Price. This Price is used when a ask is required to closeout a Position (margin
     /// closeout or manual) yet there is no ask liquidity. The closeout ask is never used to open a new position.
@@ -57,6 +58,7 @@ pub struct ClientPrice {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub closeout_ask: Option<Decimal>,
     /// The factors used to convert quantities of this price’s Instrument’s quote currency into a quantity of
     /// the Account’s home currency. When the includeHomeConversions is present in the pricing request
@@ -135,6 +137,7 @@ pub struct QuoteHomeConversionFactors {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub positive_units: Option<Decimal>,
     /// The factor used to convert a negative amount of the Price’s Instrument’s quote currency into a negative
     /// amount of the Account’s home currency. Conversion is performed by multiplying the quote units by the
@@ -144,6 +147,7 @@ pub struct QuoteHomeConversionFactors {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub negative_units: Option<Decimal>,
 }
 
@@ -163,6 +167,7 @@ pub struct HomeConversions {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_gain: Option<Decimal>,
     /// The factor used to convert any losses for an Account in the specified currency into the Account’s home
     /// currency. This would include negative realized P/L and negative financing amounts. Conversion is
@@ -172,6 +177,7 @@ pub struct HomeConversions {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_loss: Option<Decimal>,
     /// The factor used to convert a Position or Trade Value in the specified currency into the Account’s home
     /// currency. Conversion is performed by multiplying the Position or Trade Value by the conversion factor.
@@ -180,6 +186,7 @@ pub struct HomeConversions {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub position_value: Option<Decimal>,
 }
 

@@ -120,6 +120,7 @@ pub struct Trade {
     pub instrument: Option<InstrumentName>,
     /// The execution price of the Trade.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// The date/time when the Trade was opened.
     #[serde(rename = "openTime", default, skip_serializing_if = "Option::is_none")]
@@ -134,6 +135,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_units: Option<Decimal>,
     /// The margin required at the time the Trade was created. Note, this is the ‘pure’ margin required, it is
     /// not the ‘effective’ margin used that factors in the trade risk if a GSLO is attached to the trade.
@@ -142,6 +144,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_margin_required: Option<Decimal>,
     /// The number of units currently open for the Trade. This value is reduced to 0.0 as the Trade is closed.
     #[serde(
@@ -149,6 +152,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub current_units: Option<Decimal>,
     /// The total profit/loss realized on the closed portion of the Trade.
     #[serde(
@@ -156,6 +160,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub realized_pl: Option<Decimal>,
     /// The unrealized profit/loss on the open portion of the Trade.
     #[serde(
@@ -163,6 +168,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// Margin currently used by the Trade.
     #[serde(
@@ -170,6 +176,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// The average closing price of the Trade. Only present if the Trade has been closed or reduced at least
     /// once.
@@ -178,6 +185,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub average_close_price: Option<Decimal>,
     /// The IDs of the Transactions that have closed portions of this Trade.
     #[serde(
@@ -188,6 +196,7 @@ pub struct Trade {
     pub closing_transaction_ids: Option<Vec<TransactionID>>,
     /// The financing paid/collected for this Trade.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The dividend adjustment paid for this Trade.
     #[serde(
@@ -195,6 +204,7 @@ pub struct Trade {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The date/time when the Trade was fully closed. Only provided for Trades whose state is CLOSED.
     #[serde(rename = "closeTime", default, skip_serializing_if = "Option::is_none")]
@@ -246,6 +256,7 @@ pub struct TradeSummary {
     pub instrument: Option<InstrumentName>,
     /// The execution price of the Trade.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// The date/time when the Trade was opened.
     #[serde(rename = "openTime", default, skip_serializing_if = "Option::is_none")]
@@ -260,6 +271,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_units: Option<Decimal>,
     /// The margin required at the time the Trade was created. Note, this is the ‘pure’ margin required, it is
     /// not the ‘effective’ margin used that factors in the trade risk if a GSLO is attached to the trade.
@@ -268,6 +280,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_margin_required: Option<Decimal>,
     /// The number of units currently open for the Trade. This value is reduced to 0.0 as the Trade is closed.
     #[serde(
@@ -275,6 +288,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub current_units: Option<Decimal>,
     /// The total profit/loss realized on the closed portion of the Trade.
     #[serde(
@@ -282,6 +296,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub realized_pl: Option<Decimal>,
     /// The unrealized profit/loss on the open portion of the Trade.
     #[serde(
@@ -289,6 +304,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// Margin currently used by the Trade.
     #[serde(
@@ -296,6 +312,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// The average closing price of the Trade. Only present if the Trade has been closed or reduced at least
     /// once.
@@ -304,6 +321,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub average_close_price: Option<Decimal>,
     /// The IDs of the Transactions that have closed portions of this Trade.
     #[serde(
@@ -314,6 +332,7 @@ pub struct TradeSummary {
     pub closing_transaction_ids: Option<Vec<TransactionID>>,
     /// The financing paid/collected for this Trade.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The dividend adjustment paid for this Trade.
     #[serde(
@@ -321,6 +340,7 @@ pub struct TradeSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The date/time when the Trade was fully closed. Only provided for Trades whose state is CLOSED.
     #[serde(rename = "closeTime", default, skip_serializing_if = "Option::is_none")]
@@ -375,6 +395,7 @@ pub struct CalculatedTradeState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// Margin currently used by the Trade.
     #[serde(
@@ -382,6 +403,7 @@ pub struct CalculatedTradeState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
 }
 

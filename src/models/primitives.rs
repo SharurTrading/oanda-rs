@@ -150,10 +150,12 @@ pub struct InstrumentFinancing {
     /// The financing rate to be used for a long position for the instrument. The value is in decimal rather
     /// than percentage points, i.e. 5% is represented as 0.05.
     #[serde(rename = "longRate", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub long_rate: Option<Decimal>,
     /// The financing rate to be used for a short position for the instrument. The value is in decimal rather
     /// than percentage points, i.e. 5% is represented as 0.05.
     #[serde(rename = "shortRate", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub short_rate: Option<Decimal>,
     /// The days of the week to debit or credit financing charges; the exact time of day at which to charge the
     /// financing is set in the DivisionTradingGroup for the client’s account.
@@ -213,6 +215,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub minimum_trade_size: Option<Decimal>,
     /// The maximum trailing stop distance allowed for a trailing stop loss created for this instrument.
     /// Specified in price units.
@@ -221,6 +224,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub maximum_trailing_stop_distance: Option<Decimal>,
     /// The minimum distance allowed between the Trade’s fill price and the configured price for guaranteed Stop
     /// Loss Orders created for this instrument. Specified in price units.
@@ -229,6 +233,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub minimum_guaranteed_stop_loss_distance: Option<Decimal>,
     /// The minimum trailing stop distance allowed for a trailing stop loss created for this instrument.
     /// Specified in price units.
@@ -237,6 +242,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub minimum_trailing_stop_distance: Option<Decimal>,
     /// The maximum position size allowed for this instrument. Specified in units.
     #[serde(
@@ -244,6 +250,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub maximum_position_size: Option<Decimal>,
     /// The maximum units allowed for an Order placed for this instrument. Specified in units.
     #[serde(
@@ -251,6 +258,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub maximum_order_units: Option<Decimal>,
     /// The margin rate for this instrument.
     #[serde(
@@ -258,6 +266,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
     /// The commission structure for this instrument.
     #[serde(
@@ -281,6 +290,7 @@ pub struct Instrument {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_stop_loss_order_execution_premium: Option<Decimal>,
     /// The guaranteed Stop Loss Order level restriction for this instrument. This field will only be present if
     /// the Account’s guaranteedStopLossOrderMode for this Instrument is not ‘DISABLED’.
@@ -350,6 +360,7 @@ pub struct InstrumentCommission {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The number of units traded that the commission amount is based on.
     #[serde(
@@ -357,6 +368,7 @@ pub struct InstrumentCommission {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units_traded: Option<Decimal>,
     /// The minimum commission amount (in the Account’s home currency) that is charged when an Order is filled
     /// for this instrument.
@@ -365,6 +377,7 @@ pub struct InstrumentCommission {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub minimum_commission: Option<Decimal>,
 }
 
@@ -422,6 +435,7 @@ pub struct GuaranteedStopLossOrderLevelRestriction {
     /// total allowed Trade volume that can exist within the priceRange based on the trigger prices of the
     /// guaranteed Stop Loss Orders.
     #[serde(rename = "volume", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub volume: Option<Decimal>,
     /// The price range the volume applies to. This value is in price units.
     #[serde(
@@ -429,6 +443,7 @@ pub struct GuaranteedStopLossOrderLevelRestriction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_range: Option<Decimal>,
 }
 
@@ -482,6 +497,7 @@ pub struct ConversionFactor {
     /// The factor by which to multiply the amount in the given currency to obtain the amount in the home
     /// currency of the Account.
     #[serde(rename = "factor", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub factor: Option<Decimal>,
 }
 

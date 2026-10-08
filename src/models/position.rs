@@ -24,6 +24,7 @@ pub struct Position {
     pub instrument: Option<InstrumentName>,
     /// Profit/loss realized by the Position over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The unrealized profit/loss of all open Trades that contribute to this Position.
     #[serde(
@@ -31,6 +32,7 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// Margin currently used by the Position.
     #[serde(
@@ -38,6 +40,7 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// Profit/loss realized by the Position since the Account’s resettablePL was last reset by the client.
     #[serde(
@@ -45,9 +48,11 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected for this instrument over the lifetime of the Account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of commission paid for this instrument over the lifetime of the Account.
     #[serde(
@@ -55,6 +60,7 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total amount of dividend adjustment paid for this instrument over the lifetime of the Account.
     #[serde(
@@ -62,6 +68,7 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders for this instrument.
@@ -70,6 +77,7 @@ pub struct Position {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
     /// The details of the long side of the Position.
     #[serde(rename = "long", default, skip_serializing_if = "Option::is_none")]
@@ -86,6 +94,7 @@ pub struct PositionSide {
     /// Number of units in the position (negative value indicates short position, positive indicates long
     /// position).
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
     /// Volume-weighted average of the underlying Trade open prices for the Position.
     #[serde(
@@ -93,12 +102,14 @@ pub struct PositionSide {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub average_price: Option<Decimal>,
     /// List of the open Trade IDs which contribute to the open Position.
     #[serde(rename = "tradeIDs", default, skip_serializing_if = "Option::is_none")]
     pub trade_ids: Option<Vec<TradeID>>,
     /// Profit/loss realized by the PositionSide over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The unrealized profit/loss of all open Trades that contribute to this PositionSide.
     #[serde(
@@ -106,6 +117,7 @@ pub struct PositionSide {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// Profit/loss realized by the PositionSide since the Account’s resettablePL was last reset by the client.
     #[serde(
@@ -113,9 +125,11 @@ pub struct PositionSide {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected for this PositionSide over the lifetime of the Account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of dividend adjustment paid for the PositionSide over the lifetime of the Account.
     #[serde(
@@ -123,6 +137,7 @@ pub struct PositionSide {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders attached to Trades for this PositionSide.
@@ -131,6 +146,7 @@ pub struct PositionSide {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
 }
 
@@ -151,6 +167,7 @@ pub struct CalculatedPositionState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub net_unrealized_pl: Option<Decimal>,
     /// The unrealized profit/loss of the Position’s long open Trades
     #[serde(
@@ -158,6 +175,7 @@ pub struct CalculatedPositionState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub long_unrealized_pl: Option<Decimal>,
     /// The unrealized profit/loss of the Position’s short open Trades
     #[serde(
@@ -165,6 +183,7 @@ pub struct CalculatedPositionState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub short_unrealized_pl: Option<Decimal>,
     /// Margin currently used by the Position.
     #[serde(
@@ -172,5 +191,6 @@ pub struct CalculatedPositionState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
 }

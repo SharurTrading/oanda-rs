@@ -25,6 +25,7 @@ pub struct LatestCandlesQuery {
     /// The number of units used to calculate the volume-weighted average bid and ask prices in the returned
     /// candles. \[default=1\]
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
     /// A flag that controls whether the candlestick is “smoothed” or not. A smoothed candlestick uses the
     /// previous candle’s close price as its open price, while an unsmoothed candlestick uses the first price
@@ -243,6 +244,7 @@ pub struct InstrumentCandlesQuery {
     /// The number of units used to calculate the volume-weighted average bid and ask prices in the returned
     /// candles. \[default=1\]
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
 }
 

@@ -165,6 +165,7 @@ pub struct ConfigureAccountBody {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
 }
 

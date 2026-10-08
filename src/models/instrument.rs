@@ -218,15 +218,19 @@ pub struct Candlestick {
 pub struct CandlestickData {
     /// The first (open) price in the time-range represented by the candlestick.
     #[serde(rename = "o", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub o: Option<Decimal>,
     /// The highest price in the time-range represented by the candlestick.
     #[serde(rename = "h", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub h: Option<Decimal>,
     /// The lowest price in the time-range represented by the candlestick.
     #[serde(rename = "l", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub l: Option<Decimal>,
     /// The last (closing) price in the time-range represented by the candlestick.
     #[serde(rename = "c", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub c: Option<Decimal>,
 }
 

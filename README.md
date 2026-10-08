@@ -98,6 +98,8 @@ environment variables set, run `cargo run --example practice_account`. Select
   this client could not read, which is a different fact from no value being offered.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
+  Required and optional financial fields reject nonrepresentable coefficient/scale values
+  during deserialization rather than rounding them.
   Provider IDs and timestamps have dedicated types.
 - REST response bodies are bounded. Cloned clients share conservative rate admission and provider
   cooldown, which honours both `Retry-After` forms RFC 9110 defines. Requests are single-attempt;

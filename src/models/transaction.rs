@@ -161,6 +161,7 @@ pub struct ClientConfigureTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
 }
 
@@ -200,6 +201,7 @@ pub struct ClientConfigureRejectTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
     /// The reason that the Reject Transaction was created
     #[serde(
@@ -239,6 +241,7 @@ pub struct TransferFundsTransaction {
     /// The amount to deposit/withdraw from the Account in the Account’s home currency. A positive value
     /// indicates a deposit, a negative value indicates a withdrawal.
     #[serde(rename = "amount", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub amount: Option<Decimal>,
     /// The reason that an Account is being funded.
     #[serde(
@@ -256,6 +259,7 @@ pub struct TransferFundsTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_balance: Option<Decimal>,
 }
 
@@ -288,6 +292,7 @@ pub struct TransferFundsRejectTransaction {
     /// The amount to deposit/withdraw from the Account in the Account’s home currency. A positive value
     /// indicates a deposit, a negative value indicates a withdrawal.
     #[serde(rename = "amount", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub amount: Option<Decimal>,
     /// The reason that an Account is being funded.
     #[serde(
@@ -343,6 +348,7 @@ pub struct MarketOrderTransaction {
     /// The quantity requested to be filled by the Market Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
     #[serde(rename = "timeInForce")]
@@ -353,6 +359,7 @@ pub struct MarketOrderTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -480,6 +487,7 @@ pub struct MarketOrderRejectTransaction {
     /// The quantity requested to be filled by the Market Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
     #[serde(rename = "timeInForce")]
@@ -490,6 +498,7 @@ pub struct MarketOrderRejectTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -625,10 +634,12 @@ pub struct FixedPriceOrderTransaction {
     /// The quantity requested to be filled by the Fixed Price Order. A positive number of units results in a
     /// long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price specified for the Fixed Price Order. This price is the exact price that the Fixed Price Order
     /// will be filled at.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specification of how Positions in the Account are modified when the Order is filled.
     #[serde(rename = "positionFill")]
@@ -720,10 +731,12 @@ pub struct LimitOrderTransaction {
     /// The quantity requested to be filled by the Limit Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Limit Order. The Limit Order will only be filled by a market price
     /// that is equal to or better than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the Limit Order.
     #[serde(rename = "timeInForce")]
@@ -848,10 +861,12 @@ pub struct LimitOrderRejectTransaction {
     /// The quantity requested to be filled by the Limit Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Limit Order. The Limit Order will only be filled by a market price
     /// that is equal to or better than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the Limit Order.
     #[serde(rename = "timeInForce")]
@@ -976,10 +991,12 @@ pub struct StopOrderTransaction {
     /// The quantity requested to be filled by the Stop Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Stop Order. The Stop Order will only be filled by a market price
     /// that is equal to or worse than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this Stop Order. If the market gaps and crosses through
     /// both the price and the priceBound, the Stop Order will be cancelled instead of being filled.
@@ -988,6 +1005,7 @@ pub struct StopOrderTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the Stop Order.
     #[serde(rename = "timeInForce")]
@@ -1112,10 +1130,12 @@ pub struct StopOrderRejectTransaction {
     /// The quantity requested to be filled by the Stop Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the Stop Order. The Stop Order will only be filled by a market price
     /// that is equal to or worse than this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this Stop Order. If the market gaps and crosses through
     /// both the price and the priceBound, the Stop Order will be cancelled instead of being filled.
@@ -1124,6 +1144,7 @@ pub struct StopOrderRejectTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the Stop Order.
     #[serde(rename = "timeInForce")]
@@ -1250,12 +1271,14 @@ pub struct MarketIfTouchedOrderTransaction {
     /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
     /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this MarketIfTouched Order.
     #[serde(
@@ -1263,6 +1286,7 @@ pub struct MarketIfTouchedOrderTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// MarketIfTouched Orders.
@@ -1390,12 +1414,14 @@ pub struct MarketIfTouchedOrderRejectTransaction {
     /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
     /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
     /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The worst market price that may be used to fill this MarketIfTouched Order.
     #[serde(
@@ -1403,6 +1429,7 @@ pub struct MarketIfTouchedOrderRejectTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
     /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// MarketIfTouched Orders.
@@ -1535,6 +1562,7 @@ pub struct TakeProfitOrderTransaction {
     /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TakeProfit Orders.
@@ -1633,6 +1661,7 @@ pub struct TakeProfitOrderRejectTransaction {
     /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TakeProfit Orders.
@@ -1730,10 +1759,12 @@ pub struct StopLossOrderTransaction {
     /// The price threshold specified for the Stop Loss Order. The associated Trade will be closed by a market
     /// price that is equal to or worse than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Stop Loss Order
     /// price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
     /// Orders.
@@ -1773,6 +1804,7 @@ pub struct StopLossOrderTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_premium: Option<Decimal>,
     /// The reason that the Stop Loss Order was initiated
     #[serde(rename = "reason", default, skip_serializing_if = "Option::is_none")]
@@ -1849,10 +1881,12 @@ pub struct StopLossOrderRejectTransaction {
     /// The price threshold specified for the Stop Loss Order. The associated Trade will be closed by a market
     /// price that is equal to or worse than this threshold.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Stop Loss Order
     /// price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
     /// Orders.
@@ -1961,11 +1995,13 @@ pub struct GuaranteedStopLossOrderTransaction {
     /// The price threshold specified for the Guaranteed Stop Loss Order. The associated Trade will be closed at
     /// this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Guaranteed Stop
     /// Loss Order price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask
     /// is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// GuaranteedStopLoss Orders.
@@ -1996,6 +2032,7 @@ pub struct GuaranteedStopLossOrderTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_premium: Option<Decimal>,
     /// The reason that the Guaranteed Stop Loss Order was initiated
     #[serde(rename = "reason", default, skip_serializing_if = "Option::is_none")]
@@ -2074,11 +2111,13 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
     /// The price threshold specified for the Guaranteed Stop Loss Order. The associated Trade will be closed at
     /// this price.
     #[serde(rename = "price")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
     /// Specifies the distance (in price units) from the Account’s current price to use as the Guaranteed Stop
     /// Loss Order price. If the Trade is short the Instrument’s bid price is used, and for long Trades the ask
     /// is used.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// GuaranteedStopLoss Orders.
@@ -2177,6 +2216,7 @@ pub struct TrailingStopLossOrderTransaction {
     pub client_trade_id: Option<ClientID>,
     /// The price distance (in price units) specified for the TrailingStopLoss Order.
     #[serde(rename = "distance")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
     /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TrailingStopLoss Orders.
@@ -2275,6 +2315,7 @@ pub struct TrailingStopLossOrderRejectTransaction {
     pub client_trade_id: Option<ClientID>,
     /// The price distance (in price units) specified for the TrailingStopLoss Order.
     #[serde(rename = "distance")]
+    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
     /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
     /// TrailingStopLoss Orders.
@@ -2378,6 +2419,7 @@ pub struct OrderFillTransaction {
     pub instrument: Option<InstrumentName>,
     /// The number of units filled by the OrderFill.
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
     /// This is the conversion factor in effect for the Account at the time of the OrderFill for converting any
     /// gains realized in Instrument quote units into units of the Account’s home currency. Deprecated: Will be
@@ -2387,6 +2429,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub gain_quote_home_conversion_factor: Option<Decimal>,
     /// This is the conversion factor in effect for the Account at the time of the OrderFill for converting any
     /// losses realized in Instrument quote units into units of the Account’s home currency. Deprecated: Will be
@@ -2396,6 +2439,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub loss_quote_home_conversion_factor: Option<Decimal>,
     /// The HomeConversionFactors in effect at the time of the OrderFill.
     #[serde(
@@ -2408,6 +2452,7 @@ pub struct OrderFillTransaction {
     /// tradeOpened fields contain the exact/official price each unit was filled at. Deprecated: Will be removed
     /// in a future API update.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// The price that all of the units of the OrderFill should have been filled at, in the absence of
     /// guaranteed price execution. This factors in the Account’s current ClientPrice, used liquidity and the
@@ -2415,6 +2460,7 @@ pub struct OrderFillTransaction {
     /// enforcement, then this value will match the price fields of each Trade opened, closed, and reduced, and
     /// they will all be the exact same.
     #[serde(rename = "fullVWAP", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub full_vwap: Option<Decimal>,
     /// The price in effect for the account at the time of the Order fill.
     #[serde(rename = "fullPrice", default, skip_serializing_if = "Option::is_none")]
@@ -2424,12 +2470,15 @@ pub struct OrderFillTransaction {
     pub reason: Option<OrderFillReason>,
     /// The profit or loss incurred when the Order was filled.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The profit or loss incurred when the Order was filled, in the Instrument’s quote currency.
     #[serde(rename = "quotePL", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_pl: Option<Decimal>,
     /// The financing paid or collected when the Order was filled.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The financing paid or collected when the Order was filled, in the Instrument’s base currency.
     #[serde(
@@ -2437,6 +2486,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub base_financing: Option<Decimal>,
     /// The financing paid or collected when the Order was filled, in the Instrument’s quote currency.
     #[serde(
@@ -2444,6 +2494,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The commission charged in the Account’s home currency as a result of filling the Order. The commission
     /// is always represented as a positive quantity of the Account’s home currency, however it reduces the
@@ -2453,6 +2504,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total guaranteed execution fees charged for all Trades opened, closed or reduced with guaranteed
     /// Stop Loss Orders.
@@ -2461,6 +2513,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fee: Option<Decimal>,
     /// The total guaranteed execution fees charged for all Trades opened, closed or reduced with guaranteed
     /// Stop Loss Orders, expressed in the Instrument’s quote currency.
@@ -2469,6 +2522,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_guaranteed_execution_fee: Option<Decimal>,
     /// The Account’s balance after the Order was filled.
     #[serde(
@@ -2476,6 +2530,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_balance: Option<Decimal>,
     /// The Trade that was opened when the Order was filled (only provided if filling the Order resulted in a
     /// new Trade).
@@ -2509,6 +2564,7 @@ pub struct OrderFillTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub half_spread_cost: Option<Decimal>,
 }
 
@@ -2977,6 +3033,7 @@ pub struct DailyFinancingTransaction {
     pub r#type: Option<TransactionType>,
     /// The amount of financing paid/collected for the Account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The Account’s balance after daily financing.
     #[serde(
@@ -2984,6 +3041,7 @@ pub struct DailyFinancingTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_balance: Option<Decimal>,
     /// The account financing mode at the time of the daily financing. This field is no longer in use moving
     /// forward and was replaced by accountFinancingMode in individual positionFinancings since the financing
@@ -3045,6 +3103,7 @@ pub struct DividendAdjustmentTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total dividend adjustment amount paid or collected in the Instrument’s quote currency for the
     /// Account as a result of applying the DividendAdjustment Transaction. This is the sum of the quote
@@ -3054,6 +3113,7 @@ pub struct DividendAdjustmentTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_dividend_adjustment: Option<Decimal>,
     /// The HomeConversionFactors in effect at the time of the DividendAdjustment.
     #[serde(
@@ -3068,6 +3128,7 @@ pub struct DividendAdjustmentTransaction {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub account_balance: Option<Decimal>,
     /// The dividend adjustment payment/collection details for each open Trade, within the Account, for which a
     /// dividend adjustment is to be paid or collected.
@@ -4290,6 +4351,7 @@ pub struct OpenTradeDividendAdjustment {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The dividend adjustment amount to pay or collect for the Trade, in the Instrument’s quote currency.
     #[serde(
@@ -4297,6 +4359,7 @@ pub struct OpenTradeDividendAdjustment {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_dividend_adjustment: Option<Decimal>,
 }
 
@@ -4325,6 +4388,7 @@ pub struct TakeProfitDetails {
     /// The price that the Take Profit Order will be triggered at. Only one of the price and distance fields may
     /// be specified.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// The time in force for the created Take Profit Order. This may only be GTC, GTD or GFD.
     #[serde(
@@ -4354,10 +4418,12 @@ pub struct StopLossDetails {
     /// The price that the Stop Loss Order will be triggered at. Only one of the price and distance fields may
     /// be specified.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// Specifies the distance (in price units) from the Trade’s open price to use as the Stop Loss Order price.
     /// Only one of the distance and price fields may be specified.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time in force for the created Stop Loss Order. This may only be GTC, GTD or GFD.
     #[serde(
@@ -4396,10 +4462,12 @@ pub struct GuaranteedStopLossDetails {
     /// The price that the Guaranteed Stop Loss Order will be triggered at. Only one of the price and distance
     /// fields may be specified.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// Specifies the distance (in price units) from the Trade’s open price to use as the Guaranteed Stop Loss
     /// Order price. Only one of the distance and price fields may be specified.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time in force for the created Guaranteed Stop Loss Order. This may only be GTC, GTD or GFD.
     #[serde(
@@ -4429,6 +4497,7 @@ pub struct TrailingStopLossDetails {
     /// The distance (in price units) from the Trade’s fill price that the Trailing Stop Loss Order will be
     /// triggered at.
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
     /// The time in force for the created Trailing Stop Loss Order. This may only be GTC, GTD or GFD.
     #[serde(
@@ -4460,9 +4529,11 @@ pub struct TradeOpen {
     pub trade_id: Option<TradeID>,
     /// The number of units opened by the Trade
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
     /// The average price that the units were opened at.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// This is the fee charged for opening the trade if it has a guaranteed Stop Loss Order attached to it.
     #[serde(
@@ -4470,6 +4541,7 @@ pub struct TradeOpen {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fee: Option<Decimal>,
     /// This is the fee charged for opening the trade if it has a guaranteed Stop Loss Order attached to it,
     /// expressed in the Instrument’s quote currency.
@@ -4478,6 +4550,7 @@ pub struct TradeOpen {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_guaranteed_execution_fee: Option<Decimal>,
     /// The client extensions for the newly opened Trade
     #[serde(
@@ -4493,6 +4566,7 @@ pub struct TradeOpen {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub half_spread_cost: Option<Decimal>,
     /// The margin required at the time the Trade was created. Note, this is the ‘pure’ margin required, it is
     /// not the ‘effective’ margin used that factors in the trade risk if a GSLO is attached to the trade.
@@ -4501,6 +4575,7 @@ pub struct TradeOpen {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_margin_required: Option<Decimal>,
 }
 
@@ -4515,10 +4590,12 @@ pub struct TradeReduce {
     pub trade_id: Option<TradeID>,
     /// The number of units that the Trade was reduced by
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
     /// The average price that the units were closed at. This price may be clamped for guaranteed Stop Loss
     /// Orders.
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
     /// The PL realized when reducing the Trade
     #[serde(
@@ -4526,9 +4603,11 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub realized_pl: Option<Decimal>,
     /// The financing paid/collected when reducing the Trade
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The base financing paid/collected when reducing the Trade
     #[serde(
@@ -4536,6 +4615,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub base_financing: Option<Decimal>,
     /// The quote financing paid/collected when reducing the Trade
     #[serde(
@@ -4543,6 +4623,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The financing rate in effect for the instrument used to calculate the amount of financing paid/collected
     /// when reducing the Trade. This field will only be set if the AccountFinancingMode at the time of the
@@ -4553,6 +4634,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing_rate: Option<Decimal>,
     /// This is the fee that is charged for closing the Trade if it has a guaranteed Stop Loss Order attached to
     /// it.
@@ -4561,6 +4643,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fee: Option<Decimal>,
     /// This is the fee that is charged for closing the Trade if it has a guaranteed Stop Loss Order attached to
     /// it, expressed in the Instrument’s quote currency.
@@ -4569,6 +4652,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_guaranteed_execution_fee: Option<Decimal>,
     /// The half spread cost for the trade reduce/close. This can be a positive or negative value and is
     /// represented in the home currency of the Account.
@@ -4577,6 +4661,7 @@ pub struct TradeReduce {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub half_spread_cost: Option<Decimal>,
 }
 
@@ -4726,6 +4811,7 @@ pub struct LiquidityRegenerationScheduleStep {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub bid_liquidity_used: Option<Decimal>,
     /// The amount of ask liquidity used at this step in the schedule.
     #[serde(
@@ -4733,6 +4819,7 @@ pub struct LiquidityRegenerationScheduleStep {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub ask_liquidity_used: Option<Decimal>,
 }
 
@@ -4745,6 +4832,7 @@ pub struct OpenTradeFinancing {
     pub trade_id: Option<TradeID>,
     /// The amount of financing paid/collected for the Trade.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The amount of financing paid/collected in the Instrument’s base currency for the Trade.
     #[serde(
@@ -4752,6 +4840,7 @@ pub struct OpenTradeFinancing {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub base_financing: Option<Decimal>,
     /// The amount of financing paid/collected in the Instrument’s quote currency for the Trade.
     #[serde(
@@ -4759,6 +4848,7 @@ pub struct OpenTradeFinancing {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The financing rate in effect for the instrument used to calculate the the amount of financing
     /// paid/collected for the Trade. This field will only be set if the AccountFinancingMode at the time of the
@@ -4769,6 +4859,7 @@ pub struct OpenTradeFinancing {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing_rate: Option<Decimal>,
 }
 
@@ -4785,6 +4876,7 @@ pub struct PositionFinancing {
     pub instrument: Option<InstrumentName>,
     /// The amount of financing paid/collected for the Position.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The amount of base financing paid/collected for the Position.
     #[serde(
@@ -4792,6 +4884,7 @@ pub struct PositionFinancing {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub base_financing: Option<Decimal>,
     /// The amount of quote financing paid/collected for the Position.
     #[serde(
@@ -4799,6 +4892,7 @@ pub struct PositionFinancing {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The HomeConversionFactors in effect for the Position’s Instrument at the time of the DailyFinancing.
     #[serde(

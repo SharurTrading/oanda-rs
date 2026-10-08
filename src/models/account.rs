@@ -78,6 +78,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
     /// The number of Trades currently open in the Account.
     #[serde(
@@ -113,9 +114,11 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// The net asset value of the Account. Equal to Account balance + unrealizedPL.
     #[serde(rename = "NAV", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub nav: Option<Decimal>,
     /// Margin currently used for the Account.
     #[serde(
@@ -123,6 +126,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// Margin available for Account currency.
     #[serde(
@@ -130,6 +134,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_available: Option<Decimal>,
     /// The value of the Account’s open positions represented in the Account’s home currency.
     #[serde(
@@ -137,6 +142,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub position_value: Option<Decimal>,
     /// The Account’s margin closeout unrealized PL.
     #[serde(
@@ -144,6 +150,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_unrealized_pl: Option<Decimal>,
     /// The Account’s margin closeout NAV.
     #[serde(
@@ -151,6 +158,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_nav: Option<Decimal>,
     /// The Account’s margin closeout margin used.
     #[serde(
@@ -158,6 +166,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_margin_used: Option<Decimal>,
     /// The Account’s margin closeout percentage. When this value is 1.0 or above the Account is in a margin
     /// closeout situation.
@@ -166,6 +175,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_percent: Option<Decimal>,
     /// The value of the Account’s open positions as used for margin closeout calculations represented in the
     /// Account’s home currency.
@@ -174,6 +184,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
     /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
@@ -182,6 +193,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub withdrawal_limit: Option<Decimal>,
     /// The Account’s margin call margin used.
     #[serde(
@@ -189,6 +201,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_margin_used: Option<Decimal>,
     /// The Account’s margin call percentage. When this value is 1.0 or above the Account is in a margin call
     /// situation.
@@ -197,12 +210,15 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_percent: Option<Decimal>,
     /// The current balance of the account.
     #[serde(rename = "balance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub balance: Option<Decimal>,
     /// The total profit/loss realized over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The total realized profit/loss for the account since it was last reset by the client.
     #[serde(
@@ -210,9 +226,11 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected over the lifetime of the account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of commission paid over the lifetime of the Account.
     #[serde(
@@ -220,6 +238,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total amount of dividend adjustment paid over the lifetime of the Account in the Account’s home
     /// currency.
@@ -228,6 +247,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders.
@@ -236,6 +256,7 @@ pub struct Account {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
     /// The date/time when the Account entered a margin call state. Only provided if the Account is in a margin
     /// call.
@@ -290,9 +311,11 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// The net asset value of the Account. Equal to Account balance + unrealizedPL.
     #[serde(rename = "NAV", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub nav: Option<Decimal>,
     /// Margin currently used for the Account.
     #[serde(
@@ -300,6 +323,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// Margin available for Account currency.
     #[serde(
@@ -307,6 +331,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_available: Option<Decimal>,
     /// The value of the Account’s open positions represented in the Account’s home currency.
     #[serde(
@@ -314,6 +339,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub position_value: Option<Decimal>,
     /// The Account’s margin closeout unrealized PL.
     #[serde(
@@ -321,6 +347,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_unrealized_pl: Option<Decimal>,
     /// The Account’s margin closeout NAV.
     #[serde(
@@ -328,6 +355,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_nav: Option<Decimal>,
     /// The Account’s margin closeout margin used.
     #[serde(
@@ -335,6 +363,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_margin_used: Option<Decimal>,
     /// The Account’s margin closeout percentage. When this value is 1.0 or above the Account is in a margin
     /// closeout situation.
@@ -343,6 +372,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_percent: Option<Decimal>,
     /// The value of the Account’s open positions as used for margin closeout calculations represented in the
     /// Account’s home currency.
@@ -351,6 +381,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
     /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
@@ -359,6 +390,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub withdrawal_limit: Option<Decimal>,
     /// The Account’s margin call margin used.
     #[serde(
@@ -366,6 +398,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_margin_used: Option<Decimal>,
     /// The Account’s margin call percentage. When this value is 1.0 or above the Account is in a margin call
     /// situation.
@@ -374,12 +407,15 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_percent: Option<Decimal>,
     /// The current balance of the account.
     #[serde(rename = "balance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub balance: Option<Decimal>,
     /// The total profit/loss realized over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The total realized profit/loss for the account since it was last reset by the client.
     #[serde(
@@ -387,9 +423,11 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected over the lifetime of the account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of commission paid over the lifetime of the Account.
     #[serde(
@@ -397,6 +435,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total amount of dividend adjustment paid over the lifetime of the Account in the Account’s home
     /// currency.
@@ -405,6 +444,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders.
@@ -413,6 +453,7 @@ pub struct AccountChangesState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
     /// The date/time when the Account entered a margin call state. Only provided if the Account is in a margin
     /// call.
@@ -648,6 +689,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_rate: Option<Decimal>,
     /// The number of Trades currently open in the Account.
     #[serde(
@@ -683,9 +725,11 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// The net asset value of the Account. Equal to Account balance + unrealizedPL.
     #[serde(rename = "NAV", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub nav: Option<Decimal>,
     /// Margin currently used for the Account.
     #[serde(
@@ -693,6 +737,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// Margin available for Account currency.
     #[serde(
@@ -700,6 +745,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_available: Option<Decimal>,
     /// The value of the Account’s open positions represented in the Account’s home currency.
     #[serde(
@@ -707,6 +753,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub position_value: Option<Decimal>,
     /// The Account’s margin closeout unrealized PL.
     #[serde(
@@ -714,6 +761,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_unrealized_pl: Option<Decimal>,
     /// The Account’s margin closeout NAV.
     #[serde(
@@ -721,6 +769,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_nav: Option<Decimal>,
     /// The Account’s margin closeout margin used.
     #[serde(
@@ -728,6 +777,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_margin_used: Option<Decimal>,
     /// The Account’s margin closeout percentage. When this value is 1.0 or above the Account is in a margin
     /// closeout situation.
@@ -736,6 +786,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_percent: Option<Decimal>,
     /// The value of the Account’s open positions as used for margin closeout calculations represented in the
     /// Account’s home currency.
@@ -744,6 +795,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
     /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
@@ -752,6 +804,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub withdrawal_limit: Option<Decimal>,
     /// The Account’s margin call margin used.
     #[serde(
@@ -759,6 +812,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_margin_used: Option<Decimal>,
     /// The Account’s margin call percentage. When this value is 1.0 or above the Account is in a margin call
     /// situation.
@@ -767,12 +821,15 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_percent: Option<Decimal>,
     /// The current balance of the account.
     #[serde(rename = "balance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub balance: Option<Decimal>,
     /// The total profit/loss realized over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The total realized profit/loss for the account since it was last reset by the client.
     #[serde(
@@ -780,9 +837,11 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected over the lifetime of the account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of commission paid over the lifetime of the Account.
     #[serde(
@@ -790,6 +849,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total amount of dividend adjustment paid over the lifetime of the Account in the Account’s home
     /// currency.
@@ -798,6 +858,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders.
@@ -806,6 +867,7 @@ pub struct AccountSummary {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
     /// The date/time when the Account entered a margin call state. Only provided if the Account is in a margin
     /// call.
@@ -844,9 +906,11 @@ pub struct AccountSummary {
 pub struct AccumulatedAccountState {
     /// The current balance of the account.
     #[serde(rename = "balance", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub balance: Option<Decimal>,
     /// The total profit/loss realized over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
     /// The total realized profit/loss for the account since it was last reset by the client.
     #[serde(
@@ -854,9 +918,11 @@ pub struct AccumulatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
     /// The total amount of financing paid/collected over the lifetime of the account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
     /// The total amount of commission paid over the lifetime of the Account.
     #[serde(
@@ -864,6 +930,7 @@ pub struct AccumulatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub commission: Option<Decimal>,
     /// The total amount of dividend adjustment paid over the lifetime of the Account in the Account’s home
     /// currency.
@@ -872,6 +939,7 @@ pub struct AccumulatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
     /// Loss Orders.
@@ -880,6 +948,7 @@ pub struct AccumulatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub guaranteed_execution_fees: Option<Decimal>,
     /// The date/time when the Account entered a margin call state. Only provided if the Account is in a margin
     /// call.
@@ -915,9 +984,11 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
     /// The net asset value of the Account. Equal to Account balance + unrealizedPL.
     #[serde(rename = "NAV", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub nav: Option<Decimal>,
     /// Margin currently used for the Account.
     #[serde(
@@ -925,6 +996,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_used: Option<Decimal>,
     /// Margin available for Account currency.
     #[serde(
@@ -932,6 +1004,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_available: Option<Decimal>,
     /// The value of the Account’s open positions represented in the Account’s home currency.
     #[serde(
@@ -939,6 +1012,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub position_value: Option<Decimal>,
     /// The Account’s margin closeout unrealized PL.
     #[serde(
@@ -946,6 +1020,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_unrealized_pl: Option<Decimal>,
     /// The Account’s margin closeout NAV.
     #[serde(
@@ -953,6 +1028,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_nav: Option<Decimal>,
     /// The Account’s margin closeout margin used.
     #[serde(
@@ -960,6 +1036,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_margin_used: Option<Decimal>,
     /// The Account’s margin closeout percentage. When this value is 1.0 or above the Account is in a margin
     /// closeout situation.
@@ -968,6 +1045,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_percent: Option<Decimal>,
     /// The value of the Account’s open positions as used for margin closeout calculations represented in the
     /// Account’s home currency.
@@ -976,6 +1054,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
     /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
@@ -984,6 +1063,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub withdrawal_limit: Option<Decimal>,
     /// The Account’s margin call margin used.
     #[serde(
@@ -991,6 +1071,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_margin_used: Option<Decimal>,
     /// The Account’s margin call percentage. When this value is 1.0 or above the Account is in a margin call
     /// situation.
@@ -999,6 +1080,7 @@ pub struct CalculatedAccountState {
         default,
         skip_serializing_if = "Option::is_none"
     )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_call_percent: Option<Decimal>,
 }
 

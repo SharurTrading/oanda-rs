@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Kevin Monaghan
+# SPDX-License-Identifier: MIT-0
+
 title = "oanda-client secret scanning"
 
 [extend]
@@ -7,3 +10,9 @@ useDefault = true
 id = "oanda-personal-access-token"
 description = "OANDA personal access token"
 regex = '''(?i)\b[0-9a-f]{32}-[0-9a-f]{32}\b'''
+
+[[allowlists]]
+description = "Public Kache cache namespace, not an authentication credential"
+ruleIDs = ["generic-api-key"]
+regexTarget = "secret"
+regexes = ['''^sharurtrading-kache-prepass-2026-10-11$''']

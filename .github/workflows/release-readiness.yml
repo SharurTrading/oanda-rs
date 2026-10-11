@@ -24,8 +24,7 @@ jobs:
         with:
           toolchain: "1.95.0"
           components: clippy, rustfmt
-      - name: Set up Kache
-        uses: ./.github/actions/setup-kache
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Check requested version
         env:
           EXPECTED_VERSION: ${{ inputs.version }}

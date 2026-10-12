@@ -474,11 +474,7 @@ impl ClientBuilder {
             .no_proxy()
             .build()
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
-        let stream_http = reqwest::Client::builder()
-            .connect_timeout(self.timeout)
-            .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
-            .no_proxy()
+        let stream_http = stream_transport(reqwest::Client::builder(), self.timeout)
             .build()
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         Ok(Client {
@@ -735,12 +731,72 @@ impl Drop for MutationGuard {
     }
 }
 
+fn stream_transport(builder: reqwest::ClientBuilder, timeout: Duration) -> reqwest::ClientBuilder {
+    builder
+        .http1_only()
+        .connect_timeout(timeout)
+        .redirect(reqwest::redirect::Policy::none())
+        .retry(reqwest::retry::never())
+        .no_proxy()
+}
+
 #[cfg(test)]
 // Poisoning a lock requires a panic, and fixture failures are clearer as panics;
 // production paths return typed errors.
 #[allow(clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn streaming_uses_http11_when_the_caller_enables_http2() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind");
+        let address = listener.local_addr().expect("address");
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.expect("accept");
+            let mut bytes = Vec::new();
+            let mut buffer = [0; 1024];
+            loop {
+                let count = socket.read(&mut buffer).await.expect("read request");
+                if count == 0 {
+                    break;
+                }
+                bytes.extend_from_slice(&buffer[..count]);
+                if bytes.windows(4).any(|window| window == b"\r\n\r\n") {
+                    break;
+                }
+            }
+            socket
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+                .await
+                .expect("response");
+            bytes
+        });
+        let client = stream_transport(
+            reqwest::Client::builder().http2_prior_knowledge(),
+            Duration::from_secs(5),
+        )
+        .build()
+        .expect("client");
+        let response = client
+            .get(format!(
+                "http://{address}/v3/accounts/fixture/transactions/stream"
+            ))
+            .send()
+            .await;
+        let request = server.await.expect("server");
+        assert!(
+            request.starts_with(b"GET /v3/accounts/fixture/transactions/stream HTTP/1.1\r\n"),
+            "request protocol: {}",
+            String::from_utf8_lossy(&request)
+        );
+        assert_eq!(
+            response.expect("stream response").version(),
+            reqwest::Version::HTTP_11
+        );
+    }
 
     #[tokio::test]
     async fn mutation_rate_admission_is_shared_by_clones() {

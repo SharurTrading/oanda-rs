@@ -107,8 +107,9 @@ environment variables set, run `cargo run --example practice_account`. Select
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
   account and transaction state before calling `acknowledge_reconciliation`, which reports whether
   it released the fence.
-- Pricing and transaction streams are incremental, newline-delimited HTTP streams with typed
-  heartbeats. Records are bounded individually by a local hostile-input limit of 1 MiB, and the
+- Pricing and transaction streams use HTTP/1.1, including when a consumer enables HTTP/2
+  on reqwest through Cargo feature unification. REST protocol negotiation is independent.
+  The streams are incremental and newline-delimited, with typed heartbeats. Records are bounded individually by a local hostile-input limit of 1 MiB, and the
   buffered backlog by a local cap of 16 MiB that ends the generation explicitly rather than evicting
   records already accepted. HTTP chunk segmentation is a transport read, not a provider record
   boundary, so a large chunk carrying many valid records is processed in order rather than

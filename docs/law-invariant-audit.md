@@ -7,7 +7,8 @@ of each one is whether a *failure* is being presented to the caller as absence, 
 harmless no-op. The audit was run on 2026-09-30 against commit `d6becff`.
 
 `src/models/**` and the endpoint contracts in `src/{account,order,trade,position,transaction,pricing}.rs`
-are generated from the six authoritative OANDA pages, and the read paths there were verified rather
+were generated from the six authoritative OANDA pages (the generators have
+since been removed and these files are hand-maintained), and the read paths there were verified rather
 than assumed: every documented variant has a typed arm, every unrecognized provider value keeps its
 exact spelling in an `Unknown` arm that serializes back unchanged, a missing `type` discriminator is
 a typed serde error, and every `Option` field is `#[serde(default)]` with a malformed value still

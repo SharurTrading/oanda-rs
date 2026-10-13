@@ -7,7 +7,7 @@ hand-maintained Rust, and delete the code-generation tooling. The checked-in
 sources become the only artifact; nothing in the repository claims they can be
 regenerated. Tracked against
 [#21](https://github.com/SharurTrading/oanda-rs/issues/21), whose item 2 this
-supersedes (see Relationship to #21).
+supersedes (see Step 7).
 
 ## Why now (evidence)
 

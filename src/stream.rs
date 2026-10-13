@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Bounded newline-delimited HTTP streams.
 
 use crate::{
@@ -168,7 +171,6 @@ impl Client {
         query: Option<&Q>,
         decoder: fn(&[u8]) -> Result<E>,
     ) -> Result<HttpStream<E>> {
-        self.admit(false, false).await?;
         let lease = self.inner.admission.lease_stream()?;
         let url = Self::build_url(&self.inner.stream, path, query)?;
         let response = self

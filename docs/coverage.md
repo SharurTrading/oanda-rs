@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Kevin Monaghan
+SPDX-License-Identifier: MIT-0
+-->
+
 # Contract and coverage
 
 The current [OANDA v20 website](https://developer.oanda.com/rest-live-v20/introduction/) lists 32 operations across Account, Order, Trade, Position, Transaction, and Pricing. The repository's `docs/coverage.json` records each operation and the 168 named definitions visible on 2026-09-25.
@@ -35,7 +40,8 @@ the ledger — all order-request types and durations (`TimeInForce`, including
 candles and pricing, and both streams. Protocol traits (stateless HTTP/JSON),
 application classes (web/desktop/mobile), partner/other-API rows (fxLabs,
 Autochartist, custom indicators, backtesting), and provider usage quotas
-(20 streams per user, polling rate) are not endpoint contracts; authentication
+(20 streams per IP in the [Development Guide](https://developer.oanda.com/rest-live-v20/development-guide/),
+despite this comparison page's per-user wording, and polling rate) are not endpoint contracts; authentication
 is caller-injected bearer tokens over HTTPS (OA-SECRET-01). One page value is
 stale: it lists an `M3` candle granularity that neither the authoritative
 instrument definition page nor the pinned OpenAPI spec documents, so there is

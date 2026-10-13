@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Shared transport admission through the public client and loopback sockets.
 
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
@@ -33,6 +36,54 @@ async fn loopback() -> (
         }
     });
     (url, observations, task)
+}
+
+async fn counting_rest_loopback() -> (
+    Url,
+    mpsc::UnboundedReceiver<String>,
+    tokio::task::JoinHandle<()>,
+) {
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
+    let url = Url::parse(&format!(
+        "http://{}/",
+        listener.local_addr().expect("address")
+    ))
+    .expect("URL");
+    let (requests, observed) = mpsc::unbounded_channel();
+    let task = tokio::spawn(async move {
+        while let Ok((mut socket, _)) = listener.accept().await {
+            let requests = requests.clone();
+            tokio::spawn(async move {
+                let mut pending = Vec::new();
+                loop {
+                    while !pending.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
+                        let mut buffer = [0_u8; 4096];
+                        let read = socket.read(&mut buffer).await.expect("read");
+                        if read == 0 {
+                            return;
+                        }
+                        pending.extend_from_slice(&buffer[..read]);
+                    }
+                    let end = pending
+                        .windows(4)
+                        .position(|bytes| bytes == b"\r\n\r\n")
+                        .expect("header boundary");
+                    let head = String::from_utf8_lossy(&pending[..end]);
+                    let path = head.lines().next().expect("request line").to_owned();
+                    pending.drain(..end + 4);
+                    requests.send(path).expect("request observer");
+                    let body = br#"{"accounts":[]}"#;
+                    let response = format!(
+                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",
+                        body.len()
+                    );
+                    socket.write_all(response.as_bytes()).await.expect("header");
+                    socket.write_all(body).await.expect("body");
+                }
+            });
+        }
+    });
+    (url, observed, task)
 }
 
 async fn stall_first_loopback() -> (
@@ -147,6 +198,79 @@ fn keep_clock_frozen() -> tokio::task::JoinHandle<()> {
             tokio::task::yield_now().await;
         }
     })
+}
+
+#[tokio::test(start_paused = true)]
+async fn warmed_rest_connection_sends_one_hundred_twenty_requests_then_refuses_mutation() {
+    let clock_guard = keep_clock_frozen();
+    let (rest, mut requests, rest_server) = counting_rest_loopback().await;
+    let (stream, _accepts, stream_server) = loopback().await;
+    let client = Client::builder(Environment::Practice, "token-a")
+        .endpoints(rest, stream)
+        .build()
+        .expect("client");
+    let start = Instant::now();
+    for _ in 0..120 {
+        client.list_accounts().await.expect("REST response");
+        assert!(
+            requests
+                .recv()
+                .await
+                .expect("wire request")
+                .starts_with("GET /v3/accounts HTTP/1.1")
+        );
+    }
+    assert_eq!(Instant::now(), start);
+    let order = OrderSpecifier::new("fixture-order").expect("order");
+    assert!(matches!(
+        client.cancel_order(&account(), &order, None).await,
+        Err(OperationError::Client(Error::RateLimited))
+    ));
+    assert!(requests.try_recv().is_err());
+    let read = client.list_accounts();
+    tokio::pin!(read);
+    assert!(futures_util::poll!(read.as_mut()).is_pending());
+    tokio::time::advance(Duration::from_millis(999)).await;
+    assert!(requests.try_recv().is_err());
+    tokio::time::advance(Duration::from_millis(1)).await;
+    read.await.expect("REST capacity returned");
+    assert!(
+        requests
+            .recv()
+            .await
+            .expect("new window request")
+            .starts_with("GET /v3/accounts HTTP/1.1")
+    );
+    clock_guard.abort();
+    rest_server.abort();
+    stream_server.abort();
+}
+
+#[tokio::test(start_paused = true)]
+async fn stream_start_does_not_consume_exhausted_rest_capacity() {
+    let clock_guard = keep_clock_frozen();
+    let (rest, mut requests, rest_server) = counting_rest_loopback().await;
+    let (stream, mut accepts, stream_server) = loopback().await;
+    let client = Client::builder(Environment::Practice, "token-a")
+        .endpoints(rest, stream)
+        .build()
+        .expect("client");
+    for _ in 0..120 {
+        client.list_accounts().await.expect("REST response");
+        requests.recv().await.expect("wire request");
+    }
+    let started = Instant::now();
+    let stream = client
+        .stream_transactions(&account())
+        .await
+        .expect("stream despite exhausted REST budget");
+    assert_eq!(accepts.recv().await, Some(started));
+    assert_eq!(Instant::now(), started);
+    assert!(requests.try_recv().is_err());
+    drop(stream);
+    clock_guard.abort();
+    rest_server.abort();
+    stream_server.abort();
 }
 
 #[tokio::test]
@@ -281,4 +405,34 @@ fn explicit_builder_reserve_must_agree_with_shared_owner_without_resetting_it() 
             .build()
             .is_ok()
     );
+}
+
+#[test]
+fn largest_exit_reserve_is_accepted_by_owner_builder_and_runtime_setter() {
+    let owner = Admission::with_exit_reserve(119).expect("owner reserve");
+    owner.set_exit_reserve(119).expect("owner setter");
+    assert!(matches!(
+        owner.set_exit_reserve(120),
+        Err(Error::InvalidInput(_))
+    ));
+    let client = Client::builder(Environment::Practice, "token-a")
+        .admission(owner)
+        .exit_reserve(119)
+        .build()
+        .expect("builder reserve");
+    client.set_exit_reserve(119).expect("client setter");
+    assert!(matches!(
+        Admission::with_exit_reserve(120),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        client.set_exit_reserve(120),
+        Err(Error::InvalidInput(_))
+    ));
+    assert!(matches!(
+        Client::builder(Environment::Practice, "token-b")
+            .exit_reserve(120)
+            .build(),
+        Err(Error::InvalidInput(_))
+    ));
 }

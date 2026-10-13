@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Deterministic public-client and loopback transport tests.
 // Assertions and fixture setup intentionally fail fast in tests; production paths return errors.
 #![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
@@ -864,7 +867,7 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
     let (url, server) = keepalive_server(responses).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(url.clone(), url)
-        .exit_reserve(97)
+        .exit_reserve(117)
         .build()
         .expect("client");
     let account = AccountID::new("fixture-account").expect("account");
@@ -883,9 +886,6 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
             client.configure_account(&account, &configure).await,
             Err(OperationError::Client(Error::RateLimited))
         ));
-        let transactions = client.stream_transactions(&account);
-        tokio::pin!(transactions);
-        assert!(futures_util::poll!(transactions.as_mut()).is_pending());
         let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
         let trade = oanda_client::TradeSpecifier::new("fixture-trade").expect("trade");
         let instrument = InstrumentName::new("EUR_USD").expect("instrument");
@@ -917,7 +917,6 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
             Err(OperationError::Rejected { status: 400, .. })
         ));
         assert!(futures_util::poll!(read.as_mut()).is_pending());
-        assert!(futures_util::poll!(transactions.as_mut()).is_pending());
     }
     stationary.abort();
     stationary.await.expect_err("stationary task cancelled");
@@ -1062,7 +1061,7 @@ async fn reserved_cancel_timeout_is_ambiguous_and_fences_further_exit_attempts()
 }
 
 #[tokio::test(start_paused = true)]
-async fn runtime_release_admits_a_read_and_stream_start_with_connector_pacing() {
+async fn stream_starts_without_rest_capacity_and_runtime_release_wakes_a_read() {
     let stationary = tokio::spawn(async {
         loop {
             tokio::task::yield_now().await;
@@ -1073,24 +1072,25 @@ async fn runtime_release_admits_a_read_and_stream_start_with_connector_pacing() 
     let (stream, stream_server) = servers(vec![http_json("200 OK", "")]).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(rest, stream)
-        .exit_reserve(99)
+        .exit_reserve(119)
         .build()
         .expect("client");
     let account = AccountID::new("fixture-account").expect("account");
     client.list_accounts().await.expect("one ordinary slot");
     let read = client.list_accounts();
-    let transactions = client.stream_transactions(&account);
-    tokio::pin!(read, transactions);
+    tokio::pin!(read);
     assert!(futures_util::poll!(read.as_mut()).is_pending());
-    assert!(futures_util::poll!(transactions.as_mut()).is_pending());
+    let started = tokio::time::Instant::now();
+    let transactions = client
+        .stream_transactions(&account)
+        .await
+        .expect("stream is independent of REST reserve");
+    assert_eq!(tokio::time::Instant::now(), started);
     client
         .clone()
         .set_exit_reserve(0)
         .expect("release shared reserve");
-    let started = tokio::time::Instant::now();
     let read = read.await;
-    tokio::time::advance(Duration::from_millis(500)).await;
-    let transactions = transactions.await;
     assert!(
         read.expect("read after release")
             .accounts
@@ -1098,11 +1098,8 @@ async fn runtime_release_admits_a_read_and_stream_start_with_connector_pacing() 
             .expect("accounts evidence")
             .is_empty()
     );
-    drop(transactions.expect("stream after release"));
-    assert_eq!(
-        tokio::time::Instant::now(),
-        started + Duration::from_millis(500)
-    );
+    drop(transactions);
+    assert_eq!(tokio::time::Instant::now(), started);
     stationary.abort();
     stationary.await.expect_err("stationary task cancelled");
     tokio::time::resume();

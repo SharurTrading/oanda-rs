@@ -2,7 +2,7 @@
 //!
 //! The caller owns credentials, their storage, and the Tokio runtime.
 
-// These endpoint contracts and provider descriptions are generated from OANDA's published pages.
+// These endpoint contracts and provider descriptions are hand-maintained from OANDA's published pages.
 #[allow(
     clippy::doc_markdown,
     clippy::missing_errors_doc,

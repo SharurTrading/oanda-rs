@@ -126,3 +126,15 @@ records the decision.
   the safety net. No mitigation beyond keeping those suites mandatory in CI.
 - **No open questions.** The operator directed this approach; the only
   sequencing choice (separate PR from #21 item 1) is settled in Step 7.
+
+## Implementation note (2026-10-13)
+
+At the operator's direction the implementation landed in this plan's own PR
+rather than a separate PR, so there is a single review. Before freezing, the
+[API comparison page](https://developer.oanda.com/rest-live-v20/api-comparison/)
+was audited against the ledger (recorded in `docs/coverage.md`): every v20
+endpoint capability maps to the 32 operations and 168 definitions; its `M3`
+candle granularity is stale against both authoritative definition pages and
+the pinned spec, and unrecognized values are preserved via `Unknown` arms.
+The `src/` and `tests/` diff is comment-only (generated-by framing removed),
+verified by inspecting every changed line.

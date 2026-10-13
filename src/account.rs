@@ -1,5 +1,5 @@
 //! OANDA account endpoint contracts.
-// Generated shared imports vary by capability; unused ones are deliberately allowed.
+// Shared imports vary by capability; unused ones are deliberately allowed.
 #[allow(unused_imports)]
 use crate::Timestamp;
 #[allow(unused_imports)]

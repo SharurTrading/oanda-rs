@@ -10,7 +10,7 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
-[![Offline tests: 62 passed](https://img.shields.io/badge/offline%20tests-62%20passed-brightgreen.svg)](#testing-status)
+[![Offline tests: 71 passed locally](https://img.shields.io/badge/offline%20tests-71%20passed%20locally-brightgreen.svg)](#testing-status)
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
@@ -109,9 +109,10 @@ environment variables set, run `cargo run --example practice_account`. Select
   Required and optional financial fields reject nonrepresentable coefficient/scale values
   during deserialization rather than rounding them.
   Provider IDs and timestamps have dedicated types.
-- REST response bodies are bounded. Cloned clients share conservative rate admission and provider
-  cooldown, which honours both `Retry-After` forms RFC 9110 defines. Requests are single-attempt;
-  a mutation is never automatically retried.
+- REST response bodies are bounded. Clients built with the same `Admission` owner share
+  conservative rate admission and provider cooldown, which honours both `Retry-After` forms RFC
+  9110 defines. Clones also share that owner. Requests are single-attempt; a mutation is never
+  automatically retried.
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
   account and transaction state before calling `acknowledge_reconciliation`, which reports whether
   it released the fence.
@@ -132,7 +133,8 @@ Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
 ## Optional exit reserve
 
 The outer wrapper opts in and sizes the reserve for its workload. The default is zero.
-`ClientBuilder::exit_reserve(R)` sets the initial policy; `Client::set_exit_reserve(R)`
+`ClientBuilder::exit_reserve(R)` sets the initial policy for a private owner;
+`Client::set_exit_reserve(R)` or `Admission::set_exit_reserve(R)`
 replaces it at runtime, and zero releases the reserve. It keeps `R` requests inside the existing conservative local
 100-request, one-second window: ordinary requests enter below `100 - R`, and eligible exits
 enter below 100. `R` must be less than 100. This local cap follows OANDA's
@@ -142,7 +144,7 @@ enter below 100. `R` must be less than 100. This local cap follows OANDA's
 | --- | --- |
 | `cancel_order`, `close_trade`, `close_position` | Can consume reserved request capacity |
 | Reads, stream starts, placement, replacement, account configuration and other mutations | Ordinary capacity |
-| All requests | Same aggregate window and provider cooldown across one client and all clones |
+| All requests | Same aggregate window and provider cooldown across clients sharing an owner |
 
 For example, a wrapper can pass its chosen reserve when constructing its shared client:
 
@@ -166,20 +168,51 @@ fn update_reserve(client: &Client) -> Result<()> {
 The configuration and runtime changes are exercised by the credential-free
 [configuration example](examples/exit_reserve.rs): `cargo run --example exit_reserve`.
 The example's number is illustrative, not a sizing recommendation. Share clones for reads and
-exits. One outer coordinator owns this shared policy: serialized updates replace the previous
+exits. To share admission across separately built credentials using the same caller-selected egress
+scope, pass one credential-free owner to both builders:
+
+```rust
+use oanda_client::{Admission, Client, Environment, Result};
+
+fn two_clients(first_token: String, second_token: String) -> Result<(Client, Client, Admission)> {
+    let owner = Admission::with_exit_reserve(40)?;
+    let first = Client::builder(Environment::Practice, first_token)
+        .admission(owner.clone())
+        .build()?;
+    let second = Client::builder(Environment::Practice, second_token)
+        .admission(owner.clone())
+        .build()?;
+    Ok((first, second, owner))
+}
+```
+
+An explicit builder reserve must equal the injected owner's current reserve or construction fails;
+omitting it preserves that policy and all spent capacity. One outer coordinator owns this shared
+policy: serialized updates replace the previous
 value, with the last update winning; they are not additive leases or promised permits. Every
 admission attempt reads the current policy. A change wakes waiting reads and stream starts
 so they can reconsider capacity immediately. Changes never refund requests, reset timestamps,
 clear cooldowns or revoke admitted attempts. Raising the reserve after the aggregate budget is
-spent creates no new exit capacity; releasing it restores ordinary access only to unspent capacity. Independently constructed clients and separate processes do not share these counters;
-the caller must coordinate those consumers of the same provider quota.
+spent creates no new exit capacity; releasing it restores ordinary access only to unspent capacity.
+Each owner also shares 20 active stream leases and a 500 ms minimum gap between stream starts.
+Dropping or canceling a stream releases its lease. Independently constructed owners and separate
+processes do not share these counters; the caller chooses which traffic shares an egress scope.
+
+Both REST and stream transports use one owner-scoped connector gate. One connector invocation
+holds the gate until it completes, fails, or is canceled; the next invocation starts no sooner
+than 500 ms afterward. Reusing an established HTTP connection does not enter the gate. This is
+local pacing of connector operations, not a hard limit on raw TCP attempts: DNS address fallback
+and connection racing inside a connector can make more than one attempt. The caller remains
+responsible for coordinating other processes and traffic on the same egress address.
 
 > [!IMPORTANT]
 > This is finite shared capacity, not an exclusive or unlimited Flatten allowance. Provider
 > cooldown, the aggregate limit, account reconciliation fences and in-flight mutation exclusion
-> still apply to exits. A mutation refused by local rate admission returns `Error::RateLimited` immediately
-> without a wire attempt; an admitted mutation is sent once, never queued or retried. Reads and
-> stream starts can wait. The separate stream-count and connection-start limits are unchanged.
+> still apply to exits. A mutation refused by local request-budget admission returns
+> `Error::RateLimited` immediately without a wire attempt. An admitted mutation may wait for
+> bounded transport establishment, then makes one send with no automatic retry. An uncertain
+> post-send result fences that account until caller-acknowledged reconciliation. Reads and stream
+> starts can wait. Stream leases and connector pacing are shared only within one owner.
 > Trading state, reserve sizing, account selection and recovery remain the outer wrapper's work.
 
 ## Testing status
@@ -187,12 +220,14 @@ the caller must coordinate those consumers of the same provider quota.
 The badges distinguish deterministic test results, documented API coverage, and dated
 Practice observations. The [successful CI run on 2026-10-13](https://github.com/SharurTrading/oanda-rs/actions/runs/38348263650)
 at [commit `e954657`](https://github.com/SharurTrading/oanda-rs/commit/e954657f47a130ea4a80a3ee373e8e3aaf023925)
-passed **62 Rust tests** and left **3 live probes ignored**. The static test-count badge records
-that run; it is not a count of operations or authenticated venue tests.
+passed 62 Rust tests and left 3 live probes ignored. With the shared admission tests, the current
+local suite passes **71 credential-free Rust tests** with **3 live probes ignored**. The static
+test-count badge records the local suite; it is not a count of operations or authenticated venue
+tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 62 passed in the linked 2026-10-13 CI run; 3 live probes ignored |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 71 passed locally on 2026-10-14; 3 live probes ignored. The linked 2026-10-13 CI run passed 62 tests before these changes. |
 | Coverage ledger | 30 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](docs/coverage.md#authenticated-probes) |
 | One-off Practice mutation probe | One-unit EUR/USD limit-order creation, pending state and cancellation, with stream updates | Passed on 2026-09-25; temporary probe source removed |
@@ -207,6 +242,7 @@ The deterministic tests exercise these SDK behaviors without credentials:
 | Financial precision | [Decimal fixtures](tests/decimal_precision.rs): exact strings and numeric liquidity, with nonrepresentable values refused |
 | Stream delivery and failure | [Client contract tests](tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1 |
 | Exit reserve and runtime changes | [Client contract tests](tests/client_contract.rs) and client unit tests: shared-clone admission, cancel/trade-close/position-close capacity, runtime replacement and release, spent capacity and provider cooldown |
+| Cross-client transport admission | [Admission scope tests](tests/admission_scope.rs) and admission unit tests: different credentials share stream leases, connector pacing and cooldown; established socket reuse, cancellation and independent owners |
 | Mutation uncertainty and rejection evidence | [Client contract tests](tests/client_contract.rs): single-attempt exits, account fences after ambiguous replies or timeouts, and supplied versus absent or undecodable provider evidence |
 
 These local checks do not extend the dated Practice results to all operations, runtime reserve

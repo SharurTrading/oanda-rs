@@ -108,8 +108,57 @@ async fn servers(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<S
     (url, task)
 }
 
+async fn keepalive_server(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<String>>) {
+    let listener = TcpListener::bind("127.0.0.1:0")
+        .await
+        .expect("loopback bind");
+    let url = Url::parse(&format!(
+        "http://{}/",
+        listener.local_addr().expect("address")
+    ))
+    .expect("URL");
+    let task = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("accept");
+        let mut requests = Vec::new();
+        let mut pending = Vec::new();
+        for response in responses {
+            let end = loop {
+                if let Some(end) = pending.windows(4).position(|w| w == b"\r\n\r\n") {
+                    let header_end = end + 4;
+                    let header = String::from_utf8_lossy(&pending[..header_end]);
+                    let length = header
+                        .lines()
+                        .find_map(|line| {
+                            line.strip_prefix("content-length: ")
+                                .or_else(|| line.strip_prefix("Content-Length: "))
+                        })
+                        .and_then(|value| value.trim().parse::<usize>().ok())
+                        .unwrap_or(0);
+                    if pending.len() >= header_end + length {
+                        break header_end + length;
+                    }
+                }
+                let mut buffer = [0_u8; 4096];
+                let read = socket.read(&mut buffer).await.expect("read");
+                assert!(read > 0, "request closed before response");
+                pending.extend_from_slice(&buffer[..read]);
+            };
+            requests.push(String::from_utf8_lossy(&pending[..end]).into_owned());
+            pending.drain(..end);
+            socket.write_all(&response).await.expect("write");
+            socket.flush().await.expect("flush");
+        }
+        requests
+    });
+    (url, task)
+}
+
 fn http_json(status: &str, value: &str) -> Vec<u8> {
     format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{value}", value.len()).into_bytes()
+}
+
+fn http_json_keepalive(status: &str, value: &str) -> Vec<u8> {
+    format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{value}", value.len()).into_bytes()
 }
 
 fn fixture_client(url: Url) -> Client {
@@ -804,15 +853,15 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
         }
     });
 
-    let mut responses = vec![http_json("200 OK", r#"{"accounts":[]}"#); 3];
+    let mut responses = vec![http_json_keepalive("200 OK", r#"{"accounts":[]}"#); 3];
     responses.extend(vec![
-        http_json(
+        http_json_keepalive(
             "400 Bad Request",
             r#"{"errorMessage":"fixture refusal"}"#
         );
         3
     ]);
-    let (url, server) = servers(responses).await;
+    let (url, server) = keepalive_server(responses).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(url.clone(), url)
         .exit_reserve(97)
@@ -1013,13 +1062,14 @@ async fn reserved_cancel_timeout_is_ambiguous_and_fences_further_exit_attempts()
 }
 
 #[tokio::test(start_paused = true)]
-async fn runtime_release_wakes_a_read_and_stream_start_without_waiting_for_window_expiry() {
+async fn runtime_release_admits_a_read_and_stream_start_with_connector_pacing() {
     let stationary = tokio::spawn(async {
         loop {
             tokio::task::yield_now().await;
         }
     });
-    let (rest, rest_server) = servers(vec![http_json("200 OK", r#"{"accounts":[]}"#); 2]).await;
+    let (rest, rest_server) =
+        keepalive_server(vec![http_json_keepalive("200 OK", r#"{"accounts":[]}"#); 2]).await;
     let (stream, stream_server) = servers(vec![http_json("200 OK", "")]).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(rest, stream)
@@ -1033,12 +1083,14 @@ async fn runtime_release_wakes_a_read_and_stream_start_without_waiting_for_windo
     tokio::pin!(read, transactions);
     assert!(futures_util::poll!(read.as_mut()).is_pending());
     assert!(futures_util::poll!(transactions.as_mut()).is_pending());
-    let started = tokio::time::Instant::now();
     client
         .clone()
         .set_exit_reserve(0)
         .expect("release shared reserve");
-    let (read, transactions) = tokio::join!(read, transactions);
+    let started = tokio::time::Instant::now();
+    let read = read.await;
+    tokio::time::advance(Duration::from_millis(500)).await;
+    let transactions = transactions.await;
     assert!(
         read.expect("read after release")
             .accounts
@@ -1047,7 +1099,10 @@ async fn runtime_release_wakes_a_read_and_stream_start_without_waiting_for_windo
             .is_empty()
     );
     drop(transactions.expect("stream after release"));
-    assert_eq!(tokio::time::Instant::now(), started);
+    assert_eq!(
+        tokio::time::Instant::now(),
+        started + Duration::from_millis(500)
+    );
     stationary.abort();
     stationary.await.expect_err("stationary task cancelled");
     tokio::time::resume();

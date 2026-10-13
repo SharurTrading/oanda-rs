@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// list_positions successful response.
+/// Successful response for `list_positions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListPositionsResponse {
@@ -47,7 +47,7 @@ impl Client {
     }
 }
 
-/// list_open_positions successful response.
+/// Successful response for `list_open_positions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOpenPositionsResponse {
@@ -79,7 +79,7 @@ impl Client {
     }
 }
 
-/// position_details successful response.
+/// Successful response for `position_details`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PositionDetailsResponse {
@@ -113,7 +113,7 @@ impl Client {
     }
 }
 
-/// close_position request body.
+/// Request body for `close_position`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionBody {
@@ -147,7 +147,7 @@ pub struct ClosePositionBody {
     pub short_client_extensions: Option<ClientExtensions>,
 }
 
-/// close_position successful response.
+/// Successful response for `close_position`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionResponse {
@@ -209,7 +209,7 @@ pub struct ClosePositionResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// close_position documented rejection fields.
+/// Documented rejection fields for `close_position`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionRejection {

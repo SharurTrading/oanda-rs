@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// create_order request body.
+/// Request body for `create_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrderBody {
@@ -24,7 +24,7 @@ pub struct CreateOrderBody {
     pub order: Option<OrderRequest>,
 }
 
-/// create_order successful response.
+/// Successful response for `create_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrderResponse {
@@ -82,7 +82,7 @@ pub struct CreateOrderResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// create_order documented rejection fields.
+/// Documented rejection fields for `create_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrderRejection {
@@ -143,7 +143,7 @@ impl Client {
     }
 }
 
-/// list_orders query parameters.
+/// Query parameters for `list_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOrdersQuery {
@@ -168,7 +168,7 @@ pub struct ListOrdersQuery {
     pub before_id: Option<OrderID>,
 }
 
-/// list_orders successful response.
+/// Successful response for `list_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOrdersResponse {
@@ -201,7 +201,7 @@ impl Client {
     }
 }
 
-/// list_pending_orders successful response.
+/// Successful response for `list_pending_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListPendingOrdersResponse {
@@ -233,7 +233,7 @@ impl Client {
     }
 }
 
-/// order_details successful response.
+/// Successful response for `order_details`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderDetailsResponse {
@@ -267,7 +267,7 @@ impl Client {
     }
 }
 
-/// replace_order request body.
+/// Request body for `replace_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceOrderBody {
@@ -276,7 +276,7 @@ pub struct ReplaceOrderBody {
     pub order: Option<OrderRequest>,
 }
 
-/// replace_order successful response.
+/// Successful response for `replace_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceOrderResponse {
@@ -342,7 +342,7 @@ pub struct ReplaceOrderResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// replace_order documented rejection fields.
+/// Documented rejection fields for `replace_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceOrderRejection {
@@ -414,7 +414,7 @@ impl Client {
     }
 }
 
-/// cancel_order successful response.
+/// Successful response for `cancel_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelOrderResponse {
@@ -441,7 +441,7 @@ pub struct CancelOrderResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// cancel_order documented rejection fields.
+/// Documented rejection fields for `cancel_order`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelOrderRejection {
@@ -506,7 +506,7 @@ impl Client {
     }
 }
 
-/// update_order_client_extensions request body.
+/// Request body for `update_order_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOrderClientExtensionsBody {
@@ -528,7 +528,7 @@ pub struct UpdateOrderClientExtensionsBody {
     pub trade_client_extensions: Option<ClientExtensions>,
 }
 
-/// update_order_client_extensions successful response.
+/// Successful response for `update_order_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOrderClientExtensionsResponse {
@@ -555,7 +555,7 @@ pub struct UpdateOrderClientExtensionsResponse {
     pub related_transaction_ids: Option<Vec<TransactionID>>,
 }
 
-/// update_order_client_extensions documented rejection fields.
+/// Documented rejection fields for `update_order_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOrderClientExtensionsRejection {

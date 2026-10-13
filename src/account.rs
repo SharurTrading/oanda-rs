@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// list_accounts successful response.
+/// Successful response for `list_accounts`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListAccountsResponse {
@@ -38,7 +38,7 @@ impl Client {
     }
 }
 
-/// account_details successful response.
+/// Successful response for `account_details`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountDetailsResponse {
@@ -70,7 +70,7 @@ impl Client {
     }
 }
 
-/// account_summary successful response.
+/// Successful response for `account_summary`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountSummaryResponse {
@@ -102,7 +102,7 @@ impl Client {
     }
 }
 
-/// account_instruments query parameters.
+/// Query parameters for `account_instruments`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountInstrumentsQuery {
@@ -115,7 +115,7 @@ pub struct AccountInstrumentsQuery {
     pub instruments: Option<Vec<InstrumentName>>,
 }
 
-/// account_instruments successful response.
+/// Successful response for `account_instruments`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountInstrumentsResponse {
@@ -152,7 +152,7 @@ impl Client {
     }
 }
 
-/// configure_account request body.
+/// Request body for `configure_account`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigureAccountBody {
@@ -169,7 +169,7 @@ pub struct ConfigureAccountBody {
     pub margin_rate: Option<Decimal>,
 }
 
-/// configure_account successful response.
+/// Successful response for `configure_account`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigureAccountResponse {
@@ -189,7 +189,7 @@ pub struct ConfigureAccountResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// configure_account documented rejection fields.
+/// Documented rejection fields for `configure_account`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ConfigureAccountRejection {
@@ -243,7 +243,7 @@ impl Client {
     }
 }
 
-/// account_changes query parameters.
+/// Query parameters for `account_changes`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountChangesQuery {
@@ -256,7 +256,7 @@ pub struct AccountChangesQuery {
     pub since_transaction_id: Option<TransactionID>,
 }
 
-/// account_changes successful response.
+/// Successful response for `account_changes`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountChangesResponse {

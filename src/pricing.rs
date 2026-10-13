@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// latest_candles query parameters.
+/// Query parameters for `latest_candles`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LatestCandlesQuery {
@@ -58,7 +58,7 @@ pub struct LatestCandlesQuery {
     pub weekly_alignment: Option<WeeklyAlignment>,
 }
 
-/// latest_candles successful response.
+/// Successful response for `latest_candles`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LatestCandlesResponse {
@@ -88,7 +88,7 @@ impl Client {
     }
 }
 
-/// pricing query parameters.
+/// Query parameters for `pricing`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PricingQuery {
@@ -119,7 +119,7 @@ pub struct PricingQuery {
     pub include_home_conversions: Option<bool>,
 }
 
-/// pricing successful response.
+/// Successful response for `pricing`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PricingResponse {
@@ -178,7 +178,7 @@ pub struct StreamPricingQuery {
     pub include_home_conversions: Option<bool>,
 }
 
-/// instrument_candles query parameters.
+/// Query parameters for `instrument_candles`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InstrumentCandlesQuery {
@@ -248,7 +248,7 @@ pub struct InstrumentCandlesQuery {
     pub units: Option<Decimal>,
 }
 
-/// instrument_candles successful response.
+/// Successful response for `instrument_candles`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstrumentCandlesResponse {

@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// list_trades query parameters.
+/// Query parameters for `list_trades`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTradesQuery {
@@ -40,7 +40,7 @@ pub struct ListTradesQuery {
     pub before_id: Option<TradeID>,
 }
 
-/// list_trades successful response.
+/// Successful response for `list_trades`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTradesResponse {
@@ -73,7 +73,7 @@ impl Client {
     }
 }
 
-/// list_open_trades successful response.
+/// Successful response for `list_open_trades`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOpenTradesResponse {
@@ -105,7 +105,7 @@ impl Client {
     }
 }
 
-/// trade_details successful response.
+/// Successful response for `trade_details`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TradeDetailsResponse {
@@ -139,7 +139,7 @@ impl Client {
     }
 }
 
-/// close_trade request body.
+/// Request body for `close_trade`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeBody {
@@ -151,7 +151,7 @@ pub struct CloseTradeBody {
     pub units: Option<String>,
 }
 
-/// close_trade successful response.
+/// Successful response for `close_trade`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeResponse {
@@ -192,7 +192,7 @@ pub struct CloseTradeResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// close_trade documented rejection fields.
+/// Documented rejection fields for `close_trade`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeRejection {
@@ -257,7 +257,7 @@ impl Client {
     }
 }
 
-/// update_trade_client_extensions request body.
+/// Request body for `update_trade_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTradeClientExtensionsBody {
@@ -271,7 +271,7 @@ pub struct UpdateTradeClientExtensionsBody {
     pub client_extensions: Option<ClientExtensions>,
 }
 
-/// update_trade_client_extensions successful response.
+/// Successful response for `update_trade_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTradeClientExtensionsResponse {
@@ -298,7 +298,7 @@ pub struct UpdateTradeClientExtensionsResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// update_trade_client_extensions documented rejection fields.
+/// Documented rejection fields for `update_trade_client_extensions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTradeClientExtensionsRejection {
@@ -364,7 +364,7 @@ impl Client {
     }
 }
 
-/// set_trade_dependent_orders request body.
+/// Request body for `set_trade_dependent_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetTradeDependentOrdersBody {
@@ -412,7 +412,7 @@ pub struct SetTradeDependentOrdersBody {
     pub guaranteed_stop_loss: crate::Patch<GuaranteedStopLossDetails>,
 }
 
-/// set_trade_dependent_orders successful response.
+/// Successful response for `set_trade_dependent_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetTradeDependentOrdersResponse {
@@ -520,7 +520,7 @@ pub struct SetTradeDependentOrdersResponse {
     pub last_transaction_id: Option<TransactionID>,
 }
 
-/// set_trade_dependent_orders documented rejection fields.
+/// Documented rejection fields for `set_trade_dependent_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct SetTradeDependentOrdersRejection {

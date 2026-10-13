@@ -1,5 +1,5 @@
 //! OANDA transaction endpoint contracts.
-// Generated shared imports vary by capability; unused ones are deliberately allowed.
+// Shared imports vary by capability; unused ones are deliberately allowed.
 #[allow(unused_imports)]
 use crate::Timestamp;
 #[allow(unused_imports)]
@@ -15,7 +15,7 @@ use rust_decimal::Decimal;
 #[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// list_transactions query parameters.
+/// Query parameters for `list_transactions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTransactionsQuery {
@@ -36,7 +36,7 @@ pub struct ListTransactionsQuery {
     pub r#type: Option<Vec<TransactionFilter>>,
 }
 
-/// list_transactions successful response.
+/// Successful response for `list_transactions`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTransactionsResponse {
@@ -84,7 +84,7 @@ impl Client {
     }
 }
 
-/// transaction_details successful response.
+/// Successful response for `transaction_details`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionDetailsResponse {
@@ -123,7 +123,7 @@ impl Client {
     }
 }
 
-/// transactions_by_id_range query parameters.
+/// Query parameters for `transactions_by_id_range`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionsByIdRangeQuery {
@@ -138,7 +138,7 @@ pub struct TransactionsByIdRangeQuery {
     pub r#type: Option<Vec<TransactionFilter>>,
 }
 
-/// transactions_by_id_range successful response.
+/// Successful response for `transactions_by_id_range`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionsByIdRangeResponse {
@@ -175,7 +175,7 @@ impl Client {
     }
 }
 
-/// transactions_since_id query parameters.
+/// Query parameters for `transactions_since_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionsSinceIdQuery {
@@ -188,7 +188,7 @@ pub struct TransactionsSinceIdQuery {
     pub r#type: Option<Vec<TransactionFilter>>,
 }
 
-/// transactions_since_id successful response.
+/// Successful response for `transactions_since_id`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionsSinceIdResponse {

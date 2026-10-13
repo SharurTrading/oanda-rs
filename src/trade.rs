@@ -250,7 +250,7 @@ impl Client {
             &path,
             None::<&()>,
             Some(body),
-            Some(account_id),
+            Some(crate::client::MutationAdmission::Exit(account_id)),
             None,
         )
         .await
@@ -357,7 +357,7 @@ impl Client {
             &path,
             None::<&()>,
             Some(body),
-            Some(account_id),
+            Some(crate::client::MutationAdmission::Ordinary(account_id)),
             None,
         )
         .await
@@ -633,7 +633,7 @@ impl Client {
             &path,
             None::<&()>,
             Some(body),
-            Some(account_id),
+            Some(crate::client::MutationAdmission::Ordinary(account_id)),
             None,
         )
         .await

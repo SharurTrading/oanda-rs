@@ -794,3 +794,269 @@ async fn an_unreadable_stream_rejection_reports_no_reason() {
     }
     task.await.expect("server");
 }
+
+#[tokio::test(start_paused = true)]
+async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_available() {
+    // Keep paused time stationary while loopback I/O completes.
+    let stationary = tokio::spawn(async {
+        loop {
+            tokio::task::yield_now().await;
+        }
+    });
+
+    let mut responses = vec![http_json("200 OK", r#"{"accounts":[]}"#); 3];
+    responses.extend(vec![
+        http_json(
+            "400 Bad Request",
+            r#"{"errorMessage":"fixture refusal"}"#
+        );
+        3
+    ]);
+    let (url, server) = servers(responses).await;
+    let client = Client::builder(Environment::Practice, "fixture")
+        .endpoints(url.clone(), url)
+        .exit_reserve(97)
+        .build()
+        .expect("client");
+    let account = AccountID::new("fixture-account").expect("account");
+    for _ in 0..3 {
+        client.list_accounts().await.expect("ordinary read");
+    }
+    {
+        let read = client.list_accounts();
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        let configure = oanda_client::accounts::ConfigureAccountBody {
+            alias: Some("fixture".into()),
+            margin_rate: None,
+        };
+        assert!(matches!(
+            client.configure_account(&account, &configure).await,
+            Err(OperationError::Client(Error::RateLimited))
+        ));
+        let transactions = client.stream_transactions(&account);
+        tokio::pin!(transactions);
+        assert!(futures_util::poll!(transactions.as_mut()).is_pending());
+        let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
+        let trade = oanda_client::TradeSpecifier::new("fixture-trade").expect("trade");
+        let instrument = InstrumentName::new("EUR_USD").expect("instrument");
+        let trade_body = oanda_client::trades::CloseTradeBody {
+            units: Some("ALL".into()),
+        };
+        let position_body = oanda_client::positions::ClosePositionBody {
+            long_units: Some("ALL".into()),
+            short_units: Some("ALL".into()),
+            long_client_extensions: None,
+            short_client_extensions: None,
+        };
+        assert!(matches!(
+            client.clone().cancel_order(&account, &order, None).await,
+            Err(OperationError::Rejected { status: 400, .. })
+        ));
+        assert!(matches!(
+            client
+                .clone()
+                .close_trade(&account, &trade, &trade_body)
+                .await,
+            Err(OperationError::Rejected { status: 400, .. })
+        ));
+        assert!(matches!(
+            client
+                .clone()
+                .close_position(&account, &instrument, &position_body)
+                .await,
+            Err(OperationError::Rejected { status: 400, .. })
+        ));
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        assert!(futures_util::poll!(transactions.as_mut()).is_pending());
+    }
+    stationary.abort();
+    stationary.await.expect_err("stationary task cancelled");
+    tokio::time::resume();
+    let requests = server.await.expect("server");
+    let paths: Vec<_> = requests
+        .iter()
+        .map(|r| r.lines().next().expect("request line"))
+        .collect();
+    assert_eq!(
+        paths,
+        [
+            "GET /v3/accounts HTTP/1.1",
+            "GET /v3/accounts HTTP/1.1",
+            "GET /v3/accounts HTTP/1.1",
+            "PUT /v3/accounts/fixture-account/orders/fixture-order/cancel HTTP/1.1",
+            "PUT /v3/accounts/fixture-account/trades/fixture-trade/close HTTP/1.1",
+            "PUT /v3/accounts/fixture-account/positions/EUR_USD/close HTTP/1.1",
+        ]
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn reserved_cancel_429_installs_shared_cooldown_without_a_second_send() {
+    // Keep paused time stationary while loopback I/O completes.
+    let stationary = tokio::spawn(async {
+        loop {
+            tokio::task::yield_now().await;
+        }
+    });
+
+    let (url, server) = server(http_json(
+        "429 Too Many Requests",
+        r#"{"errorMessage":"cooldown"}"#,
+    ))
+    .await;
+    let client = Client::builder(Environment::Practice, "fixture")
+        .endpoints(url.clone(), url)
+        .exit_reserve(2)
+        .build()
+        .expect("client");
+    let account = AccountID::new("fixture-account").expect("account");
+    let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
+    assert!(matches!(
+        client.cancel_order(&account, &order, None).await,
+        Err(OperationError::Client(Error::ProviderRateLimited))
+    ));
+    assert!(matches!(
+        client.clone().cancel_order(&account, &order, None).await,
+        Err(OperationError::Client(Error::RateLimited))
+    ));
+    stationary.abort();
+    stationary.await.expect_err("stationary task cancelled");
+    tokio::time::resume();
+    let request = server.await.expect("server");
+    assert!(
+        request
+            .starts_with("PUT /v3/accounts/fixture-account/orders/fixture-order/cancel HTTP/1.1")
+    );
+}
+
+#[tokio::test]
+async fn reserved_cancel_ambiguous_response_fences_further_exits_without_retry() {
+    let (url, server) = server(Vec::new()).await;
+    let client = Client::builder(Environment::Practice, "fixture")
+        .endpoints(url.clone(), url)
+        .exit_reserve(2)
+        .build()
+        .expect("client");
+    let account = AccountID::new("fixture-account").expect("account");
+    let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
+    assert!(matches!(
+        client.cancel_order(&account, &order, None).await,
+        Err(OperationError::Client(Error::AmbiguousMutation { .. }))
+    ));
+    assert!(matches!(
+        client.clone().cancel_order(&account, &order, None).await,
+        Err(OperationError::Client(Error::ReconciliationRequired { .. }))
+    ));
+    let request = server.await.expect("server");
+    assert!(
+        request
+            .starts_with("PUT /v3/accounts/fixture-account/orders/fixture-order/cancel HTTP/1.1")
+    );
+}
+
+#[tokio::test]
+async fn reserved_cancel_timeout_is_ambiguous_and_fences_further_exit_attempts() {
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("loopback");
+    let url = Url::parse(&format!(
+        "http://{}/",
+        listener.local_addr().expect("address")
+    ))
+    .expect("URL");
+    let (seen_tx, seen_rx) = tokio::sync::oneshot::channel();
+    let (release_tx, release_rx) = tokio::sync::oneshot::channel();
+    let server = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("accept");
+        let mut bytes = Vec::new();
+        let mut buf = [0_u8; 4096];
+        while !bytes.windows(4).any(|w| w == b"\r\n\r\n") {
+            let count = socket.read(&mut buf).await.expect("request");
+            assert_ne!(count, 0);
+            bytes.extend_from_slice(&buf[..count]);
+        }
+        seen_tx.send(()).expect("request observed");
+        release_rx.await.expect("release fixture");
+        String::from_utf8(bytes).expect("request text")
+    });
+    let client = Client::builder(Environment::Practice, "fixture")
+        .endpoints(url.clone(), url)
+        .exit_reserve(2)
+        .timeout(Duration::from_secs(2))
+        .build()
+        .expect("client");
+    let account = AccountID::new("fixture-account").expect("account");
+    let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
+    let attempt = {
+        let clone = client.clone();
+        let account = account.clone();
+        let order = order.clone();
+        tokio::spawn(async move { clone.cancel_order(&account, &order, None).await })
+    };
+    seen_rx.await.expect("wire request");
+    tokio::time::pause();
+    tokio::time::advance(Duration::from_secs(2)).await;
+    assert!(matches!(
+        attempt.await.expect("join"),
+        Err(OperationError::Client(Error::AmbiguousMutation { .. }))
+    ));
+    assert!(matches!(
+        client.cancel_order(&account, &order, None).await,
+        Err(OperationError::Client(Error::ReconciliationRequired { .. }))
+    ));
+    tokio::time::resume();
+    release_tx.send(()).expect("release server");
+    let request = server.await.expect("server");
+    assert!(
+        request
+            .starts_with("PUT /v3/accounts/fixture-account/orders/fixture-order/cancel HTTP/1.1")
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn runtime_release_wakes_a_read_and_stream_start_without_waiting_for_window_expiry() {
+    let stationary = tokio::spawn(async {
+        loop {
+            tokio::task::yield_now().await;
+        }
+    });
+    let (rest, rest_server) = servers(vec![http_json("200 OK", r#"{"accounts":[]}"#); 2]).await;
+    let (stream, stream_server) = servers(vec![http_json("200 OK", "")]).await;
+    let client = Client::builder(Environment::Practice, "fixture")
+        .endpoints(rest, stream)
+        .exit_reserve(99)
+        .build()
+        .expect("client");
+    let account = AccountID::new("fixture-account").expect("account");
+    client.list_accounts().await.expect("one ordinary slot");
+    let read = client.list_accounts();
+    let transactions = client.stream_transactions(&account);
+    tokio::pin!(read, transactions);
+    assert!(futures_util::poll!(read.as_mut()).is_pending());
+    assert!(futures_util::poll!(transactions.as_mut()).is_pending());
+    let started = tokio::time::Instant::now();
+    client
+        .clone()
+        .set_exit_reserve(0)
+        .expect("release shared reserve");
+    let (read, transactions) = tokio::join!(read, transactions);
+    assert!(
+        read.expect("read after release")
+            .accounts
+            .as_ref()
+            .expect("accounts evidence")
+            .is_empty()
+    );
+    drop(transactions.expect("stream after release"));
+    assert_eq!(tokio::time::Instant::now(), started);
+    stationary.abort();
+    stationary.await.expect_err("stationary task cancelled");
+    tokio::time::resume();
+    let rest_requests = rest_server.await.expect("REST server");
+    assert_eq!(rest_requests.len(), 2);
+    let stream_requests = stream_server.await.expect("stream server");
+    assert_eq!(stream_requests.len(), 1);
+    assert!(
+        stream_requests[0]
+            .starts_with("GET /v3/accounts/fixture-account/transactions/stream HTTP/1.1")
+    );
+}

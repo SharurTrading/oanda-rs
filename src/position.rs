@@ -273,7 +273,7 @@ impl Client {
             &path,
             None::<&()>,
             Some(body),
-            Some(account_id),
+            Some(crate::client::MutationAdmission::Exit(account_id)),
             None,
         )
         .await

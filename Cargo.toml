@@ -9,6 +9,10 @@ repository = "https://github.com/SharurTrading/oanda-rs"
 readme = "README.md"
 keywords = ["oanda", "trading", "forex", "api-client"]
 categories = ["api-bindings", "asynchronous", "network-programming"]
+# Publish only the library surface: repository tooling (tools/), docs,
+# specs, CI, and tests stay in the repository and never ship to crates.io.
+# A whitelist, so a future tool or document is excluded by default.
+include = ["src/**/*", "examples/**/*", "README.md", "LICENSE"]
 
 [features]
 default = []

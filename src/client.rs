@@ -1,8 +1,8 @@
 //! Client construction and shared HTTP execution policy.
 
 use crate::{
-    AccountID, ClientRequestID, Environment, Error, GenericRejection, OperationError, Result,
-    Supplied, models::AcceptDatetimeFormat,
+    AccountID, Admission, ClientRequestID, Environment, Error, GenericRejection, OperationError,
+    Result, Supplied, admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
 };
 use futures_util::StreamExt;
 use reqwest::{Method, StatusCode, Url};
@@ -12,12 +12,10 @@ use std::{
     fmt,
     ops::Deref,
     sync::{Arc, Mutex},
-    time::{Duration, Instant},
+    time::Duration,
 };
-use tokio::{sync::Notify, time::Instant as RateInstant};
 
 const DEFAULT_MAX_BODY: usize = 8 * 1024 * 1024;
-const REQUESTS_PER_SECOND: u32 = 100;
 const DEFAULT_COOLDOWN: Duration = Duration::from_secs(1);
 const MAX_COOLDOWN: Duration = Duration::from_mins(1);
 
@@ -68,22 +66,9 @@ pub(crate) struct Inner {
     pub token: String,
     pub max_body: usize,
     pub datetime_format: AcceptDatetimeFormat,
-    rate: Mutex<Rate>,
-    policy_changed: Notify,
+    pub(crate) admission: Admission,
     fenced: Mutex<HashSet<String>>,
     in_flight: Mutex<HashSet<String>>,
-    pub stream_slots: Mutex<StreamSlots>,
-}
-
-struct Rate {
-    exit_reserve: u32,
-    start: RateInstant,
-    used: u32,
-    cooldown_until: Option<RateInstant>,
-}
-pub(crate) struct StreamSlots {
-    pub active: usize,
-    pub last_start: Option<Instant>,
 }
 
 #[derive(Clone, Copy)]
@@ -108,7 +93,8 @@ pub struct ClientBuilder {
     stream_override: Option<Url>,
     max_body: usize,
     timeout: Duration,
-    exit_reserve: u32,
+    exit_reserve: Option<u32>,
+    admission: Option<Admission>,
     datetime_format: AcceptDatetimeFormat,
 }
 
@@ -124,7 +110,7 @@ impl fmt::Debug for ClientBuilder {
 impl Client {
     /// Replace the shared request reserve for cancellation and position or trade closes.
     ///
-    /// Zero releases the reserve. All clones observe the latest replacement;
+    /// Zero releases the reserve. All clients sharing this admission owner observe the replacement;
     /// waiting reads and stream starts reconsider it immediately. One caller
     /// coordinator should own this policy. Changes preserve spent capacity,
     /// provider cooldowns and already admitted requests. Exit capacity is finite.
@@ -134,23 +120,7 @@ impl Client {
     /// Returns [`Error::InvalidInput`] when `requests` is at least 100 or the rate
     /// lock is poisoned. Invalid changes preserve the policy and admission state.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
-        let mut rate = self
-            .inner
-            .rate
-            .lock()
-            .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
-        if requests >= REQUESTS_PER_SECOND {
-            return Err(Error::InvalidInput(
-                "exit reserve must be less than 100 requests".into(),
-            ));
-        }
-        let changed = rate.exit_reserve != requests;
-        rate.exit_reserve = requests;
-        drop(rate);
-        if changed {
-            self.inner.policy_changed.notify_waiters();
-        }
-        Ok(())
+        self.inner.admission.set_exit_reserve(requests)
     }
 
     /// Start building a client with an injected personal access token.
@@ -162,7 +132,8 @@ impl Client {
             stream_override: None,
             max_body: DEFAULT_MAX_BODY,
             timeout: Duration::from_secs(30),
-            exit_reserve: 0,
+            exit_reserve: None,
+            admission: None,
             datetime_format: AcceptDatetimeFormat::Rfc3339,
         }
     }
@@ -354,43 +325,7 @@ impl Client {
     }
 
     pub(crate) async fn admit(&self, mutation: bool, exit: bool) -> Result<()> {
-        loop {
-            let changed = self.inner.policy_changed.notified();
-            tokio::pin!(changed);
-            changed.as_mut().enable();
-            let wait = {
-                let mut rate = self
-                    .inner
-                    .rate
-                    .lock()
-                    .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
-                let capacity = if exit {
-                    REQUESTS_PER_SECOND
-                } else {
-                    REQUESTS_PER_SECOND - rate.exit_reserve
-                };
-                let now = RateInstant::now();
-                if now.duration_since(rate.start) >= Duration::from_secs(1) {
-                    rate.start = now;
-                    rate.used = 0;
-                }
-                if let Some(until) = rate.cooldown_until.filter(|until| *until > now) {
-                    until.duration_since(now)
-                } else if rate.used < capacity {
-                    rate.used += 1;
-                    return Ok(());
-                } else {
-                    Duration::from_secs(1).saturating_sub(now.duration_since(rate.start))
-                }
-            };
-            if mutation {
-                return Err(Error::RateLimited);
-            }
-            tokio::select! {
-                () = &mut changed => {},
-                () = tokio::time::sleep(wait) => {},
-            }
-        }
+        self.inner.admission.admit(mutation, exit).await
     }
 
     pub(crate) fn build_url<Q: Serialize>(
@@ -441,19 +376,7 @@ impl Client {
             None => DEFAULT_COOLDOWN,
             Some(value) => parse_retry_after(value).unwrap_or(MAX_COOLDOWN),
         };
-        // The critical section touches two plain fields, so a poisoned lock still
-        // holds a readable rate window. Skipping the install would report a
-        // rate-limited account as one the client may keep calling.
-        let mut rate = self
-            .inner
-            .rate
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        let until = RateInstant::now() + cooldown;
-        rate.cooldown_until = Some(
-            rate.cooldown_until
-                .map_or(until, |existing| existing.max(until)),
-        );
+        self.inner.admission.install_cooldown(cooldown);
     }
 }
 
@@ -486,12 +409,23 @@ impl ClientBuilder {
 
     /// Reserve requests in the shared local 100-request, one-second window for exits.
     ///
-    /// The default is zero. Only `cancel_order`, `close_trade`, and `close_position`
+    /// A new private owner defaults to zero; an injected owner keeps its policy when
+    /// this method is omitted. Only `cancel_order`, `close_trade`, and `close_position`
     /// can use the reserve. All requests still count toward the same aggregate limit
     /// and provider cooldown. The value must be less than 100; `build` validates it.
     #[must_use]
     pub fn exit_reserve(mut self, requests: u32) -> Self {
-        self.exit_reserve = requests;
+        self.exit_reserve = Some(requests);
+        self
+    }
+
+    /// Share admission with other clients using the same caller-selected egress scope.
+    ///
+    /// This owner has no credentials. An explicitly requested `exit_reserve` must
+    /// agree with its current policy; construction never resets shared capacity.
+    #[must_use]
+    pub fn admission(mut self, owner: Admission) -> Self {
+        self.admission = Some(owner);
         self
     }
 
@@ -529,11 +463,27 @@ impl ClientBuilder {
         if self.max_body == 0 || self.timeout.is_zero() {
             return Err(Error::InvalidInput("limits must be positive".into()));
         }
-        if self.exit_reserve >= REQUESTS_PER_SECOND {
+        if self
+            .exit_reserve
+            .is_some_and(|reserve| reserve >= REQUESTS_PER_SECOND)
+        {
             return Err(Error::InvalidInput(
                 "exit reserve must be less than 100 requests".into(),
             ));
         }
+        let admission = match self.admission {
+            Some(owner) => {
+                if let Some(requested) = self.exit_reserve
+                    && requested != owner.exit_reserve()?
+                {
+                    return Err(Error::InvalidInput(
+                        "exit reserve conflicts with shared admission policy".into(),
+                    ));
+                }
+                owner
+            }
+            None => Admission::with_exit_reserve(self.exit_reserve.unwrap_or(0))?,
+        };
         let (default_rest, default_stream) = self.environment.urls()?;
         let rest = self.rest_override.unwrap_or_else(|| default_rest.clone());
         let stream = self
@@ -552,6 +502,7 @@ impl ClientBuilder {
             return Err(Error::InvalidInput("unsupported datetime format".into()));
         }
         let http = reqwest::Client::builder()
+            .connector_layer(admission.connection_layer())
             .timeout(self.timeout)
             .redirect(reqwest::redirect::Policy::none())
             .retry(reqwest::retry::never())
@@ -559,6 +510,7 @@ impl ClientBuilder {
             .build()
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         let stream_http = stream_transport(reqwest::Client::builder(), self.timeout)
+            .connector_layer(admission.connection_layer())
             .build()
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         Ok(Client {
@@ -571,19 +523,9 @@ impl ClientBuilder {
                 token: self.token,
                 max_body: self.max_body,
                 datetime_format: self.datetime_format,
-                policy_changed: Notify::new(),
-                rate: Mutex::new(Rate {
-                    exit_reserve: self.exit_reserve,
-                    start: RateInstant::now(),
-                    used: 0,
-                    cooldown_until: None,
-                }),
+                admission,
                 fenced: Mutex::new(HashSet::new()),
                 in_flight: Mutex::new(HashSet::new()),
-                stream_slots: Mutex::new(StreamSlots {
-                    active: 0,
-                    last_start: None,
-                }),
             }),
         })
     }
@@ -832,6 +774,7 @@ fn stream_transport(builder: reqwest::ClientBuilder, timeout: Duration) -> reqwe
 #[allow(clippy::expect_used, clippy::panic)]
 mod tests {
     use super::*;
+    use tokio::time::Instant as RateInstant;
 
     #[tokio::test]
     async fn streaming_uses_http11_when_the_caller_enables_http2() {
@@ -889,7 +832,7 @@ mod tests {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
         let Ok(client) = client else { return };
-        if let Ok(mut rate) = client.inner.rate.lock() {
+        if let Ok(mut rate) = client.inner.admission.inner.rate.lock() {
             rate.used = REQUESTS_PER_SECOND;
             rate.start = RateInstant::now();
         }
@@ -1015,12 +958,14 @@ mod tests {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
         let Ok(client) = client else { return };
-        poison(&client.inner.rate);
+        poison(&client.inner.admission.inner.rate);
         let header =
             header.map(|text| reqwest::header::HeaderValue::from_str(text).expect("header"));
         let start = RateInstant::now();
         client.install_cooldown(header.as_ref());
         let rate = client
+            .inner
+            .admission
             .inner
             .rate
             .lock()
@@ -1295,7 +1240,7 @@ mod tests {
                 client.set_exit_reserve(reserve),
                 Err(Error::InvalidInput(_))
             ));
-            let rate = client.inner.rate.lock().expect("rate lock");
+            let rate = client.inner.admission.inner.rate.lock().expect("rate lock");
             assert_eq!(rate.exit_reserve, 2);
             assert_eq!(rate.used, 98);
         }
@@ -1357,12 +1302,14 @@ mod tests {
     #[test]
     fn runtime_setter_reports_poison_and_preserves_policy_and_admission_state() {
         let client = reserved_client();
-        poison(&client.inner.rate);
+        poison(&client.inner.admission.inner.rate);
         assert!(matches!(
             client.set_exit_reserve(0),
             Err(Error::InvalidInput(_))
         ));
         let rate = client
+            .inner
+            .admission
             .inner
             .rate
             .lock()

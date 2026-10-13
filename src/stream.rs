@@ -2,14 +2,12 @@
 
 use crate::{
     AccountID, Client, Error, Result,
+    admission::StreamLease,
     models::{ClientPrice, PricingHeartbeat, Transaction, TransactionHeartbeat},
 };
 use reqwest::Response;
 use serde::Serialize;
-use std::{
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::time::Duration;
 
 /// Local hostile-input bound on a single newline-delimited record.
 ///
@@ -163,23 +161,6 @@ impl<E> HttpStream<E> {
     }
 }
 
-struct StreamLease {
-    inner: Arc<crate::client::Inner>,
-}
-impl Drop for StreamLease {
-    fn drop(&mut self) {
-        // A dropped lease cannot report a failure, and skipping the release would
-        // report an exhausted connection slot as one the client may reuse. The
-        // slot counter holds plain integers, so a poisoned lock is still readable.
-        let mut slots = self
-            .inner
-            .stream_slots
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        slots.active = slots.active.saturating_sub(1);
-    }
-}
-
 impl Client {
     pub(crate) async fn open_http_stream<E, Q: Serialize>(
         &self,
@@ -188,26 +169,7 @@ impl Client {
         decoder: fn(&[u8]) -> Result<E>,
     ) -> Result<HttpStream<E>> {
         self.admit(false, false).await?;
-        {
-            let mut slots = self
-                .inner
-                .stream_slots
-                .lock()
-                .map_err(|_| Error::InvalidInput("stream slots lock poisoned".into()))?;
-            let now = Instant::now();
-            if slots.active >= 20
-                || slots
-                    .last_start
-                    .is_some_and(|start| now.duration_since(start) < Duration::from_millis(500))
-            {
-                return Err(Error::RateLimited);
-            }
-            slots.active += 1;
-            slots.last_start = Some(now);
-        }
-        let lease = StreamLease {
-            inner: self.inner.clone(),
-        };
+        let lease = self.inner.admission.lease_stream()?;
         let url = Self::build_url(&self.inner.stream, path, query)?;
         let response = self
             .inner
@@ -340,11 +302,11 @@ mod tests {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
         let Ok(client) = client else { return };
-        if let Ok(mut slots) = client.inner.stream_slots.lock() {
+        if let Ok(mut slots) = client.inner.admission.inner.stream_slots.lock() {
             slots.active = 1;
         }
         let lease = StreamLease {
-            inner: client.inner.clone(),
+            owner: client.inner.admission.clone(),
         };
         let task = tokio::spawn(async move {
             let _lease = lease;
@@ -353,7 +315,7 @@ mod tests {
         tokio::task::yield_now().await;
         task.abort();
         let _ = task.await;
-        if let Ok(slots) = client.inner.stream_slots.lock() {
+        if let Ok(slots) = client.inner.admission.inner.stream_slots.lock() {
             assert_eq!(slots.active, 0);
         }
     }
@@ -399,14 +361,14 @@ mod tests {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
         let Ok(client) = client else { return };
-        if let Ok(mut slots) = client.inner.stream_slots.lock() {
+        if let Ok(mut slots) = client.inner.admission.inner.stream_slots.lock() {
             slots.active = 1;
         }
         let lease = StreamLease {
-            inner: client.inner.clone(),
+            owner: client.inner.admission.clone(),
         };
         let poisoned = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            let Ok(_held) = client.inner.stream_slots.lock() else {
+            let Ok(_held) = client.inner.admission.inner.stream_slots.lock() else {
                 return;
             };
             panic!("poison the lock");
@@ -414,6 +376,8 @@ mod tests {
         assert!(poisoned.is_err());
         drop(lease);
         let slots = client
+            .inner
+            .admission
             .inner
             .stream_slots
             .lock()

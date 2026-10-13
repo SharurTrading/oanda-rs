@@ -12,6 +12,7 @@
 pub mod accounts;
 /// Singular compatibility alias for account endpoint contracts.
 pub use accounts as account;
+mod admission;
 mod client;
 mod decimal_wire;
 mod environment;
@@ -71,6 +72,7 @@ pub mod transactions;
 pub use transactions as transaction;
 mod validation;
 
+pub use admission::Admission;
 pub use client::{ApiResponse, Client, ClientBuilder};
 pub use environment::Environment;
 pub use error::{Error, GenericRejection, OperationError, Result, Supplied};
@@ -89,8 +91,8 @@ pub mod instruments {
 /// HTTP client, streaming, and error contracts.
 pub mod transport {
     pub use crate::{
-        ApiResponse, Client, ClientBuilder, Environment, Error, GenericRejection, HttpStream,
-        OperationError, PriceStreamEvent, Supplied, TransactionStreamEvent,
+        Admission, ApiResponse, Client, ClientBuilder, Environment, Error, GenericRejection,
+        HttpStream, OperationError, PriceStreamEvent, Supplied, TransactionStreamEvent,
     };
 }
 

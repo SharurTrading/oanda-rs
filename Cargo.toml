@@ -12,6 +12,8 @@ readme = "README.md"
 keywords = ["oanda", "trading", "forex", "api-client"]
 categories = ["api-bindings", "asynchronous", "network-programming"]
 publish = ["crates-io"]
+# Publish only the release surface: repository tooling (tools/), docs,
+# specs, and CI stay in the repository and never ship to crates.io.
 include = [
     "/examples/**",
     "/src/**",

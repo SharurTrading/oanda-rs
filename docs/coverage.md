@@ -4,14 +4,43 @@ The current [OANDA v20 website](https://developer.oanda.com/rest-live-v20/introd
 
 The pinned [official OpenAPI](https://github.com/oanda/v20-openapi) revision is `70324cfee31ff0074ed0bf1f93e67d8ee6c84444` ([local copy](../spec/official/v20-openapi.json), SHA-256 `5856fab076e3bc6c40fb06ecaa78d85cc8a828e4f065a95806cace3ac1dea212`), retained under OANDA's [MIT license](../spec/official/LICENSE.txt). It has 40 operations and 156 definitions. The website adds `GET /v3/accounts/{accountID}/candles/latest` and 22 definitions including newer guaranteed-stop, dividend, and home-conversion models. The older OpenAPI file has nine endpoints and ten definitions absent from the website pages, including user and unscoped pricing endpoints. The website is authoritative for this crate; these differences are intentionally excluded or included as recorded here and checked offline.
 
-The coverage ledger distinguishes inventoried, implemented, tested, and blocked capabilities. Emission order of the generated files follows the page's section order — identity binding is the
-correctness requirement, order is not — so a regeneration against a page whose section order differs can
-reshuffle a capability file substantially while changing no contract. The offline `tools/check_coverage.py` requires all 32 operations and 168 definitions to be tested, verifies public methods and typed contracts, checks test markers, confirms the pinned OpenAPI checksum, and detects changes to the reviewed operation drift. The 30 REST operations each have a loopback success and rejection fixture; both streams have typed event fixtures. Every definition has a compile-time serde contract check. All 503 documented scalar enum values and 55 tagged order, order-request, and transaction variants have wire round-trip tests.
-The coverage ledger distinguishes inventoried, implemented, tested, and blocked capabilities. The offline `tools/check_coverage.py` requires all 32 operations and 168 definitions to be tested, verifies public methods and typed contracts, checks test markers, confirms the pinned OpenAPI checksum, and detects changes to the reviewed operation drift. The 30 REST operations each have a loopback success and rejection fixture; both streams have typed event fixtures. Every definition has a compile-time serde contract check. All 503 documented scalar enum values and 55 tagged order, order-request, and transaction variants have wire round-trip tests.
-The round-trip manifests are hand-maintained on purpose: a value the generator gains or loses fails
-`tests/enum_variants.rs` to compile until it is updated in lockstep with a regeneration — a compile error
-beats a silent `Unknown` — and `tagged_arms_match_the_pinned_spec` cross-checks the tagged set against the
+All provider types and endpoint methods are hand-maintained Rust; there is no
+code generator. `docs/coverage.json` is the single source of truth for the
+operation and definition set. The coverage ledger distinguishes inventoried,
+implemented, tested, and blocked capabilities. The offline
+`tools/check_coverage.py` requires all 32 operations and 168 definitions to be
+tested, verifies public methods and typed contracts, checks test markers,
+confirms the pinned OpenAPI checksum, and detects changes to the reviewed
+operation drift. The 30 REST operations each have a loopback success and
+rejection fixture; both streams have typed event fixtures. Every definition
+has a decode fixture in `tests/definition_wire.rs`. All 503 documented scalar
+enum values and 55 tagged order, order-request, and transaction variants have
+wire round-trip tests.
+
+To apply a provider change by hand: edit the DTO, enum, or method in `src/`,
+update `docs/coverage.json`, and add or extend the wire fixture in the same
+change. The round-trip manifests fail to compile when a hand edit drifts from
+the documented values — a compile error beats a silent `Unknown` — and
+`tagged_arms_match_the_pinned_spec` cross-checks the tagged set against the
 pinned OpenAPI spec.
+
+## API comparison page
+
+The [API comparison page](https://developer.oanda.com/rest-live-v20/api-comparison/)
+compares v20 REST against FIX and MT4; it is not an implementation authority
+(OA-CONTRACT-01 makes the six endpoint pages and their linked definitions
+authoritative). Audited on 2026-10-13: every v20 capability it lists maps to
+the ledger — all order-request types and durations (`TimeInForce`, including
+`GFD` for the page's DAY), account/position/trade/order/transaction queries,
+candles and pricing, and both streams. Protocol traits (stateless HTTP/JSON),
+application classes (web/desktop/mobile), partner/other-API rows (fxLabs,
+Autochartist, custom indicators, backtesting), and provider usage quotas
+(20 streams per user, polling rate) are not endpoint contracts; authentication
+is caller-injected bearer tokens over HTTPS (OA-SECRET-01). One page value is
+stale: it lists an `M3` candle granularity that neither the authoritative
+instrument definition page nor the pinned OpenAPI spec documents, so there is
+no `M3` variant; an unrecognized granularity from the provider is preserved
+as `CandlestickGranularity::Unknown` rather than dropped.
 
 ## Rejection evidence
 
@@ -34,8 +63,9 @@ body, so their methods reject through the reviewed
 [`GenericRejection`](https://docs.rs/oanda-rs) common error fields
 (`"rejection": "generic"`) instead of a per-endpoint struct with fields OANDA never documented; the
 `Supplied<R>` evidence contract and the `errorCode`/`errorMessage` read from the body apply
-unchanged. The generator refuses to run without one of these two decisions: it no longer invents a
-rejection pair, an empty success struct, a `String` alias, or a field description. The 22 removed
+unchanged. Every operation carries one of these two decisions, hand-maintained
+in the ledger and the method signature: no rejection pair, empty success
+struct, `String` alias, or field description is invented. The 22 removed
 per-endpoint structs are a breaking change for callers naming them; stream operations record
 `"rejection": "stream"` and reject through `Error::Provider`, whose `code`/`message` fields carry
 the same evidence contract.
@@ -59,7 +89,7 @@ individual record still ends the generation explicitly.
 The [LAW-INVARIANT audit](law-invariant-audit.md) records every candidate inspected on 2026-09-30,
 the owner and call-path invariant of each, the legitimate absence or no-op semantics where they
 apply, and the disposition. It found no fabricated side, money, identity, account mode, or success
-in the generated models or endpoint contracts. Outstanding repairs are tracked as their own issues
+in the models or endpoint contracts. Outstanding repairs are tracked as their own issues
 with the path and the required outcome.
 
 ## Release-note monitoring

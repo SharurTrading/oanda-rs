@@ -1,5 +1,5 @@
 //! OANDA v20 position definitions.
-// Generated shared imports vary by definition family.
+// Shared imports vary by definition family; unused ones are deliberately allowed.
 #[allow(unused_imports)]
 use super::*;
 #[allow(unused_imports)]

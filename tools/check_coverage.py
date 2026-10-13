@@ -160,13 +160,19 @@ def check(ledger, spec_bytes, source, tests_text):
             else:
                 rejection = op.get('rejection')
                 stem = ''.join(word.capitalize() for word in op['public_method'].split('_'))
-                if not re.search(r'pub struct\s+' + stem + 'Response' + r'\b', source):
+                signature = signature_text(op['public_method'], source)
+                response = re.search(r'ApiResponse<\s*([A-Za-z_][A-Za-z0-9_]*)\s*>', signature)
+                if not response or response.group(1) != stem + 'Response' \
+                        or not struct_or_enum(stem + 'Response', source):
                     errors.append(f'missing typed response: {key}')
                 if rejection == 'endpoint':
-                    if not re.search(r'pub struct\s+' + stem + 'Rejection' + r'\b', source):
+                    endpoint_rejection = re.search(
+                        r'OperationError<\s*(?:crate::)?([A-Za-z_][A-Za-z0-9_]*)\s*>', signature)
+                    if not endpoint_rejection or endpoint_rejection.group(1) != stem + 'Rejection' \
+                            or not struct_or_enum(stem + 'Rejection', source):
                         errors.append(f'missing typed rejection: {key}')
                 elif rejection == 'generic':
-                    if 'OperationError<crate::GenericRejection>' not in signature_text(op['public_method'], source):
+                    if 'OperationError<crate::GenericRejection>' not in signature:
                         errors.append(f'generic rejection not typed in method: {key}')
         if status == 'tested':
             marker = op.get('test')

@@ -197,6 +197,34 @@ fn other() {
             ledger(operations=[operation()]), SPEC, source, self.TESTS)
         self.assertTrue(has(errors, 'generic rejection not typed in method'))
 
+    def test_response_named_only_elsewhere_fails(self):
+        # The operation's own struct exists, but its method returns another
+        # operation's response type: presence anywhere must not satisfy it.
+        source = self.SOURCE.replace('ApiResponse<ListWidgetsResponse>',
+                                     'ApiResponse<ListGadgetsResponse>')
+        source += 'pub struct ListGadgetsResponse { pub value: i64 }\n'
+        errors = check_coverage.check(
+            ledger(operations=[operation()]), SPEC, source, self.TESTS)
+        self.assertTrue(has(errors, 'missing typed response'))
+
+    def test_endpoint_rejection_anchored_to_the_method_signature(self):
+        source = '''
+pub struct ListWidgetsResponse { pub value: i64 }
+pub struct ListWidgetsRejection { pub value: i64 }
+pub struct ListGadgetsRejection { pub value: i64 }
+pub async fn list_widgets(&self)
+    -> std::result::Result<crate::ApiResponse<ListWidgetsResponse>,
+                           crate::OperationError<ListWidgetsRejection>> { Ok(()) }
+'''
+        errors = check_coverage.check(
+            ledger(operations=[operation(rejection='endpoint')]), SPEC, source, self.TESTS)
+        self.assertEqual(unrelated(errors), [])
+        wrong = source.replace('OperationError<ListWidgetsRejection>',
+                               'OperationError<ListGadgetsRejection>')
+        errors = check_coverage.check(
+            ledger(operations=[operation(rejection='endpoint')]), SPEC, wrong, self.TESTS)
+        self.assertTrue(has(errors, 'missing typed rejection'))
+
 
 class OperationClassification(unittest.TestCase):
     def test_invalid_kind_fails(self):

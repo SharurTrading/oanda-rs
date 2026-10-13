@@ -10,7 +10,8 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
-[![Practice probes: 3/3 passed](https://img.shields.io/badge/Practice%20probes-3%2F3%20passed-brightgreen.svg)](#testing-status)
+[![Offline tests: 62 passed](https://img.shields.io/badge/offline%20tests-62%20passed-brightgreen.svg)](#testing-status)
+[![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 The Cargo package and import name are `oanda-client` and `oanda_client`; `-rs` belongs to the
@@ -182,6 +183,35 @@ the caller must coordinate those consumers of the same provider quota.
 > Trading state, reserve sizing, account selection and recovery remain the outer wrapper's work.
 
 ## Testing status
+
+The badges distinguish deterministic test results, documented API coverage, and dated
+Practice observations. The [successful CI run on 2026-10-13](https://github.com/SharurTrading/oanda-rs/actions/runs/38348263650)
+at [commit `e954657`](https://github.com/SharurTrading/oanda-rs/commit/e954657f47a130ea4a80a3ee373e8e3aaf023925)
+passed **62 Rust tests** and left **3 live probes ignored**. The static test-count badge records
+that run; it is not a count of operations or authenticated venue tests.
+
+| Evidence | Verified scope | Result and date |
+| --- | --- | --- |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 62 passed in the linked 2026-10-13 CI run; 3 live probes ignored |
+| Coverage ledger | 30 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
+| Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](docs/coverage.md#authenticated-probes) |
+| One-off Practice mutation probe | One-unit EUR/USD limit-order creation, pending state and cancellation, with stream updates | Passed on 2026-09-25; temporary probe source removed |
+| Live environment | Authenticated Live requests and trading | Not tested |
+
+The deterministic tests exercise these SDK behaviors without credentials:
+
+| Behavior | Evidence |
+| --- | --- |
+| REST success and rejection contracts | [Operation matrix](tests/operation_matrix.rs): method, path, query, headers and mutation bodies for all 30 REST operations |
+| Provider definitions and variants | [Definition fixtures](tests/definition_wire.rs), [scalar enums](tests/enum_variants.rs) and [tagged variants](tests/tagged_variants.rs): 168 definitions, 503 enum values and 55 tagged variants |
+| Financial precision | [Decimal fixtures](tests/decimal_precision.rs): exact strings and numeric liquidity, with nonrepresentable values refused |
+| Stream delivery and failure | [Client contract tests](tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1 |
+| Exit reserve and runtime changes | [Client contract tests](tests/client_contract.rs) and client unit tests: shared-clone admission, cancel/trade-close/position-close capacity, runtime replacement and release, spent capacity and provider cooldown |
+| Mutation uncertainty and rejection evidence | [Client contract tests](tests/client_contract.rs): single-attempt exits, account fences after ambiguous replies or timeouts, and supplied versus absent or undecodable provider evidence |
+
+These local checks do not extend the dated Practice results to all operations, runtime reserve
+changes, or Live trading. The SDK leaves account projections, reconciliation decisions and
+stream recovery to its caller.
 
 Normal CI needs no OANDA credentials. It runs formatting, Clippy, tests, documentation, package
 verification, dependency and license checks, full-history secret scanning, and the offline coverage

@@ -11,5 +11,6 @@ first public release.
 ## Unreleased
 
 - Add a credential-free admission owner that callers can share across clients using the same
-  egress scope. It shares the local request budget, cooldown, exit reserve, stream leases, and
-  completion-spaced connector pacing while keeping account mutation fences per client token.
+  egress scope. It shares the 120 REST requests/s rolling admission window, cooldown, exit
+  reserve, 20 active stream leases, and two connector starts/s while keeping account mutation
+  fences per client and its clones.

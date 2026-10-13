@@ -1,7 +1,11 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Credential-free admission shared by clients using one caller-selected egress scope.
 
 use crate::{Error, Result};
 use std::{
+    collections::VecDeque,
     fmt,
     future::Future,
     pin::Pin,
@@ -9,22 +13,18 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-use tokio::{
-    sync::{Mutex as AsyncMutex, Notify, OwnedMutexGuard},
-    time::Instant,
-};
+use tokio::{sync::Notify, time::Instant};
 use tower_layer::Layer;
 use tower_service::Service;
 
-pub(crate) const REQUESTS_PER_SECOND: u32 = 100;
+pub(crate) const REQUESTS_PER_SECOND: u32 = 120;
 const STREAM_LIMIT: usize = 20;
-const STREAM_START_GAP: Duration = Duration::from_millis(500);
-const CONNECTION_COOLDOWN: Duration = Duration::from_millis(500);
+const ADMISSION_WINDOW: Duration = Duration::from_secs(1);
 
 /// Local admission for clients whose traffic shares one caller-selected egress scope.
 ///
-/// Clones share request capacity, provider cooldown, stream leases and connection
-/// invocation pacing. The owner contains no credentials or account mutation state.
+/// Clones share REST request capacity, provider cooldown, stream leases and
+/// connector-start pacing. The owner contains no credentials or account mutation state.
 #[derive(Clone)]
 pub struct Admission {
     pub(crate) inner: Arc<AdmissionInner>,
@@ -45,14 +45,12 @@ pub(crate) struct AdmissionInner {
 
 pub(crate) struct Rate {
     pub(crate) exit_reserve: u32,
-    pub(crate) start: Instant,
-    pub(crate) used: u32,
+    pub(crate) admitted: VecDeque<Instant>,
     pub(crate) cooldown_until: Option<Instant>,
 }
 
 pub(crate) struct StreamSlots {
     pub(crate) active: usize,
-    pub(crate) last_start: Option<Instant>,
 }
 
 impl Default for Admission {
@@ -72,11 +70,11 @@ impl Admission {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] when `requests` is at least 100.
+    /// Returns [`Error::InvalidInput`] when `requests` is at least 120.
     pub fn with_exit_reserve(requests: u32) -> Result<Self> {
         if requests >= REQUESTS_PER_SECOND {
             return Err(Error::InvalidInput(
-                "exit reserve must be less than 100 requests".into(),
+                "exit reserve must be less than 120 requests".into(),
             ));
         }
         Ok(Self::create(requests))
@@ -87,18 +85,13 @@ impl Admission {
             inner: Arc::new(AdmissionInner {
                 rate: Mutex::new(Rate {
                     exit_reserve: requests,
-                    start: Instant::now(),
-                    used: 0,
+                    admitted: VecDeque::new(),
                     cooldown_until: None,
                 }),
                 policy_changed: Notify::new(),
-                stream_slots: Mutex::new(StreamSlots {
-                    active: 0,
-                    last_start: None,
-                }),
+                stream_slots: Mutex::new(StreamSlots { active: 0 }),
                 connection_gate: Arc::new(ConnectionGate {
-                    exclusive: Arc::new(AsyncMutex::new(())),
-                    next_allowed: Mutex::new(None),
+                    starts: Mutex::new(ConnectionStarts::Empty),
                     #[cfg(test)]
                     wait_observer: Mutex::new(None),
                 }),
@@ -110,11 +103,11 @@ impl Admission {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] for a reserve of at least 100 or a poisoned lock.
+    /// Returns [`Error::InvalidInput`] for a reserve of at least 120 or a poisoned lock.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
         if requests >= REQUESTS_PER_SECOND {
             return Err(Error::InvalidInput(
-                "exit reserve must be less than 100 requests".into(),
+                "exit reserve must be less than 120 requests".into(),
             ));
         }
         let mut rate = self
@@ -156,17 +149,27 @@ impl Admission {
                     REQUESTS_PER_SECOND - rate.exit_reserve
                 };
                 let now = Instant::now();
-                if now.duration_since(rate.start) >= Duration::from_secs(1) {
-                    rate.start = now;
-                    rate.used = 0;
+                while rate
+                    .admitted
+                    .front()
+                    .is_some_and(|at| now.duration_since(*at) >= ADMISSION_WINDOW)
+                {
+                    rate.admitted.pop_front();
                 }
                 if let Some(until) = rate.cooldown_until.filter(|until| *until > now) {
                     until.duration_since(now)
-                } else if rate.used < capacity {
-                    rate.used += 1;
+                } else if u32::try_from(rate.admitted.len())
+                    .map_err(|_| Error::Invariant("rate admission count exceeds u32"))?
+                    < capacity
+                {
+                    rate.admitted.push_back(now);
                     return Ok(());
                 } else {
-                    Duration::from_secs(1).saturating_sub(now.duration_since(rate.start))
+                    let oldest = rate
+                        .admitted
+                        .front()
+                        .ok_or(Error::Invariant("full rate window has no admission"))?;
+                    ADMISSION_WINDOW.saturating_sub(now.duration_since(*oldest))
                 }
             };
             if mutation {
@@ -198,16 +201,10 @@ impl Admission {
             .stream_slots
             .lock()
             .map_err(|_| Error::InvalidInput("stream slots lock poisoned".into()))?;
-        let now = Instant::now();
-        if slots.active >= STREAM_LIMIT
-            || slots
-                .last_start
-                .is_some_and(|start| now.duration_since(start) < STREAM_START_GAP)
-        {
+        if slots.active >= STREAM_LIMIT {
             return Err(Error::RateLimited);
         }
         slots.active += 1;
-        slots.last_start = Some(now);
         Ok(StreamLease {
             owner: self.clone(),
         })
@@ -259,52 +256,75 @@ pub(crate) struct ConnectionService<S> {
 }
 
 struct ConnectionGate {
-    exclusive: Arc<AsyncMutex<()>>,
-    next_allowed: Mutex<Option<Instant>>,
+    starts: Mutex<ConnectionStarts>,
     #[cfg(test)]
     wait_observer: Mutex<Option<tokio::sync::mpsc::UnboundedSender<Instant>>>,
 }
 
-struct ConnectionLease {
-    gate: Arc<ConnectionGate>,
-    _exclusive: OwnedMutexGuard<()>,
+enum ConnectionStarts {
+    Empty,
+    One(Instant),
+    Two { oldest: Instant, newest: Instant },
 }
 
-impl ConnectionLease {
-    async fn enter(gate: Arc<ConnectionGate>) -> Self {
-        let exclusive = Arc::clone(&gate.exclusive).lock_owned().await;
-        let next_allowed = *gate
-            .next_allowed
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if let Some(until) = next_allowed {
-            #[cfg(test)]
-            if until > Instant::now() {
-                let observer = gate
-                    .wait_observer
-                    .lock()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner);
-                if let Some(observer) = observer.as_ref() {
-                    let _ = observer.send(until);
-                }
+impl ConnectionStarts {
+    fn admit_or_wait(&mut self, now: Instant) -> Option<Instant> {
+        match self {
+            Self::Empty => {
+                *self = Self::One(now);
+                None
             }
-            tokio::time::sleep_until(until).await;
-        }
-        Self {
-            gate,
-            _exclusive: exclusive,
+            Self::One(oldest) if now.duration_since(*oldest) >= ADMISSION_WINDOW => {
+                *oldest = now;
+                None
+            }
+            Self::One(oldest) => {
+                *self = Self::Two {
+                    oldest: *oldest,
+                    newest: now,
+                };
+                None
+            }
+            Self::Two { newest, .. } if now.duration_since(*newest) >= ADMISSION_WINDOW => {
+                *self = Self::One(now);
+                None
+            }
+            Self::Two { oldest, newest } if now.duration_since(*oldest) >= ADMISSION_WINDOW => {
+                *oldest = *newest;
+                *newest = now;
+                None
+            }
+            Self::Two { oldest, .. } => Some(*oldest + ADMISSION_WINDOW),
         }
     }
 }
 
-impl Drop for ConnectionLease {
-    fn drop(&mut self) {
-        let mut next_allowed = self
-            .gate
-            .next_allowed
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        *next_allowed = Some(Instant::now() + CONNECTION_COOLDOWN);
+impl ConnectionGate {
+    async fn admit_start(&self) {
+        loop {
+            let wait_until = {
+                let mut starts = self
+                    .starts
+                    .lock()
+                    .unwrap_or_else(std::sync::PoisonError::into_inner);
+                starts.admit_or_wait(Instant::now())
+            };
+            if let Some(until) = wait_until {
+                #[cfg(test)]
+                if until > Instant::now() {
+                    let observer = self
+                        .wait_observer
+                        .lock()
+                        .unwrap_or_else(std::sync::PoisonError::into_inner);
+                    if let Some(observer) = observer.as_ref() {
+                        let _ = observer.send(until);
+                    }
+                }
+                tokio::time::sleep_until(until).await;
+            } else {
+                return;
+            }
+        }
     }
 }
 
@@ -326,7 +346,7 @@ where
         let connection = self.inner.call(request);
         let gate = Arc::clone(&self.gate);
         Box::pin(async move {
-            let _lease = ConnectionLease::enter(gate).await;
+            gate.admit_start().await;
             connection.await
         })
     }
@@ -441,7 +461,7 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn built_rest_and_stream_clients_wait_at_the_shared_connector_gate() {
+    async fn built_rest_and_stream_clients_share_two_connector_starts_per_second() {
         let clock_guard = keep_clock_frozen();
         let (url, mut accepts, server) = loopback().await;
         let owner = Admission::new();
@@ -482,26 +502,13 @@ mod tests {
         assert!(accepts.try_recv().is_err());
         assert!(waits.try_recv().is_err());
 
-        let mut second_rest = tokio::spawn(async move { second_client.list_accounts().await });
-        let second_deadline = tokio::select! {
-            observed = waits.recv() => observed,
-            _ = &mut second_rest => None,
-            _ = &mut watchdog_expired => None,
-        }
-        .expect("second REST reached the connector cooldown");
-        assert_eq!(
-            second_deadline.duration_since(first),
-            Duration::from_millis(500)
-        );
-        tokio::time::advance(Duration::from_millis(499)).await;
-        assert!(accepts.try_recv().is_err());
-        tokio::time::advance(Duration::from_millis(1)).await;
-        second_rest
+        second_client
+            .list_accounts()
             .await
-            .expect("second REST task")
             .expect("second REST response");
         let second = accepts.recv().await.expect("second accept");
-        assert_eq!(second, second_deadline);
+        assert_eq!(second, first);
+        assert!(waits.try_recv().is_err());
 
         let account = AccountID::new("101-001-1-001").expect("account");
         let mut stream_task =
@@ -511,12 +518,12 @@ mod tests {
             _ = &mut stream_task => None,
             _ = &mut watchdog_expired => None,
         }
-        .expect("stream reached the connector cooldown");
+        .expect("stream reached the connector start budget");
         assert_eq!(
-            stream_deadline.duration_since(second),
-            Duration::from_millis(500)
+            stream_deadline.duration_since(first),
+            Duration::from_secs(1)
         );
-        tokio::time::advance(Duration::from_millis(499)).await;
+        tokio::time::advance(Duration::from_millis(999)).await;
         assert!(accepts.try_recv().is_err());
         tokio::time::advance(Duration::from_millis(1)).await;
         let stream = stream_task
@@ -534,11 +541,13 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn delayed_connector_holds_shared_lease_until_completion_then_cools_down() {
+    async fn two_connectors_start_while_held_and_third_waits_for_a_rolling_second() {
         let owner = Admission::new();
+        let clock_guard = keep_clock_frozen();
         let (begun, mut observed) = mpsc::unbounded_channel();
         let (release_first, first_done) = oneshot::channel();
         let (release_second, second_done) = oneshot::channel();
+        let (release_third, third_done) = oneshot::channel();
         let mut first = owner.connection_layer().layer(HeldConnector {
             id: 1,
             begun: begun.clone(),
@@ -546,36 +555,53 @@ mod tests {
         });
         let mut second = owner.connection_layer().layer(HeldConnector {
             id: 2,
-            begun,
+            begun: begun.clone(),
             release: Some(second_done),
         });
+        let mut third = owner.connection_layer().layer(HeldConnector {
+            id: 3,
+            begun,
+            release: Some(third_done),
+        });
+        let started = Instant::now();
         let first_task = tokio::spawn(async move { first.call(()).await });
         assert_eq!(observed.recv().await, Some(1));
         let second_task = tokio::spawn(async move { second.call(()).await });
-        tokio::time::advance(Duration::from_secs(2)).await;
+        assert_eq!(observed.recv().await, Some(2));
+        assert_eq!(Instant::now(), started);
+        let third_task = tokio::spawn(async move { third.call(()).await });
+        tokio::time::advance(Duration::from_millis(999)).await;
         assert!(observed.try_recv().is_err());
+        tokio::time::advance(Duration::from_millis(1)).await;
+        assert_eq!(observed.recv().await, Some(3));
+        assert_eq!(Instant::now(), started + Duration::from_secs(1));
         release_first.send(()).expect("release first");
+        release_second.send(()).expect("release second");
+        release_third.send(()).expect("release third");
         first_task
             .await
             .expect("first task")
             .expect("first connect");
-        tokio::time::advance(Duration::from_millis(499)).await;
-        assert!(observed.try_recv().is_err());
-        tokio::time::advance(Duration::from_millis(1)).await;
-        assert_eq!(observed.recv().await, Some(2));
-        release_second.send(()).expect("release second");
         second_task
             .await
             .expect("second task")
             .expect("second connect");
+        third_task
+            .await
+            .expect("third task")
+            .expect("third connect");
+        clock_guard.abort();
     }
 
     #[tokio::test(start_paused = true)]
-    async fn cancelled_connector_releases_lease_but_retains_completion_cooldown() {
+    async fn cancelled_started_connector_keeps_budget_but_queued_cancellation_spends_none() {
         let owner = Admission::new();
+        let clock_guard = keep_clock_frozen();
         let (begun, mut observed) = mpsc::unbounded_channel();
         let (_release_first, first_done) = oneshot::channel();
-        let (release_second, second_done) = oneshot::channel();
+        let (_release_second, second_done) = oneshot::channel();
+        let (_release_third, third_done) = oneshot::channel();
+        let (release_fourth, fourth_done) = oneshot::channel();
         let mut first = owner.connection_layer().layer(HeldConnector {
             id: 1,
             begun: begun.clone(),
@@ -583,28 +609,47 @@ mod tests {
         });
         let mut second = owner.connection_layer().layer(HeldConnector {
             id: 2,
-            begun,
+            begun: begun.clone(),
             release: Some(second_done),
+        });
+        let mut third = owner.connection_layer().layer(HeldConnector {
+            id: 3,
+            begun: begun.clone(),
+            release: Some(third_done),
+        });
+        let mut fourth = owner.connection_layer().layer(HeldConnector {
+            id: 4,
+            begun,
+            release: Some(fourth_done),
         });
         let first_task = tokio::spawn(async move { first.call(()).await });
         assert_eq!(observed.recv().await, Some(1));
         first_task.abort();
         let _ = first_task.await;
         let second_task = tokio::spawn(async move { second.call(()).await });
-        tokio::time::advance(Duration::from_millis(499)).await;
+        assert_eq!(observed.recv().await, Some(2));
+        let third_task = tokio::spawn(async move { third.call(()).await });
+        tokio::time::advance(Duration::from_millis(999)).await;
+        assert!(observed.try_recv().is_err());
+        third_task.abort();
+        let _ = third_task.await;
+        let fourth_task = tokio::spawn(async move { fourth.call(()).await });
         assert!(observed.try_recv().is_err());
         tokio::time::advance(Duration::from_millis(1)).await;
-        assert_eq!(observed.recv().await, Some(2));
-        release_second.send(()).expect("release second");
-        second_task
+        assert_eq!(observed.recv().await, Some(4));
+        release_fourth.send(()).expect("release fourth");
+        fourth_task
             .await
-            .expect("second task")
-            .expect("second connect");
+            .expect("fourth task")
+            .expect("fourth connect");
+        second_task.abort();
+        let _ = second_task.await;
+        clock_guard.abort();
     }
 
     #[tokio::test(start_paused = true)]
     async fn shared_rate_and_cooldown_keep_exit_reserve_spent_across_clones() {
-        let owner = Admission::with_exit_reserve(99).expect("reserve");
+        let owner = Admission::with_exit_reserve(119).expect("reserve");
         owner.admit(true, false).await.expect("ordinary capacity");
         assert!(matches!(
             owner.clone().admit(true, false).await,
@@ -614,17 +659,99 @@ mod tests {
             .admit(true, true)
             .await
             .expect("reserved exit capacity");
+        for _ in 0..118 {
+            owner
+                .admit(true, true)
+                .await
+                .expect("remaining exit capacity");
+        }
+        owner.set_exit_reserve(0).expect("release reserve");
+        assert!(matches!(
+            owner.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
         owner.install_cooldown(Duration::from_secs(2));
         assert!(matches!(
             owner.clone().admit(true, true).await,
             Err(Error::RateLimited)
         ));
-        owner.set_exit_reserve(0).expect("release reserve");
         assert!(matches!(
             owner.admit(true, false).await,
             Err(Error::RateLimited)
         ));
         tokio::time::advance(Duration::from_secs(2)).await;
         owner.admit(true, false).await.expect("cooldown expired");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn shared_owner_admits_one_hundred_twenty_rest_requests_and_refuses_the_next_mutation() {
+        let owner = Admission::new();
+        for _ in 0..120 {
+            owner
+                .clone()
+                .admit(true, false)
+                .await
+                .expect("documented REST capacity");
+        }
+        assert!(matches!(
+            owner.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn rolling_window_does_not_refill_a_late_burst_at_the_first_requests_expiry() {
+        let owner = Admission::new();
+        owner.admit(true, false).await.expect("first request");
+        tokio::time::advance(Duration::from_millis(999)).await;
+        for _ in 0..119 {
+            owner.admit(true, false).await.expect("late burst");
+        }
+        tokio::time::advance(Duration::from_millis(1)).await;
+        owner.admit(true, false).await.expect("one expired request");
+        assert!(matches!(
+            owner.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        tokio::time::advance(Duration::from_millis(998)).await;
+        assert!(matches!(
+            owner.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        tokio::time::advance(Duration::from_millis(1)).await;
+        owner.admit(true, false).await.expect("late burst expired");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn reserve_of_one_hundred_nineteen_leaves_one_ordinary_request_and_all_exits() {
+        let owner = Admission::with_exit_reserve(119).expect("largest valid reserve");
+        owner.admit(true, false).await.expect("ordinary request");
+        assert!(matches!(
+            owner.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        for _ in 0..119 {
+            owner.admit(true, true).await.expect("reserved exit");
+        }
+        assert!(matches!(
+            owner.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(matches!(
+            Admission::with_exit_reserve(120),
+            Err(Error::InvalidInput(_))
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn twenty_stream_leases_start_together_and_the_next_is_unsent() {
+        let owner = Admission::new();
+        let mut leases = Vec::new();
+        for _ in 0..20 {
+            leases.push(owner.lease_stream().expect("active stream lease"));
+        }
+        assert!(matches!(owner.lease_stream(), Err(Error::RateLimited)));
+        drop(leases.pop());
+        leases.push(owner.lease_stream().expect("released lease"));
     }
 }

@@ -1,4 +1,5 @@
 <!--
+SPDX-FileCopyrightText: 2026 Kevin Monaghan
 SPDX-License-Identifier: MIT-0
 -->
 
@@ -110,7 +111,7 @@ environment variables set, run `cargo run --example practice_account`. Select
   during deserialization rather than rounding them.
   Provider IDs and timestamps have dedicated types.
 - REST response bodies are bounded. Clients built with the same `Admission` owner share
-  conservative rate admission and provider cooldown, which honours both `Retry-After` forms RFC
+  local rate admission and provider cooldown, which honours both `Retry-After` forms RFC
   9110 defines. Clones also share that owner. Requests are single-attempt; a mutation is never
   automatically retried.
 - An ambiguous mutation fences further mutations for its account across client clones. Read OANDA
@@ -135,16 +136,19 @@ Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
 The outer wrapper opts in and sizes the reserve for its workload. The default is zero.
 `ClientBuilder::exit_reserve(R)` sets the initial policy for a private owner;
 `Client::set_exit_reserve(R)` or `Admission::set_exit_reserve(R)`
-replaces it at runtime, and zero releases the reserve. It keeps `R` requests inside the existing conservative local
-100-request, one-second window: ordinary requests enter below `100 - R`, and eligible exits
-enter below 100. `R` must be less than 100. This local cap follows OANDA's
-[established-connection recommendation](https://developer.oanda.com/rest-live-v20/best-practices/).
+replaces it at runtime, and zero releases the reserve. It keeps `R` requests inside the local
+120-request rolling one-second REST window: ordinary requests enter below `120 - R`, and eligible exits
+enter below 120. `R` must be less than 120. OANDA's [Development Guide](https://developer.oanda.com/rest-live-v20/development-guide/)
+states a hard 120 REST requests/s limit per requesting IP; its [Best Practices](https://developer.oanda.com/rest-live-v20/best-practices/)
+separately recommend 100 requests/s on an established connection. The owner admits the full
+documented limit; a caller can choose additional pacing when following that recommendation.
 
 | Operation | Admission |
 | --- | --- |
 | `cancel_order`, `close_trade`, `close_position` | Can consume reserved request capacity |
-| Reads, stream starts, placement, replacement, account configuration and other mutations | Ordinary capacity |
-| All requests | Same aggregate window and provider cooldown across clients sharing an owner |
+| Reads, placement, replacement, account configuration and other REST mutations | Ordinary capacity |
+| All REST requests | Same aggregate window and provider cooldown across clients sharing an owner |
+| Stream starts | Independent of the REST window; require an active stream lease and connector admission |
 
 For example, a wrapper can pass its chosen reserve when constructing its shared client:
 
@@ -188,22 +192,28 @@ fn two_clients(first_token: String, second_token: String) -> Result<(Client, Cli
 
 An explicit builder reserve must equal the injected owner's current reserve or construction fails;
 omitting it preserves that policy and all spent capacity. One outer coordinator owns this shared
-policy: serialized updates replace the previous
-value, with the last update winning; they are not additive leases or promised permits. Every
-admission attempt reads the current policy. A change wakes waiting reads and stream starts
+policy: serialized updates replace the previous value, with the last update winning;
+they are not additive leases or promised permits. Every REST admission attempt reads the current
+policy. A change wakes waiting reads
 so they can reconsider capacity immediately. Changes never refund requests, reset timestamps,
 clear cooldowns or revoke admitted attempts. Raising the reserve after the aggregate budget is
 spent creates no new exit capacity; releasing it restores ordinary access only to unspent capacity.
-Each owner also shares 20 active stream leases and a 500 ms minimum gap between stream starts.
+Each owner also shares 20 active or opening stream leases, following the Development Guide's
+per-IP stream limit. There is no extra stream-start gap and streams do not consume REST request
+capacity.
 Dropping or canceling a stream releases its lease. Independently constructed owners and separate
 processes do not share these counters; the caller chooses which traffic shares an egress scope.
 
-Both REST and stream transports use one owner-scoped connector gate. One connector invocation
-holds the gate until it completes, fails, or is canceled; the next invocation starts no sooner
-than 500 ms afterward. Reusing an established HTTP connection does not enter the gate. This is
-local pacing of connector operations, not a hard limit on raw TCP attempts: DNS address fallback
-and connection racing inside a connector can make more than one attempt. The caller remains
-responsible for coordinating other processes and traffic on the same egress address.
+Both REST and stream transports use one owner-scoped connector-start budget: at most two connector
+invocations begin in any rolling second. The budget records each start without waiting for the
+connection to complete; failure or cancellation after a start does not refund it. Cancellation
+before a start consumes none. Reusing an established HTTP connection does not enter the gate.
+OANDA's Development Guide limits new connections to 2/s; the Best Practices page also recommends
+2/s. This is local pacing of connector operations, not a hard limit on raw TCP attempts: DNS
+address fallback and connection racing inside a connector can make more than one attempt. REST
+admission occurs before any connector wait, so it does not claim exact wire-arrival pacing or
+prevent every possible HTTP 429. The caller remains responsible for coordinating other processes
+and traffic on the same egress address.
 
 > [!IMPORTANT]
 > This is finite shared capacity, not an exclusive or unlimited Flatten allowance. Provider
@@ -212,7 +222,7 @@ responsible for coordinating other processes and traffic on the same egress addr
 > `Error::RateLimited` immediately without a wire attempt. An admitted mutation may wait for
 > bounded transport establishment, then makes one send with no automatic retry. An uncertain
 > post-send result fences that account until caller-acknowledged reconciliation. Reads and stream
-> starts can wait. Stream leases and connector pacing are shared only within one owner.
+> starts can wait for connector capacity. Stream leases and connector pacing are shared only within one owner.
 > Trading state, reserve sizing, account selection and recovery remain the outer wrapper's work.
 
 ## Testing status

@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Public-safe client errors.
 
 /// Result returned by client operations.
@@ -93,6 +96,9 @@ pub struct GenericRejection {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum Error {
+    /// The client's internal admission state is inconsistent.
+    #[error("OANDA client invariant failed: {0}")]
+    Invariant(&'static str),
     /// Local input or environment is invalid.
     #[error("invalid client input: {0}")]
     InvalidInput(String),

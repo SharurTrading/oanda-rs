@@ -17,7 +17,7 @@ fn main() -> Result<()> {
     reads.set_exit_reserve(40)?;
     client.set_exit_reserve(0)?;
     client.set_exit_reserve(20)?;
-    match client.set_exit_reserve(100) {
+    match client.set_exit_reserve(120) {
         Err(oanda_client::Error::InvalidInput(_)) => Ok(()),
         _ => Err(oanda_client::Error::InvalidInput(
             "full-window reserve was accepted".into(),

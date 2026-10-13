@@ -14,6 +14,7 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
+use tokio::{sync::Notify, time::Instant as RateInstant};
 
 const DEFAULT_MAX_BODY: usize = 8 * 1024 * 1024;
 const REQUESTS_PER_SECOND: u32 = 100;
@@ -68,19 +69,35 @@ pub(crate) struct Inner {
     pub max_body: usize,
     pub datetime_format: AcceptDatetimeFormat,
     rate: Mutex<Rate>,
+    policy_changed: Notify,
     fenced: Mutex<HashSet<String>>,
     in_flight: Mutex<HashSet<String>>,
     pub stream_slots: Mutex<StreamSlots>,
 }
 
 struct Rate {
-    start: Instant,
+    exit_reserve: u32,
+    start: RateInstant,
     used: u32,
-    cooldown_until: Option<Instant>,
+    cooldown_until: Option<RateInstant>,
 }
 pub(crate) struct StreamSlots {
     pub active: usize,
     pub last_start: Option<Instant>,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) enum MutationAdmission<'a> {
+    Ordinary(&'a AccountID),
+    Exit(&'a AccountID),
+}
+
+impl<'a> MutationAdmission<'a> {
+    fn account(self) -> &'a AccountID {
+        match self {
+            Self::Ordinary(account) | Self::Exit(account) => account,
+        }
+    }
 }
 
 /// Validated client configuration.
@@ -91,6 +108,7 @@ pub struct ClientBuilder {
     stream_override: Option<Url>,
     max_body: usize,
     timeout: Duration,
+    exit_reserve: u32,
     datetime_format: AcceptDatetimeFormat,
 }
 
@@ -104,6 +122,37 @@ impl fmt::Debug for ClientBuilder {
 }
 
 impl Client {
+    /// Replace the shared request reserve for cancellation and position or trade closes.
+    ///
+    /// Zero releases the reserve. All clones observe the latest replacement;
+    /// waiting reads and stream starts reconsider it immediately. One caller
+    /// coordinator should own this policy. Changes preserve spent capacity,
+    /// provider cooldowns and already admitted requests. Exit capacity is finite.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::InvalidInput`] when `requests` is at least 100 or the rate
+    /// lock is poisoned. Invalid changes preserve the policy and admission state.
+    pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
+        let mut rate = self
+            .inner
+            .rate
+            .lock()
+            .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
+        if requests >= REQUESTS_PER_SECOND {
+            return Err(Error::InvalidInput(
+                "exit reserve must be less than 100 requests".into(),
+            ));
+        }
+        let changed = rate.exit_reserve != requests;
+        rate.exit_reserve = requests;
+        drop(rate);
+        if changed {
+            self.inner.policy_changed.notify_waiters();
+        }
+        Ok(())
+    }
+
     /// Start building a client with an injected personal access token.
     pub fn builder(environment: Environment, bearer_token: impl Into<String>) -> ClientBuilder {
         ClientBuilder {
@@ -113,6 +162,7 @@ impl Client {
             stream_override: None,
             max_body: DEFAULT_MAX_BODY,
             timeout: Duration::from_secs(30),
+            exit_reserve: 0,
             datetime_format: AcceptDatetimeFormat::Rfc3339,
         }
     }
@@ -148,9 +198,11 @@ impl Client {
         path: &str,
         query: Option<&Q>,
         body: Option<&B>,
-        mutation_account: Option<&AccountID>,
+        mutation: Option<MutationAdmission<'_>>,
         client_request_id: Option<&ClientRequestID>,
     ) -> std::result::Result<ApiResponse<T>, OperationError<R>> {
+        let mutation_account = mutation.map(MutationAdmission::account);
+        let exit = matches!(mutation, Some(MutationAdmission::Exit(_)));
         let query_value = query
             .map(serde_json::to_value)
             .transpose()
@@ -160,7 +212,7 @@ impl Client {
             .transpose()
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         crate::validation::validate(path, query_value.as_ref(), body_value.as_ref())?;
-        self.admit(mutation_account.is_some()).await?;
+        self.admit(mutation_account.is_some(), exit).await?;
         let url = Self::build_url(&self.inner.rest, path, query)?;
         let mut request = self
             .inner
@@ -301,22 +353,30 @@ impl Client {
             .await
     }
 
-    pub(crate) async fn admit(&self, mutation: bool) -> Result<()> {
+    pub(crate) async fn admit(&self, mutation: bool, exit: bool) -> Result<()> {
         loop {
+            let changed = self.inner.policy_changed.notified();
+            tokio::pin!(changed);
+            changed.as_mut().enable();
             let wait = {
                 let mut rate = self
                     .inner
                     .rate
                     .lock()
                     .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
-                let now = Instant::now();
+                let capacity = if exit {
+                    REQUESTS_PER_SECOND
+                } else {
+                    REQUESTS_PER_SECOND - rate.exit_reserve
+                };
+                let now = RateInstant::now();
                 if now.duration_since(rate.start) >= Duration::from_secs(1) {
                     rate.start = now;
                     rate.used = 0;
                 }
                 if let Some(until) = rate.cooldown_until.filter(|until| *until > now) {
                     until.duration_since(now)
-                } else if rate.used < REQUESTS_PER_SECOND {
+                } else if rate.used < capacity {
                     rate.used += 1;
                     return Ok(());
                 } else {
@@ -326,7 +386,10 @@ impl Client {
             if mutation {
                 return Err(Error::RateLimited);
             }
-            tokio::time::sleep(wait).await;
+            tokio::select! {
+                () = &mut changed => {},
+                () = tokio::time::sleep(wait) => {},
+            }
         }
     }
 
@@ -386,7 +449,11 @@ impl Client {
             .rate
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        rate.cooldown_until = Some(Instant::now() + cooldown);
+        let until = RateInstant::now() + cooldown;
+        rate.cooldown_until = Some(
+            rate.cooldown_until
+                .map_or(until, |existing| existing.max(until)),
+        );
     }
 }
 
@@ -416,6 +483,18 @@ impl ClientBuilder {
         self.max_body = value;
         self
     }
+
+    /// Reserve requests in the shared local 100-request, one-second window for exits.
+    ///
+    /// The default is zero. Only `cancel_order`, `close_trade`, and `close_position`
+    /// can use the reserve. All requests still count toward the same aggregate limit
+    /// and provider cooldown. The value must be less than 100; `build` validates it.
+    #[must_use]
+    pub fn exit_reserve(mut self, requests: u32) -> Self {
+        self.exit_reserve = requests;
+        self
+    }
+
     /// Set the REST request timeout.
     #[must_use]
     pub fn timeout(mut self, value: Duration) -> Self {
@@ -449,6 +528,11 @@ impl ClientBuilder {
         }
         if self.max_body == 0 || self.timeout.is_zero() {
             return Err(Error::InvalidInput("limits must be positive".into()));
+        }
+        if self.exit_reserve >= REQUESTS_PER_SECOND {
+            return Err(Error::InvalidInput(
+                "exit reserve must be less than 100 requests".into(),
+            ));
         }
         let (default_rest, default_stream) = self.environment.urls()?;
         let rest = self.rest_override.unwrap_or_else(|| default_rest.clone());
@@ -487,8 +571,10 @@ impl ClientBuilder {
                 token: self.token,
                 max_body: self.max_body,
                 datetime_format: self.datetime_format,
+                policy_changed: Notify::new(),
                 rate: Mutex::new(Rate {
-                    start: Instant::now(),
+                    exit_reserve: self.exit_reserve,
+                    start: RateInstant::now(),
                     used: 0,
                     cooldown_until: None,
                 }),
@@ -805,10 +891,10 @@ mod tests {
         let Ok(client) = client else { return };
         if let Ok(mut rate) = client.inner.rate.lock() {
             rate.used = REQUESTS_PER_SECOND;
-            rate.start = Instant::now();
+            rate.start = RateInstant::now();
         }
         assert!(matches!(
-            client.clone().admit(true).await,
+            client.clone().admit(true, false).await,
             Err(Error::RateLimited)
         ));
     }
@@ -932,7 +1018,7 @@ mod tests {
         poison(&client.inner.rate);
         let header =
             header.map(|text| reqwest::header::HeaderValue::from_str(text).expect("header"));
-        let start = Instant::now();
+        let start = RateInstant::now();
         client.install_cooldown(header.as_ref());
         let rate = client
             .inner
@@ -950,7 +1036,7 @@ mod tests {
             "cooldown shorter than {expected:?}"
         );
         assert!(
-            until <= Instant::now() + expected + tolerance,
+            until <= RateInstant::now() + expected + tolerance,
             "cooldown longer than {expected:?}"
         );
     }
@@ -980,5 +1066,330 @@ mod tests {
         // A header this client cannot read: the local maximum, never a value the
         // provider did not send and never the minimum the old fallback assumed.
         assert_cooldown(Some("soon"), MAX_COOLDOWN);
+    }
+
+    fn reserved_client() -> Client {
+        Client::builder(Environment::Practice, "fixture")
+            .exit_reserve(2)
+            .build()
+            .expect("valid reserve")
+    }
+
+    #[test]
+    fn exit_reserve_rejects_the_full_window_and_larger_values() {
+        for reserve in [100, 101, u32::MAX] {
+            assert!(matches!(
+                Client::builder(Environment::Practice, "fixture")
+                    .exit_reserve(reserve)
+                    .build(),
+                Err(Error::InvalidInput(_))
+            ));
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn ordinary_admission_leaves_two_exits_and_preserves_the_aggregate_limit() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        let read = client.admit(false, false);
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        client.clone().admit(true, true).await.expect("first exit");
+        client.clone().admit(true, true).await.expect("second exit");
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_millis(999)).await;
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_millis(1)).await;
+        read.await.expect("ordinary slot after exact expiry");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn concurrent_clones_cannot_exceed_the_two_remaining_exit_slots() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        let mut tasks = Vec::new();
+        for _ in 0..20 {
+            let clone = client.clone();
+            tasks.push(tokio::spawn(async move { clone.admit(true, true).await }));
+        }
+        let mut admitted = 0;
+        let mut refused = 0;
+        for task in tasks {
+            match task.await.expect("join") {
+                Ok(()) => admitted += 1,
+                Err(Error::RateLimited) => refused += 1,
+                result => panic!("unexpected admission: {result:?}"),
+            }
+        }
+        assert_eq!(admitted, 2);
+        assert_eq!(refused, 18);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn cancelled_ordinary_waiters_do_not_charge_the_next_window() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        {
+            let read = client.admit(false, false);
+            tokio::pin!(read);
+            assert!(futures_util::poll!(read.as_mut()).is_pending());
+        }
+        tokio::time::advance(Duration::from_secs(1)).await;
+        for _ in 0..98 {
+            client.admit(true, false).await.expect("new ordinary slot");
+        }
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        client.admit(true, true).await.expect("first exit");
+        client.admit(true, true).await.expect("second exit");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn provider_cooldown_blocks_both_classes_until_exact_expiry() {
+        let client = reserved_client();
+        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")));
+        assert!(matches!(
+            client.clone().admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(matches!(
+            client.clone().admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        let read = client.admit(false, false);
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_millis(1999)).await;
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        tokio::time::advance(Duration::from_millis(1)).await;
+        read.await.expect("read after cooldown");
+        client.admit(true, true).await.expect("exit after cooldown");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_shorter_provider_cooldown_cannot_release_an_existing_deadline_early() {
+        let client = reserved_client();
+        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("5")));
+        tokio::time::advance(Duration::from_secs(1)).await;
+        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("1")));
+        tokio::time::advance(Duration::from_secs(1)).await;
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        tokio::time::advance(Duration::from_secs(3)).await;
+        client
+            .admit(true, true)
+            .await
+            .expect("original cooldown expired");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn runtime_release_wakes_all_registered_waiters_without_advancing_time() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        let first = client.admit(false, false);
+        let second = client.admit(false, false);
+        tokio::pin!(first, second);
+        assert!(futures_util::poll!(first.as_mut()).is_pending());
+        assert!(futures_util::poll!(second.as_mut()).is_pending());
+        let started = RateInstant::now();
+        client.clone().set_exit_reserve(0).expect("release reserve");
+        assert!(matches!(
+            futures_util::poll!(first.as_mut()),
+            std::task::Poll::Ready(Ok(()))
+        ));
+        assert!(matches!(
+            futures_util::poll!(second.as_mut()),
+            std::task::Poll::Ready(Ok(()))
+        ));
+        assert_eq!(RateInstant::now(), started);
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn runtime_growth_rechecks_waiters_and_preserves_spent_capacity() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        let read = client.admit(false, false);
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        client.set_exit_reserve(0).expect("release reserve");
+        client
+            .clone()
+            .set_exit_reserve(99)
+            .expect("replace reserve");
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        client.admit(true, true).await.expect("first exit");
+        client.admit(true, true).await.expect("second exit");
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        client
+            .set_exit_reserve(0)
+            .expect("release exhausted reserve");
+        client
+            .set_exit_reserve(99)
+            .expect("raise exhausted reserve");
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+        client.set_exit_reserve(0).expect("release reserve");
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_secs(1)).await;
+        assert!(matches!(
+            futures_util::poll!(read.as_mut()),
+            std::task::Poll::Ready(Ok(()))
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn runtime_changes_preserve_cooldown_window_and_invalid_policy_state() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")));
+        for reserve in [99, 0, 2] {
+            client.set_exit_reserve(reserve).expect("replace reserve");
+            assert!(matches!(
+                client.admit(true, true).await,
+                Err(Error::RateLimited)
+            ));
+        }
+        for reserve in [100, u32::MAX] {
+            assert!(matches!(
+                client.set_exit_reserve(reserve),
+                Err(Error::InvalidInput(_))
+            ));
+            let rate = client.inner.rate.lock().expect("rate lock");
+            assert_eq!(rate.exit_reserve, 2);
+            assert_eq!(rate.used, 98);
+        }
+        client.set_exit_reserve(0).expect("release reserve");
+        let read = client.admit(false, false);
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_secs(1)).await;
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        tokio::time::advance(Duration::from_secs(1)).await;
+        assert!(matches!(
+            futures_util::poll!(read.as_mut()),
+            std::task::Poll::Ready(Ok(()))
+        ));
+        for _ in 0..99 {
+            client
+                .admit(true, true)
+                .await
+                .expect("remaining aggregate capacity");
+        }
+        assert!(matches!(
+            client.admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn runtime_replacement_keeps_the_original_window_deadline_and_independent_client() {
+        let client = reserved_client();
+        for _ in 0..98 {
+            client.admit(false, false).await.expect("ordinary slot");
+        }
+        tokio::time::advance(Duration::from_millis(900)).await;
+        client.set_exit_reserve(3).expect("replace reserve");
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        let independent = reserved_client();
+        independent
+            .admit(true, false)
+            .await
+            .expect("independent budget");
+        client.admit(true, true).await.expect("first exit");
+        client.admit(true, true).await.expect("second exit");
+        tokio::time::advance(Duration::from_millis(100)).await;
+        for _ in 0..97 {
+            client
+                .admit(true, false)
+                .await
+                .expect("new ordinary capacity");
+        }
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+    }
+
+    #[test]
+    fn runtime_setter_reports_poison_and_preserves_policy_and_admission_state() {
+        let client = reserved_client();
+        poison(&client.inner.rate);
+        assert!(matches!(
+            client.set_exit_reserve(0),
+            Err(Error::InvalidInput(_))
+        ));
+        let rate = client
+            .inner
+            .rate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(rate.exit_reserve, 2);
+        assert_eq!(rate.used, 0);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn runtime_waiter_rechecks_each_replacement_including_release_then_growth() {
+        let client = reserved_client();
+        client.set_exit_reserve(99).expect("raise reserve");
+        client.admit(false, false).await.expect("one ordinary slot");
+        let read = client.admit(false, false);
+        tokio::pin!(read);
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        client.set_exit_reserve(0).expect("release reserve");
+        client.set_exit_reserve(99).expect("raise reserve");
+        assert!(futures_util::poll!(read.as_mut()).is_pending());
+        client.set_exit_reserve(98).expect("replace reserve");
+        assert!(matches!(
+            futures_util::poll!(read.as_mut()),
+            std::task::Poll::Ready(Ok(()))
+        ));
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
     }
 }

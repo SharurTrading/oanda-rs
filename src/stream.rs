@@ -187,7 +187,7 @@ impl Client {
         query: Option<&Q>,
         decoder: fn(&[u8]) -> Result<E>,
     ) -> Result<HttpStream<E>> {
-        self.admit(false).await?;
+        self.admit(false, false).await?;
         {
             let mut slots = self
                 .inner

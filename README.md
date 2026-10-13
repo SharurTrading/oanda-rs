@@ -121,6 +121,59 @@ environment variables set, run `cargo run --example practice_account`. Select
 
 Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
 
+## Optional exit reserve
+
+The outer wrapper opts in and sizes the reserve for its workload. The default is zero.
+`ClientBuilder::exit_reserve(R)` sets the initial policy; `Client::set_exit_reserve(R)`
+replaces it at runtime, and zero releases the reserve. It keeps `R` requests inside the existing conservative local
+100-request, one-second window: ordinary requests enter below `100 - R`, and eligible exits
+enter below 100. `R` must be less than 100. This local cap follows OANDA's
+[established-connection recommendation](https://developer.oanda.com/rest-live-v20/best-practices/).
+
+| Operation | Admission |
+| --- | --- |
+| `cancel_order`, `close_trade`, `close_position` | Can consume reserved request capacity |
+| Reads, stream starts, placement, replacement, account configuration and other mutations | Ordinary capacity |
+| All requests | Same aggregate window and provider cooldown across one client and all clones |
+
+For example, a wrapper can pass its chosen reserve when constructing its shared client:
+
+```rust
+use oanda_client::{Client, Environment, Result};
+
+fn configured_client(token: String, reserve_requests: u32) -> Result<Client> {
+    Client::builder(Environment::Practice, token)
+        .exit_reserve(reserve_requests)
+        .build()
+}
+
+fn update_reserve(client: &Client) -> Result<()> {
+    let reads = client.clone();
+    reads.set_exit_reserve(40)?;
+    client.set_exit_reserve(0)?;
+    Ok(())
+}
+```
+
+The configuration and runtime changes are exercised by the credential-free
+[configuration example](examples/exit_reserve.rs): `cargo run --example exit_reserve`.
+The example's number is illustrative, not a sizing recommendation. Share clones for reads and
+exits. One outer coordinator owns this shared policy: serialized updates replace the previous
+value, with the last update winning; they are not additive leases or promised permits. Every
+admission attempt reads the current policy. A change wakes waiting reads and stream starts
+so they can reconsider capacity immediately. Changes never refund requests, reset timestamps,
+clear cooldowns or revoke admitted attempts. Raising the reserve after the aggregate budget is
+spent creates no new exit capacity; releasing it restores ordinary access only to unspent capacity. Independently constructed clients and separate processes do not share these counters;
+the caller must coordinate those consumers of the same provider quota.
+
+> [!IMPORTANT]
+> This is finite shared capacity, not an exclusive or unlimited Flatten allowance. Provider
+> cooldown, the aggregate limit, account reconciliation fences and in-flight mutation exclusion
+> still apply to exits. A mutation refused by local rate admission returns `Error::RateLimited` immediately
+> without a wire attempt; an admitted mutation is sent once, never queued or retried. Reads and
+> stream starts can wait. The separate stream-count and connection-start limits are unchanged.
+> Trading state, reserve sizing, account selection and recovery remain the outer wrapper's work.
+
 ## Testing status
 
 Normal CI needs no OANDA credentials. It runs formatting, Clippy, tests, documentation, package

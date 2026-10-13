@@ -148,6 +148,9 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 
 ## Release gate
 
+The operator checklist that executes this gate is [RELEASING.md](RELEASING.md); this section is the
+governing rule and the guide is its procedure, so a conflict resolves in favour of this section.
+
 Every crates.io or GitHub release must originate from a reviewed pull request and the exact merged
 commit on `main`. Direct pushes to protected branches, force-pushes, publishing from a dirty or
 unmerged worktree, and moving or replacing a published version tag are prohibited.

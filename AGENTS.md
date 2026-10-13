@@ -40,7 +40,7 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 ## Development
 
 - **OA-TEST-01:** Normal CI is deterministic and credential-free. Optional live tests are ignored, explicitly armed, Practice-only, and read-only.
-- **OA-DOC-01:** Document public APIs and non-obvious venue behavior. Keep the coverage ledger, README, and code in sync.
+- **OA-DOC-01:** Document public APIs and non-obvious venue behavior. Keep the coverage ledger, changelog, README, and code in sync.
 - **OA-REVIEW-01:** Review money-moving behavior, cancellation, secrets, decimal precision, and coverage before release. A GitHub or crates.io release requires a separate reviewed change.
 
 ## Procedure rules
@@ -145,3 +145,25 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
   the PR is open. Wait for operator review: do not poll CI or act on its result — a green run is
   not permission to continue — do not merge, and do not start another issue. If the issue is not
   free, choose a different matching issue; if none is free, say so and stop.
+
+## Release gate
+
+Every crates.io or GitHub release must originate from a reviewed pull request and the exact merged
+commit on `main`. Direct pushes to protected branches, force-pushes, publishing from a dirty or
+unmerged worktree, and moving or replacing a published version tag are prohibited.
+
+Before merging a release pull request:
+
+1. Confirm provider terms permit the intended source distribution and branding.
+2. Complete a secret and proprietary-content scan, including Git history.
+3. Confirm all fixtures are synthetic and all documentation is public-safe.
+4. Review the public API against the compatibility policy and classify the Semantic Versioning
+   impact.
+5. Update the crate version, lockfile, changelog, and release-facing documentation in the same PR.
+6. Run formatting, strict Clippy, tests, rustdoc, package verification, dependency, license, and
+   secret checks; require the release PR and post-merge `main` CI runs to pass.
+
+After the release PR merges and `main` CI passes, publish that exact commit to crates.io, create an
+annotated `v<version>` tag pointing to it, push the tag without force, and create the matching
+GitHub release. Verify the crate can be resolved and compiled from crates.io before considering the
+release complete.

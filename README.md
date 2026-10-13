@@ -5,13 +5,15 @@ SPDX-License-Identifier: MIT-0
 # oanda-rs
 
 [![CI](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml)
+[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=1.0.0)](https://crates.io/crates/oanda-client/1.0.0)
+[![docs.rs](https://img.shields.io/docsrs/oanda-client/1.0.0?v=1.0.0)](https://docs.rs/oanda-client/1.0.0/oanda_client/)
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
 [![Practice probes: 3/3 passed](https://img.shields.io/badge/Practice%20probes-3%2F3%20passed-brightgreen.svg)](#testing-status)
 
 > [!WARNING]
-> **Pre-release:** three authenticated, read-only OANDA Practice probes passed on 2026-09-25.
+> **Validation status:** three authenticated, read-only OANDA Practice probes passed on 2026-09-25.
 > A separate, one-off Practice limit-order creation and cancellation probe also passed. No Live
 > environment has been tested. Do not use this crate for live trading without independent
 > validation.
@@ -24,6 +26,12 @@ adapter is outside this repository.
 
 The project is licensed under [MIT No Attribution (MIT-0)](LICENSE). The minimum supported Rust
 version is **1.95.0**.
+
+Version 1 follows Semantic Versioning. Public API changes that require downstream source changes
+will be released under a new major version; additive APIs and fixes use minor and patch releases.
+Provider contract changes can still require callers to update operational behavior, so review the
+[changelog](CHANGELOG.md) before upgrading and keep recovery around ambiguous money-moving
+outcomes.
 
 ## Status
 
@@ -48,13 +56,18 @@ fallbacks and swallowed failures, with a disposition for every candidate.
 
 ## Installation
 
-Until the package is published, consume a local checkout:
+```sh
+cargo add oanda-client@1
+```
+
+Or add the current major release directly:
 
 ```toml
 [dependencies]
-oanda-client = { path = "../oanda-rs" }
-tokio = { version = "1", features = ["macros", "rt"] }
+oanda-client = "1"
 ```
+
+The complete public API is available on [docs.rs](https://docs.rs/oanda-client).
 
 The crate uses Rust edition 2024 and exposes capability modules for accounts, orders, trades,
 positions, transactions, pricing, instruments, transport, and primitives.
@@ -177,12 +190,12 @@ the caller must coordinate those consumers of the same provider quota.
 ## Testing status
 
 Normal CI needs no OANDA credentials. It runs formatting, Clippy, tests, documentation, package
-verification, full-history secret scanning, and the offline coverage check on Rust 1.95. Clippy
-uses pedantic warnings as errors. The manual release-readiness workflow repeats the Rust and
-coverage checks, checks the requested version, and runs a crates.io publish dry run; it does not
-publish a release. Dependabot checks Cargo and GitHub Actions updates weekly. The 30 REST methods
-have deterministic loopback success and rejection fixtures, including method, URL, query, header,
-and mutation-body checks.
+verification, dependency and license checks, full-history secret scanning, and the offline coverage
+check on Rust 1.95. Clippy uses pedantic warnings as errors. The manual release-readiness workflow
+repeats the Rust, coverage, and supply-chain checks, checks the requested version, and runs a
+crates.io publish dry run; it does not publish a release. Dependabot checks Cargo and GitHub
+Actions updates weekly. The 30 REST methods have deterministic loopback success and rejection
+fixtures, including method, URL, query, header, and mutation-body checks.
 Both streams have local framing, heartbeat, error, and gap tests. These tests establish the
 documented wire surface; they do not establish behavior against an authenticated OANDA account.
 
@@ -272,3 +285,8 @@ GitHub-hosted Rust jobs use `Swatinem/rust-cache` to persist Cargo build outputs
 and downloaded dependencies. Kache is used only when a contributor opts into
 local builds with the setup above. CI retains its existing quality gates and
 runner selections.
+
+## License
+
+Licensed under the [MIT No Attribution License (MIT-0)](LICENSE). Notable changes between releases
+are recorded in the [changelog](CHANGELOG.md).

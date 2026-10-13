@@ -1,14 +1,28 @@
 [package]
 name = "oanda-client"
-version = "0.1.0"
+version = "1.0.0"
 edition = "2024"
 rust-version = "1.95"
 license = "MIT-0"
 description = "An async, provider-native Rust client for OANDA's v20 REST API"
 repository = "https://github.com/SharurTrading/oanda-rs"
+homepage = "https://github.com/SharurTrading/oanda-rs"
+documentation = "https://docs.rs/oanda-client"
 readme = "README.md"
 keywords = ["oanda", "trading", "forex", "api-client"]
 categories = ["api-bindings", "asynchronous", "network-programming"]
+publish = ["crates-io"]
+include = [
+    "/examples/**",
+    "/src/**",
+    "/tests/**",
+    "/CHANGELOG.md",
+    "/Cargo.lock",
+    "/Cargo.toml",
+    "/LICENSE",
+    "/README.md",
+    "/SECURITY.md",
+]
 
 [features]
 default = []

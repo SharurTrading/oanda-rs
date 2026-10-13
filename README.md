@@ -12,12 +12,6 @@ SPDX-License-Identifier: MIT-0
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
 [![Practice probes: 3/3 passed](https://img.shields.io/badge/Practice%20probes-3%2F3%20passed-brightgreen.svg)](#testing-status)
 
-> [!WARNING]
-> **Validation status:** three authenticated, read-only OANDA Practice probes passed on 2026-09-25.
-> A separate, one-off Practice limit-order creation and cancellation probe also passed. No Live
-> environment has been tested. Do not use this crate for live trading without independent
-> validation.
-
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 The Cargo package and import name are `oanda-client` and `oanda_client`; `-rs` belongs to the
 repository name. This is an independent, unofficial client, unaffiliated with OANDA. It is designed

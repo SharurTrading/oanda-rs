@@ -16,7 +16,7 @@ implemented, tested, and blocked capabilities. The offline
 `tools/check_coverage.py` requires all 32 operations and 168 definitions to be
 tested, verifies public methods and typed contracts, checks test markers,
 confirms the pinned OpenAPI checksum, and detects changes to the reviewed
-operation drift. The 30 REST operations each have a loopback success and
+operation drift. The 32 REST operations each have a loopback success and
 rejection fixture; both streams have typed event fixtures. Every definition
 has a decode fixture in `tests/definition_wire.rs`. All 503 documented scalar
 enum values and 55 tagged order, order-request, and transaction variants have

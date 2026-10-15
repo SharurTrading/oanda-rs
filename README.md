@@ -6,13 +6,14 @@ SPDX-License-Identifier: MIT-0
 # oanda-rs
 
 [![CI](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=1.0.0)](https://crates.io/crates/oanda-client/1.0.0)
-[![docs.rs](https://img.shields.io/docsrs/oanda-client/1.0.0?v=1.0.0)](https://docs.rs/oanda-client/1.0.0/oanda_client/)
+[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=1.1.0)](https://crates.io/crates/oanda-client/1.1.0)
+[![docs.rs](https://img.shields.io/docsrs/oanda-client/1.1.0?v=1.1.0)](https://docs.rs/oanda-client/1.1.0/oanda_client/)
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
-[![Offline tests: 71 passed locally](https://img.shields.io/badge/offline%20tests-71%20passed%20locally-brightgreen.svg)](#testing-status)
+[![Offline tests: 78 passed locally](https://img.shields.io/badge/offline%20tests-78%20passed%20locally-brightgreen.svg)](#testing-status)
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
+[![Practice observations: recorded October 2026](https://img.shields.io/badge/Practice%20observations-recorded%20October%202026-blue.svg)](docs/behaviour-guide.md)
 
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 The Cargo package and import name are `oanda-client` and `oanda_client`; `-rs` belongs to the
@@ -37,7 +38,7 @@ are recorded rather than silently adopting older operations.
 
 | Capability | Current surface |
 | --- | --- |
-| Documented operations | 32/32 callable: 30 REST methods and 2 HTTP streams |
+| Documented operations | 32/32 callable: 32 REST methods and 2 HTTP streams |
 | Documented definitions | 168/168 typed contracts |
 | Variants | 503 scalar enum values and 55 tagged order, request, and transaction variants tested locally |
 | Environments | Paired Practice and Live REST and stream hosts |
@@ -230,18 +231,19 @@ and traffic on the same egress address.
 ## Testing status
 
 The badges distinguish deterministic test results, documented API coverage, and dated
-Practice observations. The [successful CI run on 2026-10-13](https://github.com/SharurTrading/oanda-rs/actions/runs/38348263650)
-at [commit `e954657`](https://github.com/SharurTrading/oanda-rs/commit/e954657f47a130ea4a80a3ee373e8e3aaf023925)
-passed 62 Rust tests and left 3 live probes ignored. With the shared admission tests, the current
-local suite passes **71 credential-free Rust tests** with **3 live probes ignored**. The static
+Practice observations. The [successful CI run on 2026-10-15](https://github.com/SharurTrading/oanda-rs/actions/runs/38711925905)
+at [commit `4f2109b`](https://github.com/SharurTrading/oanda-rs/commit/4f2109b8aa1b9a598a050cf6ab68ef23694009ba)
+passed 78 Rust tests and left 3 live probes ignored. The current
+local suite passes **78 credential-free Rust tests** with **3 live probes ignored**. The static
 test-count badge records the local suite; it is not a count of operations or authenticated venue
 tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 71 passed locally on 2026-10-14; 3 live probes ignored. The linked 2026-10-13 CI run passed 62 tests before these changes. |
-| Coverage ledger | 30 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 78 passed locally on 2026-10-15; 3 live probes ignored. The linked 2026-10-15 CI run passed the same 78 tests. |
+| Coverage ledger | 32 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](docs/coverage.md#authenticated-probes) |
+| Practice observations while building an integration | Order fills in both account modes, stream open behaviour and timing, transaction-stream fill and replace events, P/L precision | Recorded October 2026 with per-fact source tags in the [behaviour guide](docs/behaviour-guide.md); small-sample observations, untested on Live |
 | One-off Practice mutation probe | One-unit EUR/USD limit-order creation, pending state and cancellation, with stream updates | Passed on 2026-09-25; temporary probe source removed |
 | Live environment | Authenticated Live requests and trading | Not tested |
 
@@ -249,7 +251,7 @@ The deterministic tests exercise these SDK behaviors without credentials:
 
 | Behavior | Evidence |
 | --- | --- |
-| REST success and rejection contracts | [Operation matrix](tests/operation_matrix.rs): method, path, query, headers and mutation bodies for all 30 REST operations |
+| REST success and rejection contracts | [Operation matrix](tests/operation_matrix.rs): method, path, query, headers and mutation bodies for all 32 REST operations |
 | Provider definitions and variants | [Definition fixtures](tests/definition_wire.rs), [scalar enums](tests/enum_variants.rs) and [tagged variants](tests/tagged_variants.rs): 168 definitions, 503 enum values and 55 tagged variants |
 | Financial precision | [Decimal fixtures](tests/decimal_precision.rs): exact strings and numeric liquidity, with nonrepresentable values refused |
 | Stream delivery and failure | [Client contract tests](tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1 |
@@ -266,7 +268,7 @@ verification, dependency and license checks, full-history secret scanning, and t
 check on Rust 1.95. Clippy uses pedantic warnings as errors. The manual release-readiness workflow
 repeats the Rust, coverage, and supply-chain checks, checks the requested version, and runs a
 crates.io publish dry run; it does not publish a release. Dependabot checks Cargo and GitHub
-Actions updates weekly. The 30 REST methods have deterministic loopback success and rejection
+Actions updates weekly. The 32 REST methods have deterministic loopback success and rejection
 fixtures, including method, URL, query, header, and mutation-body checks.
 Both streams have local framing, heartbeat, error, and gap tests. These tests establish the
 documented wire surface; they do not establish behavior against an authenticated OANDA account.

@@ -130,6 +130,8 @@ environment variables set, run `cargo run --example practice_account`. Select
   four prices per second per instrument. It does not carry every price update.
 
 Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
+The [behaviour guide](docs/behaviour-guide.md) explains OANDA and SDK behaviour that matters
+when wrapping this client: account modes, limits, stream recovery, closes and stated PnL.
 
 ## Optional exit reserve
 

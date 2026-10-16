@@ -15,6 +15,11 @@ SPDX-License-Identifier: MIT-0
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 [![Practice observations: recorded October 2026](https://img.shields.io/badge/Practice%20observations-recorded%20October%202026-blue.svg)](docs/behaviour-guide.md)
 
+> [!IMPORTANT]
+> Read the [behaviour guide](docs/behaviour-guide.md) before wrapping this client. It explains
+> OANDA and SDK behaviour that matters to a wrapper: account modes, limits, stream recovery,
+> closes and stated PnL.
+
 An async, provider-native Rust client for the [OANDA REST-v20 API](https://developer.oanda.com/rest-live-v20/introduction/).
 The Cargo package and import name are `oanda-client` and `oanda_client`; `-rs` belongs to the
 repository name. This is an independent, unofficial client, unaffiliated with OANDA. It is designed
@@ -131,8 +136,6 @@ environment variables set, run `cargo run --example practice_account`. Select
   four prices per second per instrument. It does not carry every price update.
 
 Read [SECURITY.md](SECURITY.md) before handling credentials or mutations.
-The [behaviour guide](docs/behaviour-guide.md) explains OANDA and SDK behaviour that matters
-when wrapping this client: account modes, limits, stream recovery, closes and stated PnL.
 
 ## Optional exit reserve
 

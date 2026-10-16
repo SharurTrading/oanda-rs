@@ -305,9 +305,9 @@ What we saw (Seen): `pl` is rounded to the home currency's precision. One fill s
 
 A mutation is ambiguous when the SDK cannot tell whether OANDA acted on it. The SDK
 treats every send error as ambiguous, including a DNS or connect failure before anything
-was written, and also a 5xx, a 408, any status other than 400, 401, 403, 404 and 405, and
-a success reply it could not read. It reports each as `AmbiguousMutation` and never
-retries it (SDK). The order may have been placed, filled, or never arrived. OANDA refuses
+was written, and also a 5xx, a 408, any status other than 400, 401, 403, 404 and 405,
+and a reply it could not read, whatever its status. It reports each as
+`AmbiguousMutation` and never retries it (SDK). The order may have been placed, filled, or never arrived. OANDA refuses
 a new order whose `clientExtensions.id` is already assigned to another *pending* order
 (`CLIENT_ORDER_ID_ALREADY_EXISTS`, [Docs](https://developer.oanda.com/rest-live-v20/transaction-df/)),
 but nothing stops a duplicate of one that already filled or was cancelled, so a blind
@@ -337,9 +337,10 @@ To release it (Advice):
 2. Only then call `acknowledge_reconciliation`. It returns an error if it could not
    release the fence, and the account then stays fenced.
 3. Decide from what you read whether the ambiguous order exists, before sending
-   anything that depends on it. Match it by the `clientExtensions.id` you sent. A
-   request that timed out can still land after your backfill read; keep the transaction
-   stream open from before the read, as in step 1, so a late arrival still reaches you.
+   anything that depends on it. Match it by the `clientExtensions.id` you sent; an order
+   sent without one cannot be told apart afterwards, so set one on every order. A request
+   that timed out can still land after your backfill read; keep the transaction stream
+   open from before the read, as in step 1, so a late arrival still reaches you.
 
 > [!WARNING]
 > If your wrapper never calls `acknowledge_reconciliation`, one ambiguous mutation

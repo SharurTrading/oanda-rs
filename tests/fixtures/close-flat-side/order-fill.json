@@ -1,0 +1,127 @@
+{
+  "transaction": {
+    "id": "42",
+    "accountID": "101-001-1234567-001",
+    "userID": 1001,
+    "batchID": "41",
+    "requestID": "fixture-request-1",
+    "time": "2026-01-05T09:30:00.100000000Z",
+    "type": "ORDER_FILL",
+    "orderID": "41",
+    "clientOrderID": "fixture-close-long",
+    "instrument": "EUR_USD",
+    "units": "-3",
+    "requestedUnits": "-3",
+    "price": "1.20012",
+    "pl": "-0.0003",
+    "quotePL": "-0.00027",
+    "financing": "0.0000",
+    "baseFinancing": "0.00000000000000",
+    "commission": "0.0000",
+    "accountBalance": "10000.5000",
+    "gainQuoteHomeConversionFactor": "1",
+    "lossQuoteHomeConversionFactor": "1",
+    "guaranteedExecutionFee": "0.0000",
+    "quoteGuaranteedExecutionFee": "0",
+    "halfSpreadCost": "0.0002",
+    "fullVWAP": "1.20012",
+    "reason": "MARKET_ORDER_POSITION_CLOSEOUT",
+    "tradesClosed": [
+      {
+        "tradeID": "39",
+        "units": "-3",
+        "realizedPL": "-0.0003",
+        "financing": "0.0000",
+        "baseFinancing": "0.00000000000000",
+        "price": "1.20012",
+        "guaranteedExecutionFee": "0.0000",
+        "quoteGuaranteedExecutionFee": "0",
+        "halfSpreadCost": "0.0002",
+        "plHomeConversionCost": "0.00000",
+        "baseFinancingHomeConversionCost": "0.00000000000000",
+        "guaranteedExecutionFeeHomeConversionCost": "0",
+        "homeConversionCost": "0.00000000000000"
+      }
+    ],
+    "fullPrice": {
+      "closeoutBid": "1.20003",
+      "closeoutAsk": "1.20031",
+      "time": "2026-01-05T09:29:59.900000000Z",
+      "bids": [
+        {
+          "price": "1.20012",
+          "liquidity": "250000"
+        },
+        {
+          "price": "1.20011",
+          "liquidity": "250000"
+        },
+        {
+          "price": "1.20010",
+          "liquidity": "1000000"
+        },
+        {
+          "price": "1.20009",
+          "liquidity": "1000000"
+        },
+        {
+          "price": "1.20008",
+          "liquidity": "3000000"
+        },
+        {
+          "price": "1.20006",
+          "liquidity": "7000000"
+        },
+        {
+          "price": "1.20003",
+          "liquidity": "7000000"
+        }
+      ],
+      "asks": [
+        {
+          "price": "1.20021",
+          "liquidity": "249999"
+        },
+        {
+          "price": "1.20023",
+          "liquidity": "1250000"
+        },
+        {
+          "price": "1.20024",
+          "liquidity": "1000000"
+        },
+        {
+          "price": "1.20025",
+          "liquidity": "3000000"
+        },
+        {
+          "price": "1.20028",
+          "liquidity": "7000000"
+        },
+        {
+          "price": "1.20031",
+          "liquidity": "7000000"
+        }
+      ]
+    },
+    "homeConversionFactors": {
+      "gainQuoteHome": {
+        "factor": "1"
+      },
+      "lossQuoteHome": {
+        "factor": "1"
+      },
+      "gainBaseHome": {
+        "factor": "1.1001234"
+      },
+      "lossBaseHome": {
+        "factor": "1.1201234"
+      }
+    },
+    "plHomeConversionCost": "0.00000",
+    "baseFinancingHomeConversionCost": "0.00000000000000",
+    "guaranteedExecutionFeeHomeConversionCost": "0",
+    "homeConversionCost": "0.00000000000000"
+  },
+  "lastTransactionID": "44"
+}

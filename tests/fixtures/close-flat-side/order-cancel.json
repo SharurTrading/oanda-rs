@@ -1,0 +1,15 @@
+{
+  "transaction": {
+    "id": "43",
+    "accountID": "101-001-1234567-001",
+    "userID": 1001,
+    "batchID": "43",
+    "requestID": "fixture-request-2",
+    "time": "2026-01-05T09:30:01.200000000Z",
+    "type": "ORDER_CANCEL",
+    "orderID": "40",
+    "clientOrderID": "fixture-resting-order",
+    "reason": "CLIENT_REQUEST"
+  },
+  "lastTransactionID": "44"
+}

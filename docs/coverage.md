@@ -76,6 +76,28 @@ per-endpoint structs are a breaking change for callers naming them; stream opera
 `"rejection": "stream"` and reject through `Error::Provider`, whose `code`/`message` fields carry
 the same evidence contract.
 
+## Observed requiredness drift
+
+Field requiredness follows the website's `required` marking, except where OANDA's own payload
+omits the field. Such a field is an `Option`, so its absence stays absence, and a synthetic
+fixture of the observed shape is decoded in `tests/close_flat_side.rs`.
+
+| Definition | Field | Website | Client | Evidence |
+| --- | --- | --- | --- | --- |
+| `MarketOrderRejectTransaction` | `units` | required | `Option<Decimal>` | Practice, 2026-10-16: the `CLOSEOUT_POSITION_DOESNT_EXIST` reject of a `close_position` on a flat hedged side has no `units`; the size is only in `longPositionCloseout` |
+
+The pinned OpenAPI spec declares no `required` list for `MarketOrderRejectTransaction` at all, so
+only the website marks `units` required.
+
+The other transactions a trade close, position closeout or margin closeout produces were
+checked against the same evidence and left as they are. `MarketOrderTransaction` keeps
+`units`, `instrument`, `timeInForce` and `positionFill` required: the position closeout market
+order observed in the same close carries all four, as do the website's `close_position` and `close_trade`
+examples. `MarketOrderRejectTransaction` keeps `instrument`, `timeInForce` and `positionFill`
+required, since the observed reject carries them. `OrderFillTransaction` and
+`OrderCancelTransaction` hold no required field. No refused `close_trade` or margin
+closeout has been observed.
+
 ## Stream record and transport bounds
 
 Pricing and transaction streams bound each newline-delimited record at a local hostile-input limit

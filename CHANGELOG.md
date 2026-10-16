@@ -8,6 +8,16 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
+## Unreleased
+
+- Breaking: `MarketOrderRejectTransaction::units` is now `Option<Decimal>`. OANDA omits `units`
+  from the `CLOSEOUT_POSITION_DOESNT_EXIST` reject of a `close_position` on a side that is
+  already flat, although the website marks it required. Every transaction read covering such a
+  reject (by id, since id, id range and the transaction stream) and the `close_position`
+  rejection body embedding it failed to decode; they now decode with the units absent.
+- Add synthetic fixtures in the observed shape of that close and decode them through every
+  read that carries them.
+
 ## [1.1.0] - 2026-10-15
 
 - Add a plain-language behaviour guide covering connection, data and execution nuances for

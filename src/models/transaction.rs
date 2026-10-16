@@ -486,9 +486,14 @@ pub struct MarketOrderRejectTransaction {
     pub instrument: InstrumentName,
     /// The quantity requested to be filled by the Market Order. A positive number of units results in a long
     /// Order, and a negative number of units results in a short Order.
-    #[serde(rename = "units")]
-    #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
-    pub units: Decimal,
+    ///
+    /// `None` when OANDA wrote no units. A rejected position closeout of a side that is already flat
+    /// (`CLOSEOUT_POSITION_DOESNT_EXIST`) carries none: the requested size is only in
+    /// `long_position_closeout` or `short_position_closeout`. The website marks this field required;
+    /// OANDA's own reject omits it.
+    #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub units: Option<Decimal>,
     /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,

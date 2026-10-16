@@ -86,7 +86,8 @@ plus one close per account and instrument), cap the reserve at 20, hold the full
 whenever any account's state is unknown, and release it only when every account sharing
 the owner is known flat with no working orders. At 20 reserved, ordinary traffic still has
 100 requests per second. The reserve is finite: it cannot recover requests already spent,
-and it does not bypass a 429 cooldown.
+and it does not bypass a 429 cooldown or a
+[reconciliation fence](#after-an-ambiguous-mutation).
 
 ### Streams
 
@@ -300,13 +301,47 @@ What we saw (Seen): `pl` is rounded to the home currency's precision. One fill s
 - A REST reply for a fill carried the same transactions the stream sent (Seen). Use the id
   to drop the repeat.
 
+### After an ambiguous mutation
+
+A mutation is ambiguous when it may have reached OANDA but no reply says what happened:
+the connection dropped or timed out after sending, OANDA answered 5xx, 408 or a status
+the endpoint does not document, or the reply could not be read. The SDK reports it as
+`AmbiguousMutation` and never retries it (SDK). The order may have been placed, filled,
+or never arrived; OANDA offers no way to resubmit safely so that a duplicate is dropped.
+
+The SDK then fences the account (SDK):
+
+- Every later mutation on that account is refused with `ReconciliationRequired` and not
+  sent. That includes `cancel_order`, `close_trade` and `close_position`, so a fenced
+  account cannot be flattened until you release it.
+- The fence is shared by every clone of the client, and it stays until you call
+  `acknowledge_reconciliation` for that account. Nothing releases it on its own.
+- Dropping a mutation's future after the SDK has reserved the account (your own
+  timeout, a `select!` branch losing) fences the account too, because the SDK can no
+  longer know whether the request went out.
+- A 429 is not ambiguous: OANDA refused it, and the account is not fenced.
+
+To release it (Advice):
+
+1. Read every transaction after the last id you applied with `transactions_since_id`,
+   and apply each one once, as in [Recovering from a gap](#recovering-from-a-gap).
+2. Only then call `acknowledge_reconciliation`. It returns an error if it could not
+   release the fence, and the account then stays fenced.
+3. Decide from what you read whether the ambiguous order exists, before sending
+   anything that depends on it.
+
+> [!WARNING]
+> If your wrapper never calls `acknowledge_reconciliation`, one ambiguous mutation
+> leaves the account unable to cancel or close for the rest of the session. An exit
+> path should run step 1 and step 2 first, then send its cancels and closes.
+
 ## Wrapping the SDK
 
 | Rule | Why |
 | --- | --- |
 | Run one `Admission` owner per IP address and pass clones of it to every client | The limits are per IP; independent owners do not see each other (SDK) |
 | Send one mutation per account at a time | A second concurrent mutation on the same account fails with `MutationInFlight` (SDK) |
-| Treat `AmbiguousMutation` as "unknown", not "failed" | The order may have reached OANDA. The account is fenced until you read its transactions and call `acknowledge_reconciliation` (SDK) |
+| Treat `AmbiguousMutation` as "unknown", not "failed" | The order may have reached OANDA. The account is fenced, exits included, until you read its transactions and call `acknowledge_reconciliation`; see [After an ambiguous mutation](#after-an-ambiguous-mutation) (SDK) |
 | Never retry a mutation automatically | The SDK never does; a blind retry can double an order (SDK) |
 | Treat HTTP 5xx, 408, timeouts and unexpected statuses on a mutation as ambiguous | The SDK reports them as `AmbiguousMutation`. A 429 does not fence the account (SDK) |
 | Own reconnection | The SDK opens one stream per call and never reconnects (SDK) |

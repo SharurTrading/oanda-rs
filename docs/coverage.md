@@ -86,6 +86,9 @@ fixture of the observed shape is decoded in `tests/close_flat_side.rs`.
 | --- | --- | --- | --- | --- |
 | `MarketOrderRejectTransaction` | `units` | required | `Option<Decimal>` | Practice, 2026-10-16: the `CLOSEOUT_POSITION_DOESNT_EXIST` reject of a `close_position` on a flat hedged side has no `units`; the size is only in `longPositionCloseout` |
 
+The pinned OpenAPI spec declares no `required` list for `MarketOrderRejectTransaction` at all, so
+only the website marks `units` required.
+
 The other transactions a trade close, position closeout or margin closeout produces were
 checked against the same evidence and left as they are. `MarketOrderTransaction` keeps
 `units`, `instrument`, `timeInForce` and `positionFill` required: the position closeout market

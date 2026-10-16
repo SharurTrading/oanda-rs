@@ -243,6 +243,15 @@ What we saw (Seen):
   `POSITION_TO_REDUCE_TOO_SMALL`; it did not reduce part of it.
 - A flatten of "cancel every working order, then a `REDUCE_ONLY` `IOC` market order per
   open side" left a hedged account flat with no orders.
+- `close_position` with `longUnits: ALL` on a hedged account whose long side was already
+  flat was refused. OANDA wrote a `MARKET_ORDER_REJECT` transaction with reason
+  `POSITION_CLOSEOUT` and `rejectReason` `CLOSEOUT_POSITION_DOESNT_EXIST`, embedded it in the
+  rejection reply as `longOrderRejectTransaction`, and moved the transaction cursor.
+
+> [!IMPORTANT]
+> That reject carries **no `units`** field, although the docs mark it required. The size you
+> asked for is only in `longPositionCloseout` (or `shortPositionCloseout`), as `ALL` or a
+> number. The SDK reads the missing units as `None` (SDK); do not read a size from it.
 
 ### Dependent orders
 
@@ -375,6 +384,7 @@ These are not verified. Treat them as open questions.
 | A single order that reverses a netting position through zero | Not recorded. Our reversals went to flat first, then opened the other side |
 | Which trade a netting account closes first | Not recorded with more than one open trade |
 | `close_position` with one side omitted while the other side is open | Not recorded; see the warning in [Closing positions and trades](#closing-positions-and-trades) |
+| A refused `close_trade` or margin closeout | Not recorded. Only the reject for a flat position side is; others may omit fields the docs mark required |
 | Size limits of `transactions_since_id` | The docs give none; very large backfills are untested |
 | Gaps between transaction ids | Not seen, and not ruled out |
 | Several processes on one IP address | The SDK cannot coordinate them |

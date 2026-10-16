@@ -1,0 +1,24 @@
+{
+  "transaction": {
+    "id": "41",
+    "accountID": "101-001-1234567-001",
+    "userID": 1001,
+    "batchID": "41",
+    "requestID": "fixture-request-1",
+    "time": "2026-01-05T09:30:00.100000000Z",
+    "type": "MARKET_ORDER",
+    "instrument": "EUR_USD",
+    "units": "-3",
+    "timeInForce": "FOK",
+    "positionFill": "REDUCE_ONLY",
+    "reason": "POSITION_CLOSEOUT",
+    "longPositionCloseout": {
+      "instrument": "EUR_USD",
+      "units": "ALL"
+    },
+    "clientExtensions": {
+      "id": "fixture-close-long"
+    }
+  },
+  "lastTransactionID": "44"
+}

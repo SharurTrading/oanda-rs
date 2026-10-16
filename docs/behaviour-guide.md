@@ -101,8 +101,8 @@ Pricing and transaction streams are long HTTP/1.1 responses with one JSON record
 | A malformed or oversized record (over 1 MiB), a backlog over 16 MiB, end of file or any read error ends the stream. The SDK never reconnects or skips ahead | SDK |
 | Each `HttpStream` is one "generation". After it ends you open a new one and treat the time between as a gap | SDK |
 | The SDK bounds the connection attempt, but not the wait for the response headers. Put your own deadline around `stream_pricing` and `stream_transactions` | SDK |
-| Some stream opens waited about 21 to 23 seconds and then got HTTP 520. Others opened in under 2.5 seconds. One slow transaction-stream open still succeeded after 23 seconds. The cause is not known | Seen |
-| A pricing open sometimes got no reply at all for 15 seconds, while other opens on the same account, before and after, worked | Seen |
+| Some stream opens waited about 21 to 23 seconds and then got HTTP 520. Others opened in under 2.5 seconds. One slow transaction-stream open still succeeded after 23 seconds. In a later run three transaction-stream opens in a row returned HTTP 520, and a slow open took up to about 30 seconds to fail. The cause is not known | Seen |
+| A pricing open sometimes got no reply at all for 15 seconds, while other opens on the same account, before and after, worked. In a later run a pricing open missed a 4-second bound, and later attempts succeeded | Seen |
 
 What worked for opening streams (Advice, tested against the behaviour above):
 
@@ -111,6 +111,9 @@ What worked for opening streams (Advice, tested against the behaviour above):
 3. Never retry an HTTP 4xx; it is a real refusal.
 4. Remember that every attempt, including an abandoned one, uses the 2-per-second
    connection budget.
+
+Three attempts can all fail: in one run three transaction-stream opens in a row returned
+HTTP 520 (Seen). Give the wrapper a plan for the last attempt failing too (Advice).
 
 ### Shutdown
 
@@ -237,6 +240,8 @@ What we saw (Seen):
 - `close_position` with `ALL` worked the same way in hedged and netting accounts, for long
   and for short. Three separate one-unit trades were closed by one close, each with its
   own entry in `tradesClosed`.
+- `close_position` with a units count created a `POSITION_CLOSEOUT` market order for those
+  units. The trade stayed open with the remainder.
 - A separate pending `REDUCE_ONLY` limit order **survived** the close. It had to be
   cancelled on its own. To flatten, cancel working orders first, then close.
 - A `REDUCE_ONLY` `FOK` order larger than the position was cancelled with
@@ -253,12 +258,34 @@ What we saw (Seen):
 > asked for is only in `longPositionCloseout` (or `shortPositionCloseout`), as `ALL` or a
 > number. The SDK reads the missing units as `None` (SDK); do not read a size from it.
 
+A close that names `ALL` on both sides while only the long side is open is refused as a
+whole, and the open side is not closed either (Seen):
+
+| Part | What came back |
+| --- | --- |
+| Reply | HTTP 400, `CLOSEOUT_POSITION_DOESNT_EXIST` |
+| Open long side | A reject transaction with reject reason `CLOSEOUT_POSITION_REJECT`, and `units` present |
+| Empty short side | A reject transaction with reject reason `CLOSEOUT_POSITION_DOESNT_EXIST`, and no `units`, as above |
+| Position | Still open |
+
+The SDK returns a 400 as `OperationError::Rejected`, a definitive refusal and not an
+ambiguous mutation, with the reject transactions in the typed `ClosePositionRejection`
+body (SDK). So read the position first and name only a side you know is open, with the
+other side `NONE`. `ALL` on both sides is not a safe way to say "close whatever is open"
+(Advice).
+
 ### Dependent orders
 
 Take-profit, stop-loss and trailing stops are attached to a trade, either in `onFill` when
 you place the order or later with `set_trade_dependent_orders`. OANDA cancels them when
-their trade closes; `LINKED_TRADE_CLOSED` is the cancel reason for this (Docs). We have
-not recorded it ourselves.
+their trade closes; `LINKED_TRADE_CLOSED` is the cancel reason for this (Docs).
+
+A take-profit and a stop-loss attached to a trade were both cancelled with
+`LINKED_TRADE_CLOSED` when the position was closed from outside with `close_position`,
+rather than by either order filling. The close reply's `relatedTransactionIDs` included
+those two cancels (Seen). The SDK's `ClosePositionResponse` has fields only for the
+closeout order's own create, fill and cancel, so the dependent cancels reach you as ids
+(SDK). Read their transactions from the stream or with `transactions_since_id` (Advice).
 
 ### Replacing orders and refusals
 
@@ -309,6 +336,9 @@ What we saw (Seen): `pl` is rounded to the home currency's precision. One fill s
   them in others (Seen). Apply by transaction id, once, whichever arrives first.
 - A REST reply for a fill carried the same transactions the stream sent (Seen). Use the id
   to drop the repeat.
+- On a netting account, the REST reply to a `close_position` arrived between the stream
+  rows of the two dependent-order cancels it caused (Seen). The rows from one request do
+  not all arrive on the same side of its reply.
 
 ### After an ambiguous mutation
 
@@ -379,12 +409,13 @@ These are not verified. Treat them as open questions.
 | Area | Status |
 | --- | --- |
 | Live accounts | Nothing here is tested on Live |
-| Cause of the slow stream opens and HTTP 520 replies | Unknown. Not shown to be OANDA, the network or this SDK |
-| Dependent orders (take-profit, stop-loss, trailing, guaranteed stop) | Taken from the docs; not recorded |
+| Cause of the slow stream opens and HTTP 520 replies | Unknown. Not shown to be OANDA, the network or this SDK. Later runs added three transaction-stream opens in a row returning HTTP 520, an open that took up to about 30 seconds to fail, and a pricing open that missed a 4-second bound before later attempts succeeded |
+| Dependent orders other than a take-profit and stop-loss cancelled by an outside `close_position` (trailing and guaranteed stops; a trade ending any other way) | Taken from the docs; not recorded. The recorded case is in [Dependent orders](#dependent-orders) |
 | A single order that reverses a netting position through zero | Not recorded. Our reversals went to flat first, then opened the other side |
 | Which trade a netting account closes first | Not recorded with more than one open trade |
-| `close_position` with one side omitted while the other side is open | Not recorded; see the warning in [Closing positions and trades](#closing-positions-and-trades) |
-| A refused `close_trade` or margin closeout | Not recorded. Only the reject for a flat position side is; others may omit fields the docs mark required |
+| `close_position` with one side omitted (the docs default it to `ALL`) while the other side is open | Not recorded. Naming `ALL` on both sides while one is flat is recorded, and is refused as a whole; see [Closing positions and trades](#closing-positions-and-trades) |
+| A refused `close_trade` or margin closeout | Not recorded. Only the rejects of a refused `close_position` are (a flat side, and the open side beside it); others may omit fields the docs mark required |
+| Home-currency conversion fields on fills | A `close_position` closeout fill carried `requestedUnits`, `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost` and `homeConversionCost`. The SDK does not model them, so it ignores them on decode. Their types, whether each is always present, and how they relate to `pl` and `accountBalance` are not recorded. Tracked in [SharurTrading/oanda-rs#58](https://github.com/SharurTrading/oanda-rs/issues/58) |
 | Size limits of `transactions_since_id` | The docs give none; very large backfills are untested |
 | Gaps between transaction ids | Not seen, and not ruled out |
 | Several processes on one IP address | The SDK cannot coordinate them |

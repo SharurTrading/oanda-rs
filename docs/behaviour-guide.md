@@ -283,6 +283,10 @@ documented shape, and a body that does not match is still `Rejected`, as
 open, with the other side `NONE`. `ALL` on both sides is not a safe way to say "close
 whatever is open" (Advice).
 
+Even when the body is `Supplied::Undecoded`, `OperationError::Rejected` keeps the HTTP
+status and the readable `errorCode` and `errorMessage` (SDK), so the reject reason can be
+read when the transactions cannot.
+
 ### Dependent orders
 
 Take-profit, stop-loss and trailing stops are attached to a trade, either in `onFill` when
@@ -352,6 +356,10 @@ What we saw (Seen): `pl` is rounded to the home currency's precision. One fill s
 - On a netting account, the REST reply to a `close_position` arrived between the stream
   rows of the two dependent-order cancels it caused (Seen). The rows from one request do
   not all arrive on the same side of its reply.
+- An account read can be ahead of the stream you hold. While a native close was in flight, a
+  read stated the position flat at transaction 865 although the stream had delivered only 863;
+  the close's fill arrived on the stream afterwards (Seen). Compare a read with the fills only up
+  to its own `lastTransactionID`, never with the fills you have delivered so far.
 
 ### After an ambiguous mutation
 
@@ -429,6 +437,7 @@ These are not verified. Treat them as open questions.
 | `close_position` with a side omitted entirely (the docs default it to `ALL`) | Not tried; the recorded closes named both sides. If an omitted side acts as `ALL`, omitting a flat side would be the both-`ALL` request that was refused as a whole, and omitting an open side would close it too. Neither was run; see [Closing positions and trades](#closing-positions-and-trades) |
 | A refused `close_trade` or margin closeout | Not recorded. Only the rejects of a refused `close_position` are (a flat side, and the open side beside it); others may omit fields the docs mark required |
 | Home-currency conversion fields on fills | A `close_position` closeout fill carried `requestedUnits`, `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost` and `homeConversionCost`. The SDK does not model them, so it ignores them on decode. Their types, whether each is always present, and how they relate to `pl` and `accountBalance` are not recorded. Tracked in [SharurTrading/oanda-rs#58](https://github.com/SharurTrading/oanda-rs/issues/58) |
+| A unit change that reaches the account without an `ORDER_FILL` | Not seen. An outside close from OANDA's own app, take-profit and stop-loss fills, `DAILY_FINANCING` and `DIVIDEND_ADJUSTMENT` have not been recorded |
 | Size limits of `transactions_since_id` | The docs give none; very large backfills are untested |
 | Gaps between transaction ids | Not seen, and not ruled out |
 | Several processes on one IP address | The SDK cannot coordinate them |

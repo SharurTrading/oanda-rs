@@ -29,6 +29,17 @@ the documented values — a compile error beats a silent `Unknown` — and
 `tagged_arms_match_the_pinned_spec` cross-checks the tagged set against the
 pinned OpenAPI spec.
 
+## Spec fields the website omits
+
+Where the pinned OpenAPI spec documents a field the website does not, the website wins and the
+field is left out. One exception: `lastOrderFillTimestamp` on `Account` and `AccountSummary`,
+"the date/time of the last order that was filled for this account". OANDA's own v20 clients
+([Python](https://github.com/oanda/v20-python), [Java](https://github.com/oanda/v20-java),
+[JavaScript](https://github.com/oanda/v20-javascript)) read it from both. The client holds it
+as `Option<Timestamp>`, so absence stays absence. The other spec-only fields and definitions
+belong to endpoints the website no longer lists (order and position books, user info, the
+unscoped `Price`).
+
 ## API comparison page
 
 The [API comparison page](https://developer.oanda.com/rest-live-v20/api-comparison/)

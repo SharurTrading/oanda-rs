@@ -280,6 +280,16 @@ pub struct Account {
         skip_serializing_if = "Option::is_none"
     )]
     pub last_margin_call_extension_time: Option<Timestamp>,
+    /// The date/time of the last order that was filled for this account.
+    ///
+    /// Not on the website's definition page; documented by the pinned OpenAPI spec and read by
+    /// OANDA's own v20 clients. `None` when OANDA does not send it.
+    #[serde(
+        rename = "lastOrderFillTimestamp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub last_order_fill_timestamp: Option<Timestamp>,
     /// The ID of the last Transaction created for the Account.
     #[serde(
         rename = "lastTransactionID",
@@ -891,6 +901,16 @@ pub struct AccountSummary {
         skip_serializing_if = "Option::is_none"
     )]
     pub last_margin_call_extension_time: Option<Timestamp>,
+    /// The date/time of the last order that was filled for this account.
+    ///
+    /// Not on the website's definition page; documented by the pinned OpenAPI spec and read by
+    /// OANDA's own v20 clients. `None` when OANDA does not send it.
+    #[serde(
+        rename = "lastOrderFillTimestamp",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub last_order_fill_timestamp: Option<Timestamp>,
     /// The ID of the last Transaction created for the Account.
     #[serde(
         rename = "lastTransactionID",

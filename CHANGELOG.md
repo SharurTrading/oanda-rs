@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
-## Unreleased
+## [2.0.0] - 2026-10-18
 
 - Add consuming `HttpStream::close` and the move-only, fused `BufferedEvents` iterator.
   Closing releases the response and stream lease synchronously, then permits decoding
@@ -38,6 +38,9 @@ first public release.
   on the `tradeOpened` entry of an opening fill but does not document it, so it was dropped on
   decode. It is an optional exact `Decimal`: a stated zero is `Some(0)`, an absent field `None`.
   Code building `TradeOpen` with a literal must add the field.
+- Expand the behaviour guide with the reconciliation fence, position-close and
+  dependent-cancel behaviour, stream-open failures, and the read-ahead-of-stream
+  comparison recorded on Practice in October 2026.
 - Correct the behaviour guide: `homeConversionFactors` is not deprecated and was present on every
   recorded fill. The deprecated fields are `gainQuoteHomeConversionFactor` and
   `lossQuoteHomeConversionFactor`.

@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
-[![Offline tests: 78 passed locally](https://img.shields.io/badge/offline%20tests-78%20passed%20locally-brightgreen.svg)](#testing-status)
+[![Offline tests: 102 passed locally](https://img.shields.io/badge/offline%20tests-102%20passed%20locally-brightgreen.svg)](#testing-status)
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 [![Practice observations: recorded October 2026](https://img.shields.io/badge/Practice%20observations-recorded%20October%202026-blue.svg)](docs/behaviour-guide.md)
 
@@ -132,6 +132,13 @@ environment variables set, run `cargo run --example practice_account`. Select
   rejected, and buffered records are never evicted for a slow caller. Malformed or oversized records, timeouts, and connection loss end that stream
   generation and require caller-owned recovery. The library does not reconnect or maintain account
   and price projections.
+- `HttpStream::close` consumes one stream, closes its response and admission lease
+  synchronously, and returns `BufferedEvents`, a finite synchronous iterator over the
+  already buffered prefix. Handle every result before treating it as drained. Partial
+  tails and already-ended generations are explicit errors; malformed and oversized
+  records keep their existing errors. The iterator reads no further network data and
+  does not establish a complete venue sequence. Dropping a stream still discards its
+  undelivered buffer; use `close` when that prefix must be consumed.
 - OANDA's [pricing stream](https://developer.oanda.com/rest-live-v20/pricing-ep/) is sampled at most
   four prices per second per instrument. It does not carry every price update.
 
@@ -237,13 +244,13 @@ The badges distinguish deterministic test results, documented API coverage, and 
 Practice observations. The [successful CI run on 2026-10-15](https://github.com/SharurTrading/oanda-rs/actions/runs/38711925905)
 at [commit `4f2109b`](https://github.com/SharurTrading/oanda-rs/commit/4f2109b8aa1b9a598a050cf6ab68ef23694009ba)
 passed 78 Rust tests and left 3 live probes ignored. The current
-local suite passes **78 credential-free Rust tests** with **3 live probes ignored**. The static
+local suite passes **102 credential-free Rust tests** with **3 live probes ignored**. The static
 test-count badge records the local suite; it is not a count of operations or authenticated venue
 tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 78 passed locally on 2026-10-15; 3 live probes ignored. The linked 2026-10-15 CI run passed the same 78 tests. |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 102 passed locally on 2026-10-18; 3 live probes ignored. The linked 2026-10-15 CI run passed its earlier 78-test suite. |
 | Coverage ledger | 32 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](docs/coverage.md#authenticated-probes) |
 | Practice observations while building an integration | Order fills in both account modes, stream open behaviour and timing, transaction-stream fill and replace events, P/L precision | Recorded October 2026 with per-fact source tags in the [behaviour guide](docs/behaviour-guide.md); small-sample observations, untested on Live |
@@ -258,7 +265,7 @@ The deterministic tests exercise these SDK behaviors without credentials:
 | Provider definitions and variants | [Definition fixtures](tests/definition_wire.rs), [scalar enums](tests/enum_variants.rs) and [tagged variants](tests/tagged_variants.rs): 168 definitions, 503 enum values and 55 tagged variants |
 | Observed transaction shapes | [Close of a flat side](tests/close_flat_side.rs): synthetic transactions in the shape a 2026-10-16 Practice close of a flat hedged side produced, decoded by id, since id, id range, from the transaction stream and inside the `close_position` rejection; the closeout fill re-encodes with its undocumented requested units and home-conversion costs intact. [Opening fill](tests/open_fill.rs): a synthetic fill in the shape of 2026-10-12 Practice opening fills keeps the undocumented cost on `tradeOpened`, a stated zero apart from absence |
 | Financial precision | [Decimal fixtures](tests/decimal_precision.rs): exact strings and numeric liquidity, with nonrepresentable values refused |
-| Stream delivery and failure | [Client contract tests](tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1 |
+| Stream delivery and failure | [Client contract tests](tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1; synchronous close/drain preserves the finite buffered prefix, explicit tails/errors, cancellation, slot reuse and sibling stream/REST access |
 | Exit reserve and runtime changes | [Client contract tests](tests/client_contract.rs) and client unit tests: shared-clone admission, cancel/trade-close/position-close capacity, runtime replacement and release, spent capacity and provider cooldown |
 | Cross-client transport admission | [Admission scope tests](tests/admission_scope.rs) and admission unit tests: different credentials share stream leases, connector pacing and cooldown; established socket reuse, cancellation and independent owners |
 | Mutation uncertainty and rejection evidence | [Client contract tests](tests/client_contract.rs): single-attempt exits, account fences after ambiguous replies or timeouts, and supplied versus absent or undecodable provider evidence |

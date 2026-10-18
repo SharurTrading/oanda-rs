@@ -237,6 +237,10 @@ impl Serialize for OrderRequest {
 /// Documented Transaction variants identified by OANDA’s `type` field.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
+#[expect(
+    clippy::large_enum_variant,
+    reason = "boxing a variant would change every caller's match; the stream already boxes the whole Transaction"
+)]
 pub enum Transaction {
     /// `CREATE` provider variant.
     CreateTransaction(CreateTransaction),

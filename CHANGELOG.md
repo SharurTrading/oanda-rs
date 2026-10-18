@@ -17,6 +17,11 @@ first public release.
   rejection body embedding it failed to decode; they now decode with the units absent.
 - Add synthetic fixtures in the observed shape of that close and decode them through every
   read that carries them.
+- Breaking: `OrderFillTransaction` gains `requested_units`, `pl_home_conversion_cost`,
+  `base_financing_home_conversion_cost`, `guaranteed_execution_fee_home_conversion_cost` and
+  `home_conversion_cost`, and `TradeReduce` gains the four conversion costs. OANDA sends these
+  on fills but documents none of them, so they were dropped on decode. Each is an optional exact
+  `Decimal`. Code building either struct with a literal must add the fields.
 
 ## [1.1.0] - 2026-10-15
 

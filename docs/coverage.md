@@ -98,6 +98,25 @@ required, since the observed reject carries them. `OrderFillTransaction` and
 `OrderCancelTransaction` hold no required field. No refused `close_trade` or margin
 closeout has been observed.
 
+### Observed fields beyond the docs
+
+OANDA also sends fields that neither the website nor the pinned OpenAPI spec lists. A field
+observed in a provider payload is modelled when it carries money or size. Each is optional,
+because nothing shows it is always sent, and each is an exact `Decimal` (OA-DECIMAL-01). The
+synthetic fixture `tests/fixtures/close-flat-side/order-fill.json` carries the observed shape, and
+`tests/close_flat_side.rs` decodes it and re-encodes it with nothing dropped.
+
+| Definition | Field | Website | Client | Evidence |
+| --- | --- | --- | --- | --- |
+| `OrderFillTransaction` | `requestedUnits` | absent | `Option<Decimal>` | Practice, 2026-10-16: the `MARKET_ORDER_POSITION_CLOSEOUT` fill of a `close_position` on a hedged EUR_USD account, as a decimal string |
+| `OrderFillTransaction` | `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | absent | `Option<Decimal>` | The same fill, each as a decimal string |
+| `TradeReduce` | `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | absent | `Option<Decimal>` | The same fill's one `tradesClosed` entry, each as a decimal string |
+
+No `TradeOpen` carrying a home-conversion cost has been recorded, so `TradeOpen` gains no field.
+The fixture's values are synthetic. Neither the costs' sign nor how they enter `pl`, `realizedPL`
+or `accountBalance` is recorded; the
+[behaviour guide](behaviour-guide.md#fills-money-and-pnl) says so.
+
 ## Stream record and transport bounds
 
 Pricing and transaction streams bound each newline-delimited record at a local hostile-input limit

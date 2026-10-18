@@ -341,6 +341,16 @@ Book what OANDA states. Do not recompute it.
 | `financing` | Financing paid or collected on this fill |
 | `accountBalance` | The balance after this fill |
 | `homeConversionFactors` | Deprecated (Docs). It was absent in our recordings; do not rely on it |
+| `requestedUnits` | Not in the docs. The units the order asked for, beside `units`, the units that filled (Seen on a closeout fill; SDK `requested_units`) |
+| `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | Not in the docs. The costs of converting the fill's PnL, base-currency financing and guaranteed execution fee into home currency, and their total as OANDA names it. They are on the fill and on each `tradesClosed` entry (Seen on a closeout fill). Each is optional in the SDK |
+
+The home-conversion costs are the fill fields that carry currency conversion; `pl`,
+`financing`, `commission`, `guaranteedExecutionFee` and `halfSpreadCost` are already in home
+currency (Docs). Whether a conversion cost is already inside `pl` and `financing`, or moves the
+balance on top of them, is not recorded, and neither is its sign. So take the balance from
+`accountBalance`, not from a sum of the other fields (Advice). If you do keep a derived
+balance, compare it with `accountBalance` on every fill and treat a difference as unexplained,
+not as a rounding error to absorb (Advice).
 
 What we saw (Seen): `pl` is rounded to the home currency's precision. One fill showed
 `pl` -0.0001 against `quotePL` -0.00013. Three closes each stated `pl` -0.0001, summing to
@@ -443,7 +453,7 @@ These are not verified. Treat them as open questions.
 | Which trade a netting account closes first | Not recorded with more than one open trade |
 | `close_position` with a side omitted entirely (the docs default it to `ALL`) | Not tried; the recorded closes named both sides. If an omitted side acts as `ALL`, omitting a flat side would be the both-`ALL` request that was refused as a whole, and omitting an open side would close it too. Neither was run; see [Closing positions and trades](#closing-positions-and-trades) |
 | A refused `close_trade` or margin closeout | Not recorded. Only the rejects of a refused `close_position` are (a flat side, and the open side beside it); others may omit fields the docs mark required |
-| Home-currency conversion fields on fills | A `close_position` closeout fill carried `requestedUnits`, `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost` and `homeConversionCost`. The SDK does not model them, so it ignores them on decode. Their types, whether each is always present, and how they relate to `pl` and `accountBalance` are not recorded. Tracked in [SharurTrading/oanda-rs#58](https://github.com/SharurTrading/oanda-rs/issues/58) |
+| Home-currency conversion costs on fills | The SDK decodes them (see [Fills, money and PnL](#fills-money-and-pnl)), but only one closeout fill carrying them was recorded. Not recorded: their sign, whether `homeConversionCost` is the sum of the other three, how they enter `pl` and `accountBalance`, whether every fill carries them, and whether a `tradeOpened` or `tradeReduced` entry does |
 | A unit change that reaches the account without an `ORDER_FILL` | Not seen. Not recorded: an outside close from OANDA's own app, and take-profit and stop-loss fills, which the docs give `ORDER_FILL` reasons of their own (`TAKE_PROFIT_ORDER`, `STOP_LOSS_ORDER`). `DAILY_FINANCING` and `DIVIDEND_ADJUSTMENT` are not recorded either; their SDK models carry no `units`, so what is open there is what they move, not a unit change |
 | Size limits of `transactions_since_id` | The docs give none; very large backfills are untested |
 | Gaps between transaction ids | Not seen, and not ruled out |

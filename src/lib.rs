@@ -78,7 +78,7 @@ pub use environment::Environment;
 pub use error::{Error, GenericRejection, OperationError, Result, Supplied};
 pub use ids::*;
 pub use patch::Patch;
-pub use stream::{HttpStream, PriceStreamEvent, TransactionStreamEvent};
+pub use stream::{BufferedEvents, HttpStream, PriceStreamEvent, TransactionStreamEvent};
 pub use timestamp::Timestamp;
 
 /// Instrument models and candle endpoint contracts.
@@ -91,8 +91,9 @@ pub mod instruments {
 /// HTTP client, streaming, and error contracts.
 pub mod transport {
     pub use crate::{
-        Admission, ApiResponse, Client, ClientBuilder, Environment, Error, GenericRejection,
-        HttpStream, OperationError, PriceStreamEvent, Supplied, TransactionStreamEvent,
+        Admission, ApiResponse, BufferedEvents, Client, ClientBuilder, Environment, Error,
+        GenericRejection, HttpStream, OperationError, PriceStreamEvent, Supplied,
+        TransactionStreamEvent,
     };
 }
 
@@ -102,3 +103,9 @@ pub mod primitives {
     pub use crate::ids::*;
     pub use crate::models::{AccountUnits, DecimalNumber, PriceValue};
 }
+
+#[cfg(test)]
+extern crate self as oanda_client;
+#[cfg(test)]
+#[path = "../tests/support/mod.rs"]
+mod test_support;

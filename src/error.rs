@@ -145,6 +145,15 @@ pub enum Error {
     /// The response or stream record exceeds a configured bound.
     #[error("OANDA response exceeds the configured size limit")]
     ResponseTooLarge,
+    /// A finite buffered cut ended inside an unterminated stream record.
+    #[error("OANDA buffered stream ends with {bytes} unterminated bytes")]
+    IncompleteStreamRecord {
+        /// Bytes remaining after the last complete newline-delimited record.
+        bytes: usize,
+    },
+    /// The stream had ended before a buffered cut could be established.
+    #[error("OANDA stream already ended before its buffered prefix was closed")]
+    StreamAlreadyEnded,
     /// Provider response did not match the documented shape.
     #[error("malformed OANDA response: {0}")]
     Decode(String),

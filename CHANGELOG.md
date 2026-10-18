@@ -10,6 +10,14 @@ first public release.
 
 ## Unreleased
 
+- Add consuming `HttpStream::close` and the move-only, fused `BufferedEvents` iterator.
+  Closing releases the response and stream lease synchronously, then permits decoding
+  exactly the already buffered prefix without any network reads or runtime.
+- Add explicit `IncompleteStreamRecord { bytes }` and `StreamAlreadyEnded` errors.
+  An unterminated tail, malformed or oversized record, or already-ended generation
+  cannot be mistaken for a clean buffered drain. Existing stream bounds and decoder
+  ordering remain unchanged. This local cut does not establish venue completeness.
+
 - Breaking: `MarketOrderRejectTransaction::units` is now `Option<Decimal>`. OANDA omits `units`
   from the `CLOSEOUT_POSITION_DOESNT_EXIST` reject of a `close_position` on a side that is
   already flat, although the website marks it required. Every transaction read covering such a

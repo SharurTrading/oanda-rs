@@ -121,8 +121,25 @@ All three attempts can fail. When they do (Advice):
 
 ### Shutdown
 
-Drop the `HttpStream` to close it; this frees its stream slot (SDK). There is no logout or
-session close in v20. Dropping a stream in the middle of a read is safe.
+Dropping `HttpStream` closes its response and frees its stream slot, discarding the
+undelivered buffer (SDK). When that buffered prefix matters, cancel any pending
+`next_event` borrow and consume the stream with `HttpStream::close`. It closes the
+response and lease synchronously, then returns `BufferedEvents`: a finite, synchronous
+iterator using the original decoder, record order and size bounds. It owns no network
+response and performs no more HTTP reads. It is safe to drop the iterator, but doing so
+is not proof that the prefix was delivered.
+
+| Buffered result | Meaning (SDK) |
+| --- | --- |
+| Successful records, then `None` | Every complete record already in the SDK buffer at the cut was decoded, with no unterminated tail |
+| `IncompleteStreamRecord { bytes }` | The cut retained that many unterminated bytes after its complete records; it is not a clean drain |
+| `StreamAlreadyEnded` | The generation ended before this cut; closure cannot establish a new clean prefix |
+| Decode or size error | The original decoding or local bound refused the prefix; no later record is skipped to |
+
+The iterator is fused after its first error or completion. The local prefix excludes
+unread OS/socket/HTTP-body data and proves no complete venue sequence or transaction
+cut. There is no logout or session-close operation in v20. Caller-owned recovery and
+application lifecycle decisions remain outside this transport operation.
 
 ## Data
 

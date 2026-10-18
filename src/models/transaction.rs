@@ -2426,6 +2426,17 @@ pub struct OrderFillTransaction {
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
+    /// The number of units the filled Order requested, set against `units`, the number that filled.
+    ///
+    /// Not documented by OANDA. Observed on a Practice `close_position` closeout fill on
+    /// 2026-10-16; `None` when OANDA does not send it.
+    #[serde(
+        rename = "requestedUnits",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub requested_units: Option<Decimal>,
     /// This is the conversion factor in effect for the Account at the time of the OrderFill for converting any
     /// gains realized in Instrument quote units into units of the Account’s home currency. Deprecated: Will be
     /// removed in a future API update.
@@ -2571,6 +2582,51 @@ pub struct OrderFillTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub half_spread_cost: Option<Decimal>,
+    /// The cost of converting the fill's `pl` into the Account's home currency, as OANDA names it.
+    ///
+    /// Not documented by OANDA. Observed on a Practice `close_position` closeout fill on
+    /// 2026-10-16, and on each of its `tradesClosed` entries. Its sign and its relation to `pl`
+    /// and `accountBalance` have not been recorded. `None` when OANDA does not send it.
+    #[serde(
+        rename = "plHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub pl_home_conversion_cost: Option<Decimal>,
+    /// The cost of converting the fill's `baseFinancing` into the Account's home currency, as OANDA
+    /// names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`.
+    #[serde(
+        rename = "baseFinancingHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub base_financing_home_conversion_cost: Option<Decimal>,
+    /// The cost of converting the fill's guaranteed execution fee into the Account's home currency,
+    /// as OANDA names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`.
+    #[serde(
+        rename = "guaranteedExecutionFeeHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub guaranteed_execution_fee_home_conversion_cost: Option<Decimal>,
+    /// The fill's home-currency conversion cost as a whole, as OANDA names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`. Whether it is the sum
+    /// of the three component costs has not been recorded.
+    #[serde(
+        rename = "homeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub home_conversion_cost: Option<Decimal>,
 }
 
 /// An OrderCancelTransaction represents the cancellation of an Order in the client’s Account.
@@ -4668,6 +4724,52 @@ pub struct TradeReduce {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub half_spread_cost: Option<Decimal>,
+    /// The cost of converting this Trade's `realizedPL` into the Account's home currency, as OANDA
+    /// names it.
+    ///
+    /// Not documented by OANDA. Observed on the `tradesClosed` entry of a Practice
+    /// `close_position` closeout fill on 2026-10-16. Its sign and its relation to `realizedPL`
+    /// have not been recorded. `None` when OANDA does not send it.
+    #[serde(
+        rename = "plHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub pl_home_conversion_cost: Option<Decimal>,
+    /// The cost of converting this Trade's `baseFinancing` into the Account's home currency, as
+    /// OANDA names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`.
+    #[serde(
+        rename = "baseFinancingHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub base_financing_home_conversion_cost: Option<Decimal>,
+    /// The cost of converting this Trade's guaranteed execution fee into the Account's home
+    /// currency, as OANDA names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`.
+    #[serde(
+        rename = "guaranteedExecutionFeeHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub guaranteed_execution_fee_home_conversion_cost: Option<Decimal>,
+    /// This Trade's home-currency conversion cost as a whole, as OANDA names it.
+    ///
+    /// Not documented by OANDA; observed as for `pl_home_conversion_cost`. Whether it is the sum
+    /// of the three component costs has not been recorded.
+    #[serde(
+        rename = "homeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub home_conversion_cost: Option<Decimal>,
 }
 
 /// A MarketOrderTradeClose specifies the extensions to a Market Order that has been created specifically to

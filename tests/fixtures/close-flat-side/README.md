@@ -20,6 +20,11 @@ was observed on an OANDA Practice hedged account on 2026-10-16: a `close_positio
 `longUnits: ALL`, sent after the long side had already been closed, was rejected, and the
 reject carries no `units` field. The requested size is only in `longPositionCloseout`.
 
+The fill, 42, also carries fields OANDA does not document: `requestedUnits` and four
+home-conversion costs (`plHomeConversionCost`, `baseFinancingHomeConversionCost`,
+`guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost`), the costs again on its
+`tradesClosed` entry. The test re-encodes the fill to prove none is dropped.
+
 > [!NOTE]
 > Every value is synthetic: ids, times, prices, liquidity, amounts, units, batch, request,
 > user, client and account ids. The field set, field order and JSON types are the ones OANDA

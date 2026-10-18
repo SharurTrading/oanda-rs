@@ -6,8 +6,8 @@ SPDX-License-Identifier: MIT-0
 # oanda-rs
 
 [![CI](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=2.0.0)](https://crates.io/crates/oanda-client/2.0.0)
-[![docs.rs](https://img.shields.io/docsrs/oanda-client/2.0.0?v=2.0.0)](https://docs.rs/oanda-client/2.0.0/oanda_client/)
+[![crates.io](https://img.shields.io/crates/v/oanda-client.svg)](https://crates.io/crates/oanda-client)
+[![docs.rs](https://img.shields.io/docsrs/oanda-client)](https://docs.rs/oanda-client)
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)

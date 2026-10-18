@@ -18,17 +18,15 @@ use oanda_client::models::{
 use oanda_client::position::ClosePositionBody;
 use oanda_client::transaction::{TransactionsByIdRangeQuery, TransactionsSinceIdQuery};
 use oanda_client::{
-    AccountID, Client, Environment, InstrumentName, OperationError, OrderID, Supplied, TradeID,
-    TransactionID, TransactionStreamEvent,
+    AccountID, InstrumentName, OperationError, OrderID, Supplied, TradeID, TransactionID,
+    TransactionStreamEvent,
 };
 use rust_decimal::Decimal;
 use serde_json::{Value, json};
-use std::{str::FromStr, time::Duration};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::TcpListener,
-};
-use url::Url;
+use std::str::FromStr;
+
+mod support;
+use support::{fixture_client, http, server};
 
 const MARKET_ORDER: &str = include_str!("fixtures/close-flat-side/market-order.json");
 const ORDER_FILL: &str = include_str!("fixtures/close-flat-side/order-fill.json");
@@ -46,65 +44,6 @@ fn fixture_batch() -> Vec<Value> {
         .into_iter()
         .map(fixture)
         .collect()
-}
-
-/// Serve one canned response on loopback and return the request it received.
-async fn server(response: Vec<u8>) -> (Url, tokio::task::JoinHandle<String>) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("loopback bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let task = tokio::spawn(async move {
-        let (mut socket, _) = listener.accept().await.expect("accept");
-        let mut bytes = Vec::new();
-        let mut buf = [0_u8; 4096];
-        loop {
-            let read = socket.read(&mut buf).await.expect("read");
-            if read == 0 {
-                break;
-            }
-            bytes.extend_from_slice(&buf[..read]);
-            if let Some(header_end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-                let header_end = header_end + 4;
-                let header = String::from_utf8_lossy(&bytes[..header_end]);
-                let length = header
-                    .lines()
-                    .find_map(|l| {
-                        l.strip_prefix("content-length: ")
-                            .or_else(|| l.strip_prefix("Content-Length: "))
-                    })
-                    .and_then(|v| v.trim().parse::<usize>().ok())
-                    .unwrap_or(0);
-                if bytes.len() >= header_end + length {
-                    break;
-                }
-            }
-        }
-        socket.write_all(&response).await.expect("write");
-        socket.flush().await.expect("flush");
-        String::from_utf8_lossy(&bytes).into_owned()
-    });
-    (url, task)
-}
-
-fn http(status: &str, content_type: &str, body: &str) -> Vec<u8> {
-    format!(
-        "HTTP/1.1 {status}\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
-        body.len()
-    )
-    .into_bytes()
-}
-
-fn fixture_client(url: Url) -> Client {
-    Client::builder(Environment::Practice, "fixture-secret")
-        .endpoints(url.clone(), url)
-        .timeout(Duration::from_secs(2))
-        .build()
-        .expect("fixture client")
 }
 
 fn account() -> AccountID {

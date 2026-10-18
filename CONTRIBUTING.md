@@ -32,6 +32,9 @@ Never add live credentials, captured account data, private-platform dependencies
 provider tokens. Tests must be deterministic and use synthetic fixtures unless they are explicitly
 ignored read-only live probes.
 
+Integration tests that need a loopback server, an HTTP response or a fixture client use the helpers
+in `tests/support/mod.rs` (`mod support;`) rather than defining their own.
+
 ## Local build cache
 
 Kache is optional and speeds up only local builds of this repository. Crates that

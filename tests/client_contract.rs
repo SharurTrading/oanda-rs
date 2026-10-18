@@ -20,49 +20,8 @@ use tokio::{
 };
 use url::Url;
 
-async fn server(response: Vec<u8>) -> (Url, tokio::task::JoinHandle<String>) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("loopback bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let task = tokio::spawn(async move {
-        let (mut socket, _) = listener.accept().await.expect("accept");
-        let mut bytes = Vec::new();
-        let mut buf = [0_u8; 4096];
-        loop {
-            let read = socket.read(&mut buf).await.expect("read");
-            if read == 0 {
-                break;
-            }
-            bytes.extend_from_slice(&buf[..read]);
-            if let Some(header_end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-                let header_end = header_end + 4;
-                let header = String::from_utf8_lossy(&bytes[..header_end]);
-                let length = header
-                    .lines()
-                    .find_map(|l| {
-                        l.strip_prefix("content-length: ")
-                            .or_else(|| l.strip_prefix("Content-Length: "))
-                    })
-                    .and_then(|v| v.trim().parse::<usize>().ok())
-                    .unwrap_or(0);
-                if bytes.len() >= header_end + length {
-                    break;
-                }
-            }
-        }
-        if !response.is_empty() {
-            socket.write_all(&response).await.expect("write");
-            socket.flush().await.expect("flush");
-        }
-        String::from_utf8_lossy(&bytes).into_owned()
-    });
-    (url, task)
-}
+mod support;
+use support::{fixture_client, http, server};
 
 /// Serve one canned response per connection, returning every request received.
 async fn servers(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<String>>) {
@@ -157,19 +116,11 @@ async fn keepalive_server(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHan
 }
 
 fn http_json(status: &str, value: &str) -> Vec<u8> {
-    format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{value}", value.len()).into_bytes()
+    http(status, "application/json", value)
 }
 
 fn http_json_keepalive(status: &str, value: &str) -> Vec<u8> {
     format!("HTTP/1.1 {status}\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n{value}", value.len()).into_bytes()
-}
-
-fn fixture_client(url: Url) -> Client {
-    Client::builder(Environment::Practice, "fixture-secret")
-        .endpoints(url.clone(), url)
-        .timeout(Duration::from_secs(2))
-        .build()
-        .expect("fixture client")
 }
 
 #[tokio::test]

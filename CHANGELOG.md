@@ -26,6 +26,13 @@ first public release.
   `lastOrderFillTimestamp`, but the pinned OpenAPI spec documents it and OANDA's own v20
   clients read it, so it was dropped on decode. Code building either struct with a literal must
   add the field.
+- Breaking: `TradeOpen` gains `guaranteed_execution_fee_home_conversion_cost`. OANDA sends it
+  on the `tradeOpened` entry of an opening fill but does not document it, so it was dropped on
+  decode. It is an optional exact `Decimal`: a stated zero is `Some(0)`, an absent field `None`.
+  Code building `TradeOpen` with a literal must add the field.
+- Correct the behaviour guide: `homeConversionFactors` is not deprecated and was present on every
+  recorded fill. The deprecated fields are `gainQuoteHomeConversionFactor` and
+  `lossQuoteHomeConversionFactor`.
 
 ## [1.1.0] - 2026-10-15
 

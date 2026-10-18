@@ -6,8 +6,8 @@ SPDX-License-Identifier: MIT-0
 # oanda-rs
 
 [![CI](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/SharurTrading/oanda-rs/actions/workflows/ci.yml)
-[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=1.1.0)](https://crates.io/crates/oanda-client/1.1.0)
-[![docs.rs](https://img.shields.io/docsrs/oanda-client/1.1.0?v=1.1.0)](https://docs.rs/oanda-client/1.1.0/oanda_client/)
+[![crates.io](https://img.shields.io/crates/v/oanda-client.svg?v=2.0.0)](https://crates.io/crates/oanda-client/2.0.0)
+[![docs.rs](https://img.shields.io/docsrs/oanda-client/2.0.0?v=2.0.0)](https://docs.rs/oanda-client/2.0.0/oanda_client/)
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](docs/coverage.json)
@@ -29,7 +29,7 @@ adapter is outside this repository.
 The project is licensed under [MIT No Attribution (MIT-0)](LICENSE). The minimum supported Rust
 version is **1.95.0**.
 
-Version 1 follows Semantic Versioning. Public API changes that require downstream source changes
+Version 2 follows Semantic Versioning. Public API changes that require downstream source changes
 will be released under a new major version; additive APIs and fixes use minor and patch releases.
 Provider contract changes can still require callers to update operational behavior, so review the
 [changelog](CHANGELOG.md) before upgrading and keep recovery around ambiguous money-moving
@@ -59,14 +59,14 @@ fallbacks and swallowed failures, with a disposition for every candidate.
 ## Installation
 
 ```sh
-cargo add oanda-client@1
+cargo add oanda-client@2
 ```
 
 Or add the current major release directly:
 
 ```toml
 [dependencies]
-oanda-client = "1"
+oanda-client = "2"
 ```
 
 The complete public API is available on [docs.rs](https://docs.rs/oanda-client).
@@ -241,16 +241,16 @@ and traffic on the same egress address.
 ## Testing status
 
 The badges distinguish deterministic test results, documented API coverage, and dated
-Practice observations. The [successful CI run on 2026-10-15](https://github.com/SharurTrading/oanda-rs/actions/runs/38711925905)
-at [commit `4f2109b`](https://github.com/SharurTrading/oanda-rs/commit/4f2109b8aa1b9a598a050cf6ab68ef23694009ba)
-passed 78 Rust tests and left 3 live probes ignored. The current
+Practice observations. The [successful CI run on 2026-10-18](https://github.com/SharurTrading/oanda-rs/actions/runs/39095523070)
+at [commit `0f8c1e2`](https://github.com/SharurTrading/oanda-rs/commit/0f8c1e2990b5f5750a69a6c227b6d6b2cdd0613b)
+passed 102 Rust tests and left 3 live probes ignored. The current
 local suite passes **102 credential-free Rust tests** with **3 live probes ignored**. The static
 test-count badge records the local suite; it is not a count of operations or authenticated venue
 tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 102 passed locally on 2026-10-18; 3 live probes ignored. The linked 2026-10-15 CI run passed its earlier 78-test suite. |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 102 passed locally on 2026-10-18; 3 live probes ignored. The linked 2026-10-18 CI run passed the same 102 tests. |
 | Coverage ledger | 32 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](docs/coverage.md#authenticated-probes) |
 | Practice observations while building an integration | Order fills in both account modes, stream open behaviour and timing, transaction-stream fill and replace events, P/L precision | Recorded October 2026 with per-fact source tags in the [behaviour guide](docs/behaviour-guide.md); small-sample observations, untested on Live |

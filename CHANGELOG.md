@@ -22,6 +22,10 @@ first public release.
   `home_conversion_cost`, and `TradeReduce` gains the four conversion costs. OANDA sends these
   on fills but documents none of them, so they were dropped on decode. Each is an optional exact
   `Decimal`. Code building either struct with a literal must add the fields.
+- Breaking: `Account` and `AccountSummary` gain `last_order_fill_timestamp`. The website omits
+  `lastOrderFillTimestamp`, but the pinned OpenAPI spec documents it and OANDA's own v20
+  clients read it, so it was dropped on decode. Code building either struct with a literal must
+  add the field.
 
 ## [1.1.0] - 2026-10-15
 

@@ -340,9 +340,16 @@ Book what OANDA states. Do not recompute it.
 | `commission` | Always positive, and it reduces the balance |
 | `financing` | Financing paid or collected on this fill |
 | `accountBalance` | The balance after this fill |
-| `homeConversionFactors` | Deprecated (Docs). It was absent in our recordings; do not rely on it |
-| `requestedUnits` | Not in the docs. The units the order asked for, beside `units`, the units that filled (Seen on a closeout fill; SDK `requested_units`) |
-| `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | Not in the docs. The costs of converting the fill's PnL, base-currency financing and guaranteed execution fee into home currency, and their total as OANDA names it. They are on the fill and on each `tradesClosed` entry (Seen on a closeout fill). Each is optional in the SDK |
+| `homeConversionFactors` | The conversion factors in effect at the fill ([Docs](https://developer.oanda.com/rest-live-v20/transaction-df/)). Every recorded fill carried it (Seen) |
+| `gainQuoteHomeConversionFactor`, `lossQuoteHomeConversionFactor` | Deprecated (Docs), though every recorded fill still carried them (Seen). Use `homeConversionFactors` |
+| `requestedUnits` | Not in the docs. The units the order asked for, beside `units`, the units that filled. Every recorded fill carried it, opening and closing (Seen; SDK `requested_units`) |
+| `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | Not in the docs. The costs of converting the fill's PnL, base-currency financing and guaranteed execution fee into home currency, and their total as OANDA names it. Every recorded fill carried all four, and so did every `tradesClosed` and `tradeReduced` entry (Seen). Each is optional in the SDK |
+| `guaranteedExecutionFeeHomeConversionCost` on `tradeOpened` | Not in the docs. The only conversion cost a `tradeOpened` entry carried; every recorded one had it (Seen; SDK `TradeOpen::guaranteed_execution_fee_home_conversion_cost`) |
+
+The recorded fills are one closeout on 2026-10-16 and five market-order fills on 2026-10-12:
+two opening a trade, one reducing one and two closing trades. Every conversion cost in the
+2026-10-12 recording was a stated zero (Seen). The SDK keeps a stated zero as `Some(0)`,
+distinct from `None` for a field OANDA did not send.
 
 The home-conversion costs are the fill fields that carry currency conversion; `pl`,
 `financing`, `commission`, `guaranteedExecutionFee` and `halfSpreadCost` are already in home
@@ -453,7 +460,7 @@ These are not verified. Treat them as open questions.
 | Which trade a netting account closes first | Not recorded with more than one open trade |
 | `close_position` with a side omitted entirely (the docs default it to `ALL`) | Not tried; the recorded closes named both sides. If an omitted side acts as `ALL`, omitting a flat side would be the both-`ALL` request that was refused as a whole, and omitting an open side would close it too. Neither was run; see [Closing positions and trades](#closing-positions-and-trades) |
 | A refused `close_trade` or margin closeout | Not recorded. Only the rejects of a refused `close_position` are (a flat side, and the open side beside it); others may omit fields the docs mark required |
-| Home-currency conversion costs on fills | The SDK decodes them (see [Fills, money and PnL](#fills-money-and-pnl)), but only one closeout fill carrying them was recorded. Not recorded: their sign, whether `homeConversionCost` is the sum of the other three, how they enter `pl` and `accountBalance`, whether every fill carries them, and whether a `tradeOpened` or `tradeReduced` entry does |
+| Home-currency conversion costs on fills | The SDK decodes them (see [Fills, money and PnL](#fills-money-and-pnl)), but no non-zero value has been recorded. Not recorded: their sign, whether `homeConversionCost` is the sum of the other three, how they enter `pl`, `realizedPL` and `accountBalance`, whether fills other than market orders and closeouts carry them, and whether a `tradeOpened` entry ever carries a cost other than `guaranteedExecutionFeeHomeConversionCost` |
 | A unit change that reaches the account without an `ORDER_FILL` | Not seen. Not recorded: an outside close from OANDA's own app, and take-profit and stop-loss fills, which the docs give `ORDER_FILL` reasons of their own (`TAKE_PROFIT_ORDER`, `STOP_LOSS_ORDER`). `DAILY_FINANCING` and `DIVIDEND_ADJUSTMENT` are not recorded either; their SDK models carry no `units`, so what is open there is what they move, not a unit change |
 | Size limits of `transactions_since_id` | The docs give none; very large backfills are untested |
 | Gaps between transaction ids | Not seen, and not ruled out |

@@ -114,19 +114,25 @@ closeout has been observed.
 OANDA also sends fields that neither the website nor the pinned OpenAPI spec lists. A field
 observed in a provider payload is modelled when it carries money or size. Each is optional,
 because nothing shows it is always sent, and each is an exact `Decimal` (OA-DECIMAL-01). The
-synthetic fixture `tests/fixtures/close-flat-side/order-fill.json` carries the observed shape, and
-`tests/close_flat_side.rs` decodes it and re-encodes it with nothing dropped.
+synthetic fixtures `tests/fixtures/close-flat-side/order-fill.json` (a closing fill) and
+`tests/fixtures/open-fill/order-fill.json` (an opening fill) carry the observed shapes, and
+`tests/close_flat_side.rs` and `tests/open_fill.rs` decode them and re-encode them with nothing
+dropped.
 
 | Definition | Field | Website | Client | Evidence |
 | --- | --- | --- | --- | --- |
 | `OrderFillTransaction` | `requestedUnits` | absent | `Option<Decimal>` | Practice, 2026-10-16: the `MARKET_ORDER_POSITION_CLOSEOUT` fill of a `close_position` on a hedged EUR_USD account, as a decimal string |
 | `OrderFillTransaction` | `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | absent | `Option<Decimal>` | The same fill, each as a decimal string |
-| `TradeReduce` | `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | absent | `Option<Decimal>` | The same fill's one `tradesClosed` entry, each as a decimal string |
+| `TradeReduce` | `plHomeConversionCost`, `baseFinancingHomeConversionCost`, `guaranteedExecutionFeeHomeConversionCost`, `homeConversionCost` | absent | `Option<Decimal>` | The same fill's one `tradesClosed` entry, each as a decimal string; also a `tradeReduced` entry and two `tradesClosed` entries in a Practice hedged-account recording of five `MARKET_ORDER` fills on 2026-10-12 |
+| `TradeOpen` | `guaranteedExecutionFeeHomeConversionCost` | absent | `Option<Decimal>` | The two `tradeOpened` entries of that 2026-10-12 recording, each as a decimal string ([#68](https://github.com/SharurTrading/oanda-rs/issues/68)) |
 
-No `TradeOpen` carrying a home-conversion cost has been recorded, so `TradeOpen` gains no field.
-The fixture's values are synthetic. Neither the costs' sign nor how they enter `pl`, `realizedPL`
-or `accountBalance` is recorded; the
-[behaviour guide](behaviour-guide.md#fills-money-and-pnl) says so.
+Every fill in both recordings carried `requestedUnits` and the four fill-level costs. The
+`tradeOpened` entries carried no cost other than `guaranteedExecutionFeeHomeConversionCost`, so
+`TradeOpen` models only that one. Every cost in the 2026-10-12 recording was a stated zero, which
+the client keeps as `Some(0)`, distinct from an absent field's `None`. A zero cannot show a sign, a formula, or how
+the costs enter `pl`, `realizedPL` or `accountBalance`, so none of these is recorded; the
+[behaviour guide](behaviour-guide.md#fills-money-and-pnl) says so. The fixtures' values are
+synthetic.
 
 ## Stream record and transport bounds
 

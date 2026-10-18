@@ -4638,6 +4638,20 @@ pub struct TradeOpen {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub initial_margin_required: Option<Decimal>,
+    /// The cost of converting this Trade's guaranteed execution fee into the Account's home
+    /// currency, as OANDA names it.
+    ///
+    /// Not documented by OANDA. Observed on every `tradeOpened` entry of a Practice hedged-account
+    /// recording on 2026-10-12, as a decimal string. Its sign and how it enters the fill's totals
+    /// or the Account balance have not been recorded. `None` when OANDA does not send it, which is
+    /// distinct from a stated zero.
+    #[serde(
+        rename = "guaranteedExecutionFeeHomeConversionCost",
+        default,
+        skip_serializing_if = "Option::is_none"
+    )]
+    #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
+    pub guaranteed_execution_fee_home_conversion_cost: Option<Decimal>,
 }
 
 /// A TradeReduce object represents a Trade for an instrument that was reduced (either partially or fully)

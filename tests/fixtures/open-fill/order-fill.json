@@ -1,0 +1,75 @@
+{
+  "transaction": {
+    "accountBalance": "10000.5000",
+    "accountID": "101-001-1234567-001",
+    "baseFinancing": "0",
+    "baseFinancingHomeConversionCost": "0",
+    "batchID": "51",
+    "clientOrderID": "fixture-open-long",
+    "commission": "0.0000",
+    "financing": "0.0000",
+    "fullPrice": {
+      "closeoutBid": "1.20003",
+      "closeoutAsk": "1.20031",
+      "time": "2026-01-06T10:00:00.100000000Z",
+      "bids": [
+        {
+          "price": "1.20012",
+          "liquidity": "250000"
+        }
+      ],
+      "asks": [
+        {
+          "price": "1.20021",
+          "liquidity": "250000"
+        }
+      ]
+    },
+    "fullVWAP": "1.20021",
+    "gainQuoteHomeConversionFactor": "1",
+    "guaranteedExecutionFee": "0.0000",
+    "guaranteedExecutionFeeHomeConversionCost": "0",
+    "halfSpreadCost": "0.0001",
+    "homeConversionCost": "0",
+    "homeConversionFactors": {
+      "gainQuoteHome": {
+        "factor": "1"
+      },
+      "lossQuoteHome": {
+        "factor": "1"
+      },
+      "gainBaseHome": {
+        "factor": "1.1001234"
+      },
+      "lossBaseHome": {
+        "factor": "1.1201234"
+      }
+    },
+    "id": "52",
+    "instrument": "EUR_USD",
+    "lossQuoteHomeConversionFactor": "1",
+    "orderID": "51",
+    "pl": "0.0000",
+    "plHomeConversionCost": "0",
+    "price": "1.20021",
+    "quoteGuaranteedExecutionFee": "0",
+    "quotePL": "0",
+    "reason": "MARKET_ORDER",
+    "requestID": "fixture-request-2",
+    "requestedUnits": "2",
+    "time": "2026-01-06T10:00:00.200000000Z",
+    "tradeOpened": {
+      "guaranteedExecutionFee": "0.0000",
+      "guaranteedExecutionFeeHomeConversionCost": "0",
+      "halfSpreadCost": "0.0001",
+      "initialMarginRequired": "0.0800",
+      "price": "1.20021",
+      "quoteGuaranteedExecutionFee": "0",
+      "tradeID": "52",
+      "units": "2"
+    },
+    "type": "ORDER_FILL",
+    "units": "2"
+  },
+  "lastTransactionID": "52"
+}

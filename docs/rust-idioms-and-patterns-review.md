@@ -61,8 +61,6 @@ impl exposes an invariant.
 | FINDING | Correct code that is non-idiomatic, over-abstracted, fails to use a safer idiom, or duplicates expense without need | Fix it, or resolve the thread with the recorded reason |
 | NIT | Naming, placement or readability with no behavioural consequence | Optional; resolve either way |
 
-This repository uses BLOCKER, MAJOR and MINOR review findings; read FINDING as MAJOR and NIT as MINOR.
-
 The shape of a finding (paths are illustrative):
 
 > **RP-ANTI-CLONE (BLOCKER)** — `src/orders.rs:42`: the fill is applied to

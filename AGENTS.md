@@ -41,6 +41,17 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 
 - **OA-TEST-01:** Normal CI is deterministic and credential-free. Optional live tests are ignored, explicitly armed, Practice-only, and read-only.
 - **OA-DOC-01:** Document public APIs and non-obvious venue behavior. Keep the coverage ledger, changelog, README, and code in sync.
+- **OA-IDIOMS-01:** New and changed Rust code follows the
+  [Rust idioms and patterns review guide](docs/rust-idioms-and-patterns-review.md),
+  and review findings cite its check IDs. A reviewer names every pre-existing
+  anti-pattern or non-idiomatic idiom the change exposes — inline where it is in
+  the diff, in the review summary where it is outside it — so it is fixed or
+  opened as a tracked issue. Pre-existing code is never grandfathered: an
+  allowance or a tracked issue records the idiomatic outcome, not permission to
+  keep or repeat the pattern. Review verifies that new code is idiomatic, not
+  merely that it compiles. The guide is a pure Rust guide and must not be edited
+  or used as a place to store platform-specific rulings; those belong in this
+  file, and the guide points here.
 - **OA-REVIEW-01:** Review money-moving behavior, cancellation, secrets, decimal precision, and coverage before release. A GitHub or crates.io release requires a separate reviewed change.
 
 ## Procedure rules

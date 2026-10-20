@@ -7,6 +7,7 @@ use crate::{
     AccountID, Client, Error, Result,
     admission::StreamLease,
     models::{ClientPrice, PricingHeartbeat, Transaction, TransactionHeartbeat},
+    validation::Validate,
 };
 use reqwest::Response;
 use serde::Serialize;
@@ -31,6 +32,8 @@ const MAX_RECORD_BYTES: usize = 1024 * 1024;
 /// occupy memory without bound, because no further reading — and therefore no
 /// per-record check — happens while undelivered records remain.
 const MAX_BACKLOG_BYTES: usize = 16 * 1024 * 1024;
+/// Local maximum silence before ending a stream generation.
+const HEARTBEAT_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// One event from OANDA's sampled pricing stream.
 #[derive(Debug, Clone, PartialEq)]
@@ -83,14 +86,16 @@ impl<E> Buffered<E> {
                     .then_some(Err(Error::ResponseTooLarge));
             };
             let newline = self.start + offset;
-            let mut end = newline;
-            if end > self.start && self.bytes[end - 1] == b'\r' {
-                end -= 1;
-            }
+            let end = if newline > self.start && self.bytes[newline - 1] == b'\r' {
+                newline - 1
+            } else {
+                newline
+            };
             if end - self.start > MAX_RECORD_BYTES {
                 return Some(Err(Error::ResponseTooLarge));
             }
-            let line = self.bytes[self.start..end].to_vec();
+            // Decode the borrowed slice before compaction; the decoder returns owned evidence.
+            let event = (end > self.start).then(|| (self.decoder)(&self.bytes[self.start..end]));
             self.start = newline + 1;
             if self.start == self.bytes.len() {
                 self.bytes.clear();
@@ -99,8 +104,8 @@ impl<E> Buffered<E> {
                 self.bytes.drain(..self.start);
                 self.start = 0;
             }
-            if !line.is_empty() {
-                return Some((self.decoder)(&line));
+            if let Some(event) = event {
+                return Some(event);
             }
         }
     }
@@ -213,7 +218,7 @@ impl<E> HttpStream<E> {
                 self.finish();
                 return None;
             };
-            match tokio::time::timeout(Duration::from_secs(30), response.chunk()).await {
+            match tokio::time::timeout(HEARTBEAT_TIMEOUT, response.chunk()).await {
                 Err(_) => {
                     self.finish();
                     return Some(Err(Error::Transport(
@@ -250,19 +255,25 @@ impl<E> HttpStream<E> {
 }
 
 impl Client {
-    pub(crate) async fn open_http_stream<E, Q: Serialize>(
+    pub(crate) async fn open_http_stream<E, Q: Validate + Serialize>(
         &self,
         path: &str,
         query: Option<&Q>,
         decoder: fn(&[u8]) -> Result<E>,
     ) -> Result<HttpStream<E>> {
+        let query = query
+            .map(|query| {
+                query.validate()?;
+                serde_json::to_value(query).map_err(|error| Error::InvalidInput(error.to_string()))
+            })
+            .transpose()?;
+        let url = Self::build_url(&self.inner.stream, path, query.as_ref())?;
         let lease = self.inner.admission.lease_stream()?;
-        let url = Self::build_url(&self.inner.stream, path, query)?;
         let response = self
             .inner
             .stream_http
             .get(url)
-            .bearer_auth(&self.inner.token)
+            .bearer_auth(self.inner.token.as_str())
             .header(
                 "Accept-Datetime-Format",
                 self.inner.datetime_format.as_str(),
@@ -317,11 +328,6 @@ impl Client {
         account: &AccountID,
         query: &crate::pricing::StreamPricingQuery,
     ) -> Result<HttpStream<PriceStreamEvent>> {
-        if query.instruments.is_empty() {
-            return Err(Error::InvalidInput(
-                "pricing instruments must not be empty".into(),
-            ));
-        }
         let path = format!(
             "/v3/accounts/{}/pricing/stream",
             crate::client::segment(account.as_str())

@@ -1,21 +1,16 @@
 //! OANDA transaction endpoint contracts.
-// Shared imports vary by capability; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use crate::Timestamp;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::models::*;
-#[allow(unused_imports)]
-use crate::{Client, Result};
-#[allow(unused_imports)]
+
+use crate::client::RequestParts;
+use crate::ids::{AccountID, TransactionID};
+use crate::models::{Transaction, TransactionFilter};
+use crate::validation::Validate;
+use crate::{Client, Error, Result, Timestamp};
 use reqwest::Method;
-#[allow(unused_imports)]
-use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// Query parameters for `list_transactions`.
+///
+/// The default uses the provider’s time range, page size, and transaction filters.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTransactionsQuery {
@@ -34,6 +29,27 @@ pub struct ListTransactionsQuery {
     /// A filter for restricting the types of Transactions to retrieve.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<Vec<TransactionFilter>>,
+}
+
+impl Validate for ListTransactionsQuery {
+    fn validate(&self) -> Result<()> {
+        if self
+            .page_size
+            .is_some_and(|size| !(1..=1000).contains(&size))
+        {
+            return Err(Error::InvalidInput("pageSize must be 1..=1000".into()));
+        }
+        if let (Some(from), Some(to)) = (self.from, self.to)
+            && (to < from
+                || to.into_inner().signed_duration_since(from.into_inner())
+                    > chrono::Duration::days(365))
+        {
+            return Err(Error::InvalidInput(
+                "transaction range must be ordered and at most 365 days".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `list_transactions`.
@@ -69,6 +85,12 @@ pub struct ListTransactionsResponse {
 
 impl Client {
     /// List transactions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_transactions(
         &self,
         account_id: &AccountID,
@@ -79,8 +101,12 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/transactions");
-        self.execute(Method::GET, &path, query, None::<&()>, None, None)
-            .await
+        let request = RequestParts::new(Method::GET, &path);
+        let request = match query {
+            Some(query) => request.query(query)?,
+            None => request,
+        };
+        self.execute(request).await
     }
 }
 
@@ -106,6 +132,12 @@ pub struct TransactionDetailsResponse {
 
 impl Client {
     /// Transaction details.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn transaction_details(
         &self,
         account_id: &AccountID,
@@ -118,8 +150,7 @@ impl Client {
         let transaction_id_encoded = crate::client::segment(transaction_id.as_str());
         let path =
             format!("/v3/accounts/{account_id_encoded}/transactions/{transaction_id_encoded}");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -136,6 +167,17 @@ pub struct TransactionsByIdRangeQuery {
     /// The filter that restricts the types of Transactions to retrieve.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<Vec<TransactionFilter>>,
+}
+
+impl Validate for TransactionsByIdRangeQuery {
+    fn validate(&self) -> Result<()> {
+        let from = self.from.as_str().parse::<u64>();
+        let to = self.to.as_str().parse::<u64>();
+        if !matches!((from, to), (Ok(from), Ok(to)) if from <= to) {
+            return Err(Error::InvalidInput("invalid transaction ID range".into()));
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `transactions_by_id_range`.
@@ -160,6 +202,12 @@ pub struct TransactionsByIdRangeResponse {
 
 impl Client {
     /// Transactions by id range.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn transactions_by_id_range(
         &self,
         account_id: &AccountID,
@@ -170,7 +218,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/transactions/idrange");
-        self.execute(Method::GET, &path, Some(query), None::<&()>, None, None)
+        self.execute(RequestParts::new(Method::GET, &path).query(query)?)
             .await
     }
 }
@@ -180,12 +228,18 @@ impl Client {
 #[serde(rename_all = "camelCase")]
 pub struct TransactionsSinceIdQuery {
     /// The ID of the last Transaction fetched. This query will return all Transactions newer than the
-    /// TransactionID. \[required\]
+    /// `TransactionID`. \[required\]
     #[serde(rename = "id")]
     pub id: TransactionID,
     /// A filter for restricting the types of Transactions to retrieve.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<Vec<TransactionFilter>>,
+}
+
+impl Validate for TransactionsSinceIdQuery {
+    fn validate(&self) -> Result<()> {
+        Ok(())
+    }
 }
 
 /// Successful response for `transactions_since_id`.
@@ -210,6 +264,12 @@ pub struct TransactionsSinceIdResponse {
 
 impl Client {
     /// Transactions since id.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn transactions_since_id(
         &self,
         account_id: &AccountID,
@@ -220,7 +280,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/transactions/sinceid");
-        self.execute(Method::GET, &path, Some(query), None::<&()>, None, None)
+        self.execute(RequestParts::new(Method::GET, &path).query(query)?)
             .await
     }
 }

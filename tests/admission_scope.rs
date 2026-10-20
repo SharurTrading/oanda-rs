@@ -3,184 +3,23 @@
 
 //! Shared transport admission through the public client and loopback sockets.
 
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+// Assertions and fixture setup intentionally fail fast in tests; production paths return errors.
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "test setup and assertions fail immediately with fixture context"
+)]
 
 use oanda_client::{
     AccountID, Admission, Client, Environment, Error, OperationError, OrderSpecifier,
 };
 use std::time::Duration;
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-    sync::mpsc,
-    time::Instant,
-};
-use url::Url;
+use tokio::time::Instant;
 
-async fn loopback() -> (
-    Url,
-    mpsc::UnboundedReceiver<Instant>,
-    tokio::task::JoinHandle<()>,
-) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let (accepted, observations) = mpsc::unbounded_channel();
-    let task = tokio::spawn(async move {
-        while let Ok((socket, _)) = listener.accept().await {
-            accepted.send(Instant::now()).expect("accept receiver");
-            tokio::spawn(serve_socket(socket));
-        }
-    });
-    (url, observations, task)
-}
-
-async fn counting_rest_loopback() -> (
-    Url,
-    mpsc::UnboundedReceiver<String>,
-    tokio::task::JoinHandle<()>,
-) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let (requests, observed) = mpsc::unbounded_channel();
-    let task = tokio::spawn(async move {
-        while let Ok((mut socket, _)) = listener.accept().await {
-            let requests = requests.clone();
-            tokio::spawn(async move {
-                let mut pending = Vec::new();
-                loop {
-                    while !pending.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
-                        let mut buffer = [0_u8; 4096];
-                        let read = socket.read(&mut buffer).await.expect("read");
-                        if read == 0 {
-                            return;
-                        }
-                        pending.extend_from_slice(&buffer[..read]);
-                    }
-                    let end = pending
-                        .windows(4)
-                        .position(|bytes| bytes == b"\r\n\r\n")
-                        .expect("header boundary");
-                    let head = String::from_utf8_lossy(&pending[..end]);
-                    let path = head.lines().next().expect("request line").to_owned();
-                    pending.drain(..end + 4);
-                    requests.send(path).expect("request observer");
-                    let body = br#"{"accounts":[]}"#;
-                    let response = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",
-                        body.len()
-                    );
-                    socket.write_all(response.as_bytes()).await.expect("header");
-                    socket.write_all(body).await.expect("body");
-                }
-            });
-        }
-    });
-    (url, observed, task)
-}
-
-async fn stall_first_loopback() -> (
-    Url,
-    mpsc::UnboundedReceiver<Instant>,
-    tokio::task::JoinHandle<()>,
-) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let (accepted, observations) = mpsc::unbounded_channel();
-    let task = tokio::spawn(async move {
-        let mut first = true;
-        while let Ok((socket, _)) = listener.accept().await {
-            accepted.send(Instant::now()).expect("accept receiver");
-            if first {
-                tokio::spawn(async move {
-                    let _socket = socket;
-                    std::future::pending::<()>().await;
-                });
-                first = false;
-            } else {
-                tokio::spawn(serve_socket(socket));
-            }
-        }
-    });
-    (url, observations, task)
-}
-
-async fn rate_limit_loopback() -> (Url, tokio::task::JoinHandle<()>) {
-    let listener = TcpListener::bind("127.0.0.1:0").await.expect("bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let task = tokio::spawn(async move {
-        let (mut socket, _) = listener.accept().await.expect("accept");
-        let mut request = Vec::new();
-        while !request.windows(4).any(|bytes| bytes == b"\r\n\r\n") {
-            let mut buffer = [0_u8; 4096];
-            let read = socket.read(&mut buffer).await.expect("read");
-            assert!(read > 0, "request closed");
-            request.extend_from_slice(&buffer[..read]);
-        }
-        socket
-            .write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
-            .await
-            .expect("write rejection");
-    });
-    (url, task)
-}
-
-async fn serve_socket(mut socket: TcpStream) {
-    let mut pending = Vec::new();
-    loop {
-        let mut buf = [0_u8; 4096];
-        let read = socket.read(&mut buf).await.expect("read");
-        if read == 0 {
-            return;
-        }
-        pending.extend_from_slice(&buf[..read]);
-        let Some(end) = pending.windows(4).position(|bytes| bytes == b"\r\n\r\n") else {
-            continue;
-        };
-        let header = String::from_utf8_lossy(&pending[..end]);
-        let stream = header.contains("/transactions/stream");
-        pending.drain(..end + 4);
-        if stream {
-            socket
-                .write_all(
-                    b"HTTP/1.1 200 OK\r\nContent-Type: application/octet-stream\r\nTransfer-Encoding: chunked\r\n\r\n",
-                )
-                .await
-                .expect("stream header");
-            std::future::pending::<()>().await;
-        }
-        let body = br#"{"accounts":[]}"#;
-        let response = format!(
-            "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: keep-alive\r\n\r\n",
-            body.len()
-        );
-        socket.write_all(response.as_bytes()).await.expect("header");
-        socket.write_all(body).await.expect("body");
-    }
-}
-
-fn client(url: &Url, token: &str, owner: Admission) -> Client {
-    Client::builder(Environment::Practice, token)
-        .admission(owner)
-        .endpoints(url.clone(), url.clone())
-        .build()
-        .expect("client")
-}
+mod support;
+use support::{counting_rest_loopback, loopback, rate_limit_loopback, stall_first_loopback};
+use support::{fixture_client_with as client, keep_clock_frozen};
 
 fn account() -> AccountID {
     AccountID::new("101-001-1-001").expect("account")
@@ -190,14 +29,6 @@ async fn advance_gap() {
     tokio::time::pause();
     tokio::time::advance(Duration::from_millis(500)).await;
     tokio::time::resume();
-}
-
-fn keep_clock_frozen() -> tokio::task::JoinHandle<()> {
-    tokio::spawn(async {
-        loop {
-            tokio::task::yield_now().await;
-        }
-    })
 }
 
 #[tokio::test(start_paused = true)]
@@ -342,7 +173,10 @@ async fn cancelled_stream_open_releases_shared_slot_for_another_credential() {
     let opening = tokio::spawn(async move { first.stream_transactions(&account_id).await });
     accepts.recv().await.expect("first accepted");
     opening.abort();
-    let _ = opening.await;
+    let Err(cancelled) = opening.await else {
+        panic!("stream opening must be aborted");
+    };
+    assert!(cancelled.is_cancelled());
     let mut held = Vec::new();
     for _ in 0..19 {
         advance_gap().await;

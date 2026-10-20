@@ -1,18 +1,14 @@
 //! OANDA position endpoint contracts.
-// Shared imports vary by capability; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use crate::Timestamp;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::models::*;
-#[allow(unused_imports)]
-use crate::{Client, Result};
-#[allow(unused_imports)]
+
+use crate::client::RequestParts;
+use crate::ids::{AccountID, InstrumentName, TransactionID};
+use crate::models::{
+    ClientExtensions, MarketOrderRejectTransaction, MarketOrderTransaction, OrderCancelTransaction,
+    OrderFillTransaction, Position,
+};
+use crate::validation::Validate;
+use crate::{Client, Error, Result};
 use reqwest::Method;
-#[allow(unused_imports)]
-use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// Successful response for `list_positions`.
@@ -33,6 +29,12 @@ pub struct ListPositionsResponse {
 
 impl Client {
     /// List positions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_positions(
         &self,
         account_id: &AccountID,
@@ -42,8 +44,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/positions");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -65,6 +66,12 @@ pub struct ListOpenPositionsResponse {
 
 impl Client {
     /// List open positions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_open_positions(
         &self,
         account_id: &AccountID,
@@ -74,8 +81,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/openPositions");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -97,6 +103,12 @@ pub struct PositionDetailsResponse {
 
 impl Client {
     /// Position details.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn position_details(
         &self,
         account_id: &AccountID,
@@ -108,8 +120,7 @@ impl Client {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let instrument_encoded = crate::client::segment(instrument.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/positions/{instrument_encoded}");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -118,11 +129,12 @@ impl Client {
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionBody {
     /// Indication of how much of the long Position to closeout. Either the string “ALL”, the string “NONE”, or
-    /// a DecimalNumber representing how many units of the long position to close using a PositionCloseout
-    /// MarketOrder. The units specified must always be positive.
+    /// a `DecimalNumber` representing how many units of the long position to close using a `PositionCloseout`
+    /// `MarketOrder`. The units specified must always be positive. Omitting this field closes all units
+    /// on this side (the provider default is `ALL`); specify `NONE` to leave it open.
     #[serde(rename = "longUnits", default, skip_serializing_if = "Option::is_none")]
-    pub long_units: Option<String>,
-    /// The client extensions to add to the MarketOrder used to close the long position.
+    pub long_units: Option<crate::PositionCloseoutUnits>,
+    /// The client extensions to add to the `MarketOrder` used to close the long position.
     #[serde(
         rename = "longClientExtensions",
         default,
@@ -130,15 +142,16 @@ pub struct ClosePositionBody {
     )]
     pub long_client_extensions: Option<ClientExtensions>,
     /// Indication of how much of the short Position to closeout. Either the string “ALL”, the string “NONE”, or
-    /// a DecimalNumber representing how many units of the short position to close using a PositionCloseout
-    /// MarketOrder. The units specified must always be positive.
+    /// a `DecimalNumber` representing how many units of the short position to close using a `PositionCloseout`
+    /// `MarketOrder`. The units specified must always be positive. Omitting this field closes all units
+    /// on this side (the provider default is `ALL`); specify `NONE` to leave it open.
     #[serde(
         rename = "shortUnits",
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub short_units: Option<String>,
-    /// The client extensions to add to the MarketOrder used to close the short position.
+    pub short_units: Option<crate::PositionCloseoutUnits>,
+    /// The client extensions to add to the `MarketOrder` used to close the short position.
     #[serde(
         rename = "shortClientExtensions",
         default,
@@ -147,46 +160,62 @@ pub struct ClosePositionBody {
     pub short_client_extensions: Option<ClientExtensions>,
 }
 
+impl Validate for ClosePositionBody {
+    fn validate(&self) -> Result<()> {
+        if self.long_units == Some(crate::PositionCloseoutUnits::None)
+            && self.short_units == Some(crate::PositionCloseoutUnits::None)
+        {
+            return Err(Error::InvalidInput(
+                "position close requests no action".into(),
+            ));
+        }
+        for units in [self.long_units, self.short_units].into_iter().flatten() {
+            units.validate()?;
+        }
+        Ok(())
+    }
+}
+
 /// Successful response for `close_position`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionResponse {
-    /// The MarketOrderTransaction created to close the long Position.
+    /// The `MarketOrderTransaction` created to close the long Position.
     #[serde(
         rename = "longOrderCreateTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub long_order_create_transaction: Option<MarketOrderTransaction>,
-    /// OrderFill Transaction that closes the long Position
+    /// `OrderFill` Transaction that closes the long Position
     #[serde(
         rename = "longOrderFillTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub long_order_fill_transaction: Option<OrderFillTransaction>,
-    /// OrderCancel Transaction that cancels the MarketOrder created to close the long Position
+    /// `OrderCancel` Transaction that cancels the `MarketOrder` created to close the long Position
     #[serde(
         rename = "longOrderCancelTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub long_order_cancel_transaction: Option<OrderCancelTransaction>,
-    /// The MarketOrderTransaction created to close the short Position.
+    /// The `MarketOrderTransaction` created to close the short Position.
     #[serde(
         rename = "shortOrderCreateTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub short_order_create_transaction: Option<MarketOrderTransaction>,
-    /// OrderFill Transaction that closes the short Position
+    /// `OrderFill` Transaction that closes the short Position
     #[serde(
         rename = "shortOrderFillTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub short_order_fill_transaction: Option<OrderFillTransaction>,
-    /// OrderCancel Transaction that cancels the MarketOrder created to close the short Position
+    /// `OrderCancel` Transaction that cancels the `MarketOrder` created to close the short Position
     #[serde(
         rename = "shortOrderCancelTransaction",
         default,
@@ -210,17 +239,17 @@ pub struct ClosePositionResponse {
 }
 
 /// Documented rejection fields for `close_position`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClosePositionRejection {
-    /// The Transaction created that rejects the creation of a MarketOrder to close the long Position.
+    /// The Transaction created that rejects the creation of a `MarketOrder` to close the long Position.
     #[serde(
         rename = "longOrderRejectTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub long_order_reject_transaction: Option<MarketOrderRejectTransaction>,
-    /// The Transaction created that rejects the creation of a MarketOrder to close the short Position.
+    /// The Transaction created that rejects the creation of a `MarketOrder` to close the short Position.
     #[serde(
         rename = "shortOrderRejectTransaction",
         default,
@@ -245,16 +274,19 @@ pub struct ClosePositionRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Close position.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn close_position(
         &self,
         account_id: &AccountID,
@@ -269,12 +301,9 @@ impl Client {
         let path =
             format!("/v3/accounts/{account_id_encoded}/positions/{instrument_encoded}/close");
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Exit(account_id)),
-            None,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Exit(account_id)),
         )
         .await
     }

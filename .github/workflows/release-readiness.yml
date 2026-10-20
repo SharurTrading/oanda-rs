@@ -48,6 +48,8 @@ jobs:
         run: cargo clippy --all-targets --all-features --locked -- -D warnings
       - name: Tests
         run: cargo test --all-features --locked
+      - name: Credential-free configuration example
+        run: cargo run --example exit_reserve --locked
       - name: Documentation
         run: RUSTDOCFLAGS='-D warnings' cargo doc --all-features --no-deps --locked
       - name: Coverage ledger

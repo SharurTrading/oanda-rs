@@ -1,105 +1,45 @@
 //! OANDA v20 trade definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
+use super::{ClientExtensions, StopLossOrder, TakeProfitOrder, TrailingStopLossOrder};
+use crate::ids::{InstrumentName, OrderID, TradeID, TransactionID};
 use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// The current state of the Trade.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TradeState {
-    /// The Trade is currently open
-    Open,
-    /// The Trade has been fully closed
-    Closed,
-    /// The Trade will be closed as soon as the trade’s instrument becomes tradeable
-    CloseWhenTradeable,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TradeState {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Open => "OPEN",
-            Self::Closed => "CLOSED",
-            Self::CloseWhenTradeable => "CLOSE_WHEN_TRADEABLE",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The current state of the Trade.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TradeState {
+        /// The Trade is currently open
+        Open => "OPEN",
+        /// The Trade has been fully closed
+        Closed => "CLOSED",
+        /// The Trade will be closed as soon as the trade’s instrument becomes tradeable
+        CloseWhenTradeable => "CLOSE_WHEN_TRADEABLE",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for TradeState {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TradeState {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "OPEN" => Self::Open,
-            "CLOSED" => Self::Closed,
-            "CLOSE_WHEN_TRADEABLE" => Self::CloseWhenTradeable,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The state to filter the Trades by
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TradeStateFilter {
-    /// The Trades that are currently open
-    Open,
-    /// The Trades that have been fully closed
-    Closed,
-    /// The Trades that will be closed as soon as the trades’ instrument becomes tradeable
-    CloseWhenTradeable,
-    /// The Trades that are in any of the possible states listed above.
-    All,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TradeStateFilter {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Open => "OPEN",
-            Self::Closed => "CLOSED",
-            Self::CloseWhenTradeable => "CLOSE_WHEN_TRADEABLE",
-            Self::All => "ALL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for TradeStateFilter {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TradeStateFilter {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "OPEN" => Self::Open,
-            "CLOSED" => Self::Closed,
-            "CLOSE_WHEN_TRADEABLE" => Self::CloseWhenTradeable,
-            "ALL" => Self::All,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// Unrecognized spellings are retained and serialized unchanged for provider
+    /// compatibility; endpoint admission applies any operation-specific restrictions.
+    /// The state to filter the Trades by
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TradeStateFilter {
+        /// The Trades that are currently open
+        Open => "OPEN",
+        /// The Trades that have been fully closed
+        Closed => "CLOSED",
+        /// The Trades that will be closed as soon as the trades’ instrument becomes tradeable
+        CloseWhenTradeable => "CLOSE_WHEN_TRADEABLE",
+        /// The Trades that are in any of the possible states listed above.
+        All => "ALL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
@@ -407,49 +347,22 @@ pub struct CalculatedTradeState {
     pub margin_used: Option<Decimal>,
 }
 
-/// The classification of TradePLs.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TradePL {
-    /// An open Trade currently has a positive (profitable) unrealized P/L, or a closed Trade realized a
-    /// positive amount of P/L.
-    Positive,
-    /// An open Trade currently has a negative (losing) unrealized P/L, or a closed Trade realized a negative
-    /// amount of P/L.
-    Negative,
-    /// An open Trade currently has unrealized P/L of zero (neither profitable nor losing), or a closed Trade
-    /// realized a P/L amount of zero.
-    Zero,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TradePL {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Positive => "POSITIVE",
-            Self::Negative => "NEGATIVE",
-            Self::Zero => "ZERO",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for TradePL {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TradePL {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "POSITIVE" => Self::Positive,
-            "NEGATIVE" => Self::Negative,
-            "ZERO" => Self::Zero,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The classification of `TradePLs`.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TradePL {
+        /// An open Trade currently has a positive (profitable) unrealized P/L, or a closed Trade realized a
+        /// positive amount of P/L.
+        Positive => "POSITIVE",
+        /// An open Trade currently has a negative (losing) unrealized P/L, or a closed Trade realized a negative
+        /// amount of P/L.
+        Negative => "NEGATIVE",
+        /// An open Trade currently has unrealized P/L of zero (neither profitable nor losing), or a closed Trade
+        /// realized a P/L amount of zero.
+        Zero => "ZERO",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }

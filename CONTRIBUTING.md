@@ -20,6 +20,7 @@ cargo fmt --all -- --check
 cargo clippy --all-targets --all-features --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --all-features --no-deps --locked
 cargo test --all-features --locked --no-fail-fast
+cargo run --example exit_reserve --locked
 cargo package --locked
 cargo deny --locked check
 cargo audit --file Cargo.lock --deny warnings

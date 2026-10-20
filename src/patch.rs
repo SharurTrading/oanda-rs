@@ -24,7 +24,10 @@ impl<T> Patch<T> {
 impl<T: Serialize> Serialize for Patch<T> {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         match self {
-            Self::Unchanged | Self::Clear => serializer.serialize_none(),
+            Self::Unchanged => Err(serde::ser::Error::custom(
+                "unchanged patch must be omitted by the enclosing field",
+            )),
+            Self::Clear => serializer.serialize_none(),
             Self::Set(value) => value.serialize(serializer),
         }
     }

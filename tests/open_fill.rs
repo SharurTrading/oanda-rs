@@ -8,7 +8,12 @@
 //! carry the undocumented `guaranteedExecutionFeeHomeConversionCost`, which `TradeOpen` must
 //! keep, with a stated zero told apart from absence.
 // Assertions and fixture setup intentionally fail fast in tests; production paths return errors.
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "test setup and assertions fail immediately with fixture context"
+)]
 
 use oanda_client::models::{OrderFillReason, OrderFillTransaction, TradeOpen, Transaction};
 use oanda_client::{AccountID, TradeID, TransactionID};

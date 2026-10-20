@@ -16,11 +16,11 @@ implemented, tested, and blocked capabilities. The offline
 `tools/check_coverage.py` requires all 32 operations and 168 definitions to be
 tested, verifies public methods and typed contracts, checks test markers,
 confirms the pinned OpenAPI checksum, and detects changes to the reviewed
-operation drift. The 32 REST operations each have a loopback success and
+operation drift. The 30 REST operations each have a loopback success and
 rejection fixture; both streams have typed event fixtures. Every definition
 has a decode fixture in `tests/definition_wire.rs`. All 503 documented scalar
 enum values and 55 tagged order, order-request, and transaction variants have
-wire round-trip tests.
+wire round-trip tests. Scalar and tagged inventories are independently checked against the pinned spec, with explicit website drift fixtures.
 
 To apply a provider change by hand: edit the DTO, enum, or method in `src/`,
 update `docs/coverage.json`, and add or extend the wire fixture in the same
@@ -28,6 +28,62 @@ change. The round-trip manifests fail to compile when a hand edit drifts from
 the documented values — a compile error beats a silent `Unknown` — and
 `tagged_arms_match_the_pinned_spec` cross-checks the tagged set against the
 pinned OpenAPI spec.
+
+## Audit remediation contract decisions
+
+The [2026-10-20 audit](reviews/2026-10-20-rust-idioms-audit.md) includes the final
+per-item dispositions. Its original suggested outcomes are historical proposals; the
+implementation decisions recorded at the top take precedence.
+
+Endpoint rejection `errorMessage` remains required under the website contract. There is
+no observed provider drift supporting an optional endpoint message. Generic rejection
+contracts and the independently extracted reason stay optional because those describe
+what was actually readable, not a promise that every rejection has an endpoint body.
+
+Order DTO `type` fields retain absence and documented defaults: the website marks them
+`default=…`, not `required`, despite saying each order's type is always its named variant.
+The enclosing union requires a discriminator. Serialization rejects contradictory explicit
+tags; it does not invent a subtype or overwrite an instruction.
+
+Raw stop-loss detail snapshots retain independently optional `price` and `distance` so
+provider rejection evidence can be read unchanged. Typed outbound admission rejects both
+being set while permitting neither on modifications, where omitted subfields inherit
+existing values. No mandatory trigger enum is imposed on partial modifications.
+
+`MarketOrderDelayedTradeClose.clientTradeID` is documented as `TradeID`, although its
+name and description identify a client-assigned trade identity. It uses `ClientID`, as
+do the other client trade identities. `MarketOrderTradeClose.clientTradeID` is also
+`ClientID`; the website's plain string is narrowed to the existing validated identity.
+`FixedPriceOrder.tradeState` and its transaction counterpart are plain required strings
+on the website; the crate uses `TradeState`, retaining future values in `Unknown`.
+
+Position close omission retains the documented `ALL` default on each side, including
+when both are omitted. The SDK does not translate omission into `NONE`. Explicitly
+requesting `NONE` on both sides is locally rejected as no action. The behavior guide
+records that omitted-side behavior has not been probed on Practice; these deterministic
+checks enforce the published request shape, not authenticated venue behavior.
+
+The direct `StopLossOrderRequest` and `GuaranteedStopLossOrderRequest` schemas also
+say only one of price/distance may be supplied while explicitly marking price required.
+The required price remains schema-faithful; a direct distance-only request is not exposed
+without evidence resolving that requiredness contradiction. Both-set direct requests are
+rejected locally. The optional Details types continue to support distance-only instructions.
+
+Scalar spellings are cross-checked against the pinned spec and the explicit differences
+in `tests/fixtures/scalar-enum-website-drift.json`. Adding a scalar requires updating its
+single spelling table, tested value manifest, and any website/spec difference. Adding an
+order family also requires its body, tagged union arms, and independent wire fixtures.
+
+`DelayedTradeClosureTransaction.tradeIDs` remains scalar: both authoritative schemas
+print `TradeID` while its prose says list. No array payload has been observed, so changing
+it to an array would be speculative; an array currently fails decoding explicitly.
+Connector admission guarantees rolling-window pacing, not FIFO order between competing
+waiters. The cancellation-safe gate retains its existing pacing contract.
+
+Definitive rejection headers disarm mutation ambiguity before bounded body reading. An
+unreadable body retains its status, request ID, and typed read error. A decoded successful
+mutation with unusable pagination metadata retains the body and marks the link
+`Undecoded`; reads still reject malformed or off-origin pagination links.
 
 ## Spec fields the website omits
 

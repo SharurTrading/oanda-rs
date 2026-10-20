@@ -3,10 +3,42 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::{fmt, str::FromStr};
 
-/// Error returned when a provider identifier is empty or contains control characters.
+/// Why an identifier was rejected at its public construction boundary.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, thiserror::Error)]
+pub enum InvalidIdKind {
+    /// An identity must contain at least one character.
+    #[error("empty identifier")]
+    Empty,
+    /// Provider identities cannot contain control characters.
+    #[error("identifier contains a control character")]
+    ControlCharacter,
+}
+
+/// A rejected provider identifier, retained for caller correction without cloning.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
-#[error("invalid OANDA identifier")]
-pub struct InvalidId;
+#[error("invalid OANDA identifier: {kind}")]
+pub struct InvalidId {
+    value: String,
+    kind: InvalidIdKind,
+}
+
+impl InvalidId {
+    /// The reason construction failed.
+    #[must_use]
+    pub const fn kind(&self) -> InvalidIdKind {
+        self.kind
+    }
+    /// The rejected provider spelling.
+    #[must_use]
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+    /// Recover ownership of the rejected value for correction.
+    #[must_use]
+    pub fn into_value(self) -> String {
+        self.value
+    }
+}
 
 macro_rules! id_type {
     ($name:ident) => {
@@ -22,8 +54,17 @@ macro_rules! id_type {
             /// Returns [`InvalidId`] for an empty identifier or one containing control characters.
             pub fn new(value: impl Into<String>) -> Result<Self, InvalidId> {
                 let value = value.into();
-                if value.is_empty() || value.chars().any(char::is_control) {
-                    return Err(InvalidId);
+                if value.is_empty() {
+                    return Err(InvalidId {
+                        value,
+                        kind: InvalidIdKind::Empty,
+                    });
+                }
+                if value.chars().any(char::is_control) {
+                    return Err(InvalidId {
+                        value,
+                        kind: InvalidIdKind::ControlCharacter,
+                    });
                 }
                 Ok(Self(value))
             }
@@ -79,3 +120,23 @@ id_type!(ClientRequestID);
 id_type!(Currency);
 id_type!(CandleSpecification);
 id_type!(PricingComponent);
+
+#[cfg(test)]
+// Invalid-input fixtures fail immediately if construction unexpectedly succeeds.
+#[allow(clippy::expect_used)]
+mod tests {
+    use super::{AccountID, InvalidIdKind};
+
+    #[test]
+    fn rejected_identifiers_retain_the_consumed_spelling_and_reason() {
+        for (value, kind) in [
+            (String::new(), InvalidIdKind::Empty),
+            ("bad\nidentity".to_owned(), InvalidIdKind::ControlCharacter),
+        ] {
+            let error = AccountID::new(value.clone()).expect_err("invalid identifier");
+            assert_eq!(error.kind(), kind);
+            assert_eq!(error.value(), value);
+            assert_eq!(error.into_value(), value);
+        }
+    }
+}

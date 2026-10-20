@@ -25,8 +25,10 @@ impl Environment {
             ),
         };
         Ok((
-            Url::parse(rest).map_err(|e| Error::InvalidInput(e.to_string()))?,
-            Url::parse(stream).map_err(|e| Error::InvalidInput(e.to_string()))?,
+            Url::parse(rest)
+                .map_err(|_| Error::Invariant("invalid built-in OANDA endpoint URL"))?,
+            Url::parse(stream)
+                .map_err(|_| Error::Invariant("invalid built-in OANDA endpoint URL"))?,
         ))
     }
 }

@@ -1,14 +1,6 @@
 //! OANDA v20 primitives definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
+use crate::ids::InstrumentName;
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// A tag associated with an entity.
@@ -23,111 +15,49 @@ pub struct Tag {
     pub name: Option<String>,
 }
 
-/// The type of an Instrument.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum InstrumentType {
-    /// Currency
-    Currency,
-    /// Contract For Difference
-    Cfd,
-    /// Metal
-    Metal,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl InstrumentType {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Currency => "CURRENCY",
-            Self::Cfd => "CFD",
-            Self::Metal => "METAL",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The type of an Instrument.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum InstrumentType {
+        /// Currency
+        Currency => "CURRENCY",
+        /// Contract For Difference
+        Cfd => "CFD",
+        /// Metal
+        Metal => "METAL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for InstrumentType {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// The `DayOfWeek` provides a representation of the day of the week.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum DayOfWeek {
+        /// Sunday
+        Sunday => "SUNDAY",
+        /// Monday
+        Monday => "MONDAY",
+        /// Tuesday
+        Tuesday => "TUESDAY",
+        /// Wednesday
+        Wednesday => "WEDNESDAY",
+        /// Thursday
+        Thursday => "THURSDAY",
+        /// Friday
+        Friday => "FRIDAY",
+        /// Saturday
+        Saturday => "SATURDAY",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for InstrumentType {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CURRENCY" => Self::Currency,
-            "CFD" => Self::Cfd,
-            "METAL" => Self::Metal,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The DayOfWeek provides a representation of the day of the week.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum DayOfWeek {
-    /// Sunday
-    Sunday,
-    /// Monday
-    Monday,
-    /// Tuesday
-    Tuesday,
-    /// Wednesday
-    Wednesday,
-    /// Thursday
-    Thursday,
-    /// Friday
-    Friday,
-    /// Saturday
-    Saturday,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl DayOfWeek {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Sunday => "SUNDAY",
-            Self::Monday => "MONDAY",
-            Self::Tuesday => "TUESDAY",
-            Self::Wednesday => "WEDNESDAY",
-            Self::Thursday => "THURSDAY",
-            Self::Friday => "FRIDAY",
-            Self::Saturday => "SATURDAY",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for DayOfWeek {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for DayOfWeek {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "SUNDAY" => Self::Sunday,
-            "MONDAY" => Self::Monday,
-            "TUESDAY" => Self::Tuesday,
-            "WEDNESDAY" => Self::Wednesday,
-            "THURSDAY" => Self::Thursday,
-            "FRIDAY" => Self::Friday,
-            "SATURDAY" => Self::Saturday,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A FinancingDayOfWeek message defines a day of the week when financing charges are debited or credited.
+/// A `FinancingDayOfWeek` message defines a day of the week when financing charges are debited or credited.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FinancingDayOfWeek {
@@ -158,7 +88,7 @@ pub struct InstrumentFinancing {
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub short_rate: Option<Decimal>,
     /// The days of the week to debit or credit financing charges; the exact time of day at which to charge the
-    /// financing is set in the DivisionTradingGroup for the client’s account.
+    /// financing is set in the `DivisionTradingGroup` for the client’s account.
     #[serde(
         rename = "financingDaysOfWeek",
         default,
@@ -309,48 +239,25 @@ pub struct Instrument {
     pub tags: Option<Vec<Tag>>,
 }
 
-/// DateTime header
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum AcceptDatetimeFormat {
-    /// If “UNIX” is specified DateTime fields will be specified or returned in the “12345678.000000123” format.
-    Unix,
-    /// If “RFC3339” is specified DateTime will be specified or returned in “YYYY-MM-DDTHH:MM:SS.nnnnnnnnnZ”
-    /// format.
-    Rfc3339,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl AcceptDatetimeFormat {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Unix => "UNIX",
-            Self::Rfc3339 => "RFC3339",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// Unrecognized spellings are retained and serialized unchanged for provider
+    /// compatibility; endpoint admission applies any operation-specific restrictions.
+    /// `DateTime` header
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum AcceptDatetimeFormat {
+        /// If “UNIX” is specified `DateTime` fields will be specified or returned in the “12345678.000000123” format.
+        Unix => "UNIX",
+        /// If “RFC3339” is specified `DateTime` will be specified or returned in “YYYY-MM-DDTHH:MM:SS.nnnnnnnnnZ”
+        /// format.
+        Rfc3339 => "RFC3339",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for AcceptDatetimeFormat {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for AcceptDatetimeFormat {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "UNIX" => Self::Unix,
-            "RFC3339" => Self::Rfc3339,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// An InstrumentCommission represents an instrument-specific commission
+/// An `InstrumentCommission` represents an instrument-specific commission
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct InstrumentCommission {
@@ -381,52 +288,25 @@ pub struct InstrumentCommission {
     pub minimum_commission: Option<Decimal>,
 }
 
-/// The overall behaviour of the Account regarding Guaranteed Stop Loss Orders for a specific Instrument.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum GuaranteedStopLossOrderModeForInstrument {
-    /// The Account is not permitted to create Guaranteed Stop Loss Orders for this Instrument.
-    Disabled,
-    /// The Account is able, but not required to have Guaranteed Stop Loss Orders for open Trades for this
-    /// Instrument.
-    Allowed,
-    /// The Account is required to have Guaranteed Stop Loss Orders for all open Trades for this Instrument.
-    Required,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl GuaranteedStopLossOrderModeForInstrument {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Disabled => "DISABLED",
-            Self::Allowed => "ALLOWED",
-            Self::Required => "REQUIRED",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The overall behaviour of the Account regarding Guaranteed Stop Loss Orders for a specific Instrument.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum GuaranteedStopLossOrderModeForInstrument {
+        /// The Account is not permitted to create Guaranteed Stop Loss Orders for this Instrument.
+        Disabled => "DISABLED",
+        /// The Account is able, but not required to have Guaranteed Stop Loss Orders for open Trades for this
+        /// Instrument.
+        Allowed => "ALLOWED",
+        /// The Account is required to have Guaranteed Stop Loss Orders for all open Trades for this Instrument.
+        Required => "REQUIRED",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for GuaranteedStopLossOrderModeForInstrument {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for GuaranteedStopLossOrderModeForInstrument {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "DISABLED" => Self::Disabled,
-            "ALLOWED" => Self::Allowed,
-            "REQUIRED" => Self::Required,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A GuaranteedStopLossOrderLevelRestriction represents the total position size that can exist within a
+/// A `GuaranteedStopLossOrderLevelRestriction` represents the total position size that can exist within a
 /// given price window for Trades with guaranteed Stop Loss Orders attached for a specific Instrument.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -447,49 +327,24 @@ pub struct GuaranteedStopLossOrderLevelRestriction {
     pub price_range: Option<Decimal>,
 }
 
-/// In the context of an Order or a Trade, defines whether the units are positive or negative.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum Direction {
-    /// A long Order is used to to buy units of an Instrument. A Trade is long when it has bought units of an
-    /// Instrument.
-    Long,
-    /// A short Order is used to to sell units of an Instrument. A Trade is short when it has sold units of an
-    /// Instrument.
-    Short,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl Direction {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Long => "LONG",
-            Self::Short => "SHORT",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// In the context of an Order or a Trade, defines whether the units are positive or negative.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum Direction {
+        /// A long Order is used to to buy units of an Instrument. A Trade is long when it has bought units of an
+        /// Instrument.
+        Long => "LONG",
+        /// A short Order is used to to sell units of an Instrument. A Trade is short when it has sold units of an
+        /// Instrument.
+        Short => "SHORT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for Direction {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for Direction {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "LONG" => Self::Long,
-            "SHORT" => Self::Short,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A ConversionFactor contains information used to convert an amount, from an Instrument’s base or quote
+/// A `ConversionFactor` contains information used to convert an amount, from an Instrument’s base or quote
 /// currency, to the home currency of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -501,12 +356,12 @@ pub struct ConversionFactor {
     pub factor: Option<Decimal>,
 }
 
-/// A HomeConversionFactors message contains information used to convert amounts, from an Instrument’s base
+/// A `HomeConversionFactors` message contains information used to convert amounts, from an Instrument’s base
 /// or quote currency, to the home currency of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct HomeConversionFactors {
-    /// The ConversionFactor in effect for the Account for converting any gains realized in Instrument quote
+    /// The `ConversionFactor` in effect for the Account for converting any gains realized in Instrument quote
     /// units into units of the Account’s home currency.
     #[serde(
         rename = "gainQuoteHome",
@@ -514,7 +369,7 @@ pub struct HomeConversionFactors {
         skip_serializing_if = "Option::is_none"
     )]
     pub gain_quote_home: Option<ConversionFactor>,
-    /// The ConversionFactor in effect for the Account for converting any losses realized in Instrument quote
+    /// The `ConversionFactor` in effect for the Account for converting any losses realized in Instrument quote
     /// units into units of the Account’s home currency.
     #[serde(
         rename = "lossQuoteHome",
@@ -522,7 +377,7 @@ pub struct HomeConversionFactors {
         skip_serializing_if = "Option::is_none"
     )]
     pub loss_quote_home: Option<ConversionFactor>,
-    /// The ConversionFactor in effect for the Account for converting any gains realized in Instrument base
+    /// The `ConversionFactor` in effect for the Account for converting any gains realized in Instrument base
     /// units into units of the Account’s home currency.
     #[serde(
         rename = "gainBaseHome",
@@ -530,7 +385,7 @@ pub struct HomeConversionFactors {
         skip_serializing_if = "Option::is_none"
     )]
     pub gain_base_home: Option<ConversionFactor>,
-    /// The ConversionFactor in effect for the Account for converting any losses realized in Instrument base
+    /// The `ConversionFactor` in effect for the Account for converting any losses realized in Instrument base
     /// units into units of the Account’s home currency.
     #[serde(
         rename = "lossBaseHome",

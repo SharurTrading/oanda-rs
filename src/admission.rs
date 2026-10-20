@@ -103,7 +103,8 @@ impl Admission {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] for a reserve of at least 120 or a poisoned lock.
+    /// Returns [`Error::InvalidInput`] for a reserve of at least 120, or
+    /// [`Error::Invariant`] for a poisoned lock.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
         if requests >= REQUESTS_PER_SECOND {
             return Err(Error::InvalidInput(
@@ -114,7 +115,7 @@ impl Admission {
             .inner
             .rate
             .lock()
-            .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
+            .map_err(|_| Error::Invariant("rate lock poisoned"))?;
         let changed = rate.exit_reserve != requests;
         rate.exit_reserve = requests;
         drop(rate);
@@ -129,7 +130,7 @@ impl Admission {
             .rate
             .lock()
             .map(|rate| rate.exit_reserve)
-            .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))
+            .map_err(|_| Error::Invariant("rate lock poisoned"))
     }
 
     pub(crate) async fn admit(&self, mutation: bool, exit: bool) -> Result<()> {
@@ -142,7 +143,7 @@ impl Admission {
                     .inner
                     .rate
                     .lock()
-                    .map_err(|_| Error::InvalidInput("rate lock poisoned".into()))?;
+                    .map_err(|_| Error::Invariant("rate lock poisoned"))?;
                 let capacity = if exit {
                     REQUESTS_PER_SECOND
                 } else {
@@ -182,17 +183,18 @@ impl Admission {
         }
     }
 
-    pub(crate) fn install_cooldown(&self, cooldown: Duration) {
+    pub(crate) fn install_cooldown(&self, cooldown: Duration) -> Result<()> {
         let mut rate = self
             .inner
             .rate
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
+            .map_err(|_| Error::Invariant("rate lock poisoned while installing cooldown"))?;
         let until = Instant::now() + cooldown;
         rate.cooldown_until = Some(
             rate.cooldown_until
                 .map_or(until, |existing| existing.max(until)),
         );
+        Ok(())
     }
 
     pub(crate) fn lease_stream(&self) -> Result<StreamLease> {
@@ -200,7 +202,7 @@ impl Admission {
             .inner
             .stream_slots
             .lock()
-            .map_err(|_| Error::InvalidInput("stream slots lock poisoned".into()))?;
+            .map_err(|_| Error::Invariant("stream slots lock poisoned"))?;
         if slots.active >= STREAM_LIMIT {
             return Err(Error::RateLimited);
         }
@@ -303,6 +305,8 @@ impl ConnectionGate {
     async fn admit_start(&self) {
         loop {
             let wait_until = {
+                // Only this exhaustive, panic-free Instant state transition owns the lock.
+                // Poison recovery retains every previously admitted connector start.
                 let mut starts = self
                     .starts
                     .lock()
@@ -670,7 +674,9 @@ mod tests {
             owner.admit(true, false).await,
             Err(Error::RateLimited)
         ));
-        owner.install_cooldown(Duration::from_secs(2));
+        owner
+            .install_cooldown(Duration::from_secs(2))
+            .expect("install cooldown");
         assert!(matches!(
             owner.clone().admit(true, true).await,
             Err(Error::RateLimited)

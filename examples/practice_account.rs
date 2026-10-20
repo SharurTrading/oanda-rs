@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 Kevin Monaghan
+// SPDX-License-Identifier: MIT-0
+
 //! Read-only account snapshot; run with `OANDA_TOKEN` and `OANDA_ACCOUNT_ID` set.
 use oanda_client::{AccountID, Client, Environment};
 
@@ -8,6 +11,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let client = Client::builder(Environment::Practice, token).build()?;
     let summary = client.account_summary(&account).await?;
     println!("request ID: {:?}", summary.request_id);
-    println!("last transaction: {:?}", summary.last_transaction_id);
+    println!("last transaction: {:?}", summary.body.last_transaction_id);
     Ok(())
 }

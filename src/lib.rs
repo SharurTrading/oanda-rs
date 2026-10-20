@@ -1,13 +1,8 @@
 //! Async provider-native client for the OANDA v20 REST API.
 //!
 //! The caller owns credentials, their storage, and the Tokio runtime.
+#![doc = include_str!("../README.md")]
 
-// These endpoint contracts and provider descriptions are hand-maintained from OANDA's published pages.
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 #[path = "account.rs"]
 pub mod accounts;
 /// Singular compatibility alias for account endpoint contracts.
@@ -18,54 +13,24 @@ mod decimal_wire;
 mod environment;
 mod error;
 mod ids;
-#[allow(
-    clippy::doc_markdown,
-    clippy::must_use_candidate,
-    clippy::too_many_lines,
-    clippy::wildcard_imports
-)]
 pub mod models;
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 #[path = "order.rs"]
 pub mod orders;
 /// Singular compatibility alias for order endpoint contracts.
 pub use orders as order;
 mod patch;
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 #[path = "position.rs"]
 pub mod positions;
 /// Singular compatibility alias for position endpoint contracts.
 pub use positions as position;
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 pub mod pricing;
 pub mod stream;
 mod timestamp;
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 #[path = "trade.rs"]
 pub mod trades;
+mod units;
 /// Singular compatibility alias for trade endpoint contracts.
 pub use trades as trade;
-#[allow(
-    clippy::doc_markdown,
-    clippy::missing_errors_doc,
-    clippy::wildcard_imports
-)]
 #[path = "transaction.rs"]
 pub mod transactions;
 /// Singular compatibility alias for transaction endpoint contracts.
@@ -79,7 +44,8 @@ pub use error::{Error, GenericRejection, OperationError, Result, Supplied};
 pub use ids::*;
 pub use patch::Patch;
 pub use stream::{BufferedEvents, HttpStream, PriceStreamEvent, TransactionStreamEvent};
-pub use timestamp::Timestamp;
+pub use timestamp::{InvalidTimestamp, Timestamp};
+pub use units::{PositionCloseoutUnits, TradeCloseoutUnits};
 
 /// Instrument models and candle endpoint contracts.
 pub mod instruments {

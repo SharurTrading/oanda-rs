@@ -9,7 +9,12 @@
 //! `close_position` of a long side that is already flat: it carries no `units`, so every read
 //! covering it must decode it with the units absent rather than refuse the whole reply.
 // Assertions and fixture setup intentionally fail fast in tests; production paths return errors.
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "test setup and assertions fail immediately with fixture context"
+)]
 
 use oanda_client::models::{
     MarketOrderReason, MarketOrderRejectTransaction, OrderCancelReason, OrderFillReason,
@@ -74,7 +79,7 @@ fn assert_flat_side_reject(reject: &MarketOrderRejectTransaction) {
         closeout.instrument.as_ref().map(InstrumentName::as_str),
         Some("EUR_USD")
     );
-    assert_eq!(closeout.units.as_deref(), Some("ALL"));
+    assert_eq!(closeout.units, Some(oanda_client::TradeCloseoutUnits::All));
     assert_eq!(reject.short_position_closeout, None);
 }
 
@@ -349,9 +354,9 @@ async fn close_position_rejection_decodes_the_flat_side_reject() {
         let (url, task) = server(http(status, "application/json", &body)).await;
         let client = fixture_client(url);
         let request = ClosePositionBody {
-            long_units: Some("ALL".to_owned()),
+            long_units: Some(oanda_client::PositionCloseoutUnits::All),
             long_client_extensions: None,
-            short_units: Some("NONE".to_owned()),
+            short_units: Some(oanda_client::PositionCloseoutUnits::None),
             short_client_extensions: None,
         };
         let error = client

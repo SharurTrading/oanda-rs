@@ -1,21 +1,25 @@
 //! OANDA trade endpoint contracts.
-// Shared imports vary by capability; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use crate::Timestamp;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::models::*;
-#[allow(unused_imports)]
-use crate::{Client, Result};
-#[allow(unused_imports)]
+
+use crate::client::RequestParts;
+use crate::ids::{AccountID, InstrumentName, TradeID, TradeSpecifier, TransactionID};
+use crate::models::{
+    ClientExtensions, GuaranteedStopLossDetails, GuaranteedStopLossOrderRejectTransaction,
+    GuaranteedStopLossOrderTransaction, MarketOrderRejectTransaction, MarketOrderTransaction,
+    OrderCancelRejectTransaction, OrderCancelTransaction, OrderFillTransaction, StopLossDetails,
+    StopLossOrderRejectTransaction, StopLossOrderTransaction, TakeProfitDetails,
+    TakeProfitOrderRejectTransaction, TakeProfitOrderTransaction, Trade,
+    TradeClientExtensionsModifyRejectTransaction, TradeClientExtensionsModifyTransaction,
+    TradeStateFilter, TrailingStopLossDetails, TrailingStopLossOrderRejectTransaction,
+    TrailingStopLossOrderTransaction,
+};
+use crate::validation::Validate;
+use crate::{Client, Error, Result};
 use reqwest::Method;
-#[allow(unused_imports)]
-use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// Query parameters for `list_trades`.
+///
+/// The default uses the provider’s trade filters and result count.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct ListTradesQuery {
@@ -40,6 +44,15 @@ pub struct ListTradesQuery {
     pub before_id: Option<TradeID>,
 }
 
+impl Validate for ListTradesQuery {
+    fn validate(&self) -> Result<()> {
+        if let Some(ids) = &self.ids {
+            crate::validation::nonempty(ids, "ids")?;
+        }
+        crate::validation::count(self.count, 500)
+    }
+}
+
 /// Successful response for `list_trades`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -58,6 +71,12 @@ pub struct ListTradesResponse {
 
 impl Client {
     /// List trades.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_trades(
         &self,
         account_id: &AccountID,
@@ -68,8 +87,12 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/trades");
-        self.execute(Method::GET, &path, query, None::<&()>, None, None)
-            .await
+        let request = RequestParts::new(Method::GET, &path);
+        let request = match query {
+            Some(query) => request.query(query)?,
+            None => request,
+        };
+        self.execute(request).await
     }
 }
 
@@ -91,6 +114,12 @@ pub struct ListOpenTradesResponse {
 
 impl Client {
     /// List open trades.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_open_trades(
         &self,
         account_id: &AccountID,
@@ -100,8 +129,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/openTrades");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -123,6 +151,12 @@ pub struct TradeDetailsResponse {
 
 impl Client {
     /// Trade details.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn trade_details(
         &self,
         account_id: &AccountID,
@@ -134,8 +168,7 @@ impl Client {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let trade_specifier_encoded = crate::client::segment(trade_specifier.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/trades/{trade_specifier_encoded}");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -144,32 +177,42 @@ impl Client {
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeBody {
     /// Indication of how much of the Trade to close. Either the string “ALL” (indicating that all of the Trade
-    /// should be closed), or a DecimalNumber representing the number of units of the open Trade to Close using
-    /// a TradeClose MarketOrder. The units specified must always be positive, and the magnitude of the value
-    /// cannot exceed the magnitude of the Trade’s open units.
+    /// should be closed), or a `DecimalNumber` representing the number of units of the open Trade to Close using
+    /// a `TradeClose` `MarketOrder`. The units specified must always be positive, and the magnitude of the value
+    /// cannot exceed the magnitude of the Trade’s open units. Omitting this field closes all units
+    /// (the provider default is `ALL`).
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
-    pub units: Option<String>,
+    pub units: Option<crate::TradeCloseoutUnits>,
+}
+
+impl Validate for CloseTradeBody {
+    fn validate(&self) -> Result<()> {
+        if let Some(units) = &self.units {
+            units.validate()?;
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `close_trade`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeResponse {
-    /// The MarketOrder Transaction created to close the Trade.
+    /// The `MarketOrder` Transaction created to close the Trade.
     #[serde(
         rename = "orderCreateTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub order_create_transaction: Option<MarketOrderTransaction>,
-    /// The OrderFill Transaction that fills the Trade-closing MarketOrder and closes the Trade.
+    /// The `OrderFill` Transaction that fills the Trade-closing `MarketOrder` and closes the Trade.
     #[serde(
         rename = "orderFillTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub order_fill_transaction: Option<OrderFillTransaction>,
-    /// The OrderCancel Transaction that immediately cancelled the Trade-closing MarketOrder.
+    /// The `OrderCancel` Transaction that immediately cancelled the Trade-closing `MarketOrder`.
     #[serde(
         rename = "orderCancelTransaction",
         default,
@@ -193,10 +236,10 @@ pub struct CloseTradeResponse {
 }
 
 /// Documented rejection fields for `close_trade`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTradeRejection {
-    /// The MarketOrderReject Transaction that rejects the creation of the Trade- closing MarketOrder.
+    /// The `MarketOrderReject` Transaction that rejects the creation of the Trade- closing `MarketOrder`.
     #[serde(
         rename = "orderRejectTransaction",
         default,
@@ -207,12 +250,8 @@ pub struct CloseTradeRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
     /// The ID of the most recent Transaction created for the Account. Only present if the Account exists.
     #[serde(
         rename = "lastTransactionID",
@@ -232,6 +271,13 @@ pub struct CloseTradeRejection {
 
 impl Client {
     /// Close trade.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn close_trade(
         &self,
         account_id: &AccountID,
@@ -246,12 +292,9 @@ impl Client {
         let path =
             format!("/v3/accounts/{account_id_encoded}/trades/{trade_specifier_encoded}/close");
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Exit(account_id)),
-            None,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Exit(account_id)),
         )
         .await
     }
@@ -269,6 +312,17 @@ pub struct UpdateTradeClientExtensionsBody {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
+}
+
+impl Validate for UpdateTradeClientExtensionsBody {
+    fn validate(&self) -> Result<()> {
+        if self.client_extensions.is_none() {
+            return Err(Error::InvalidInput(
+                "mutation body must not be empty".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `update_trade_client_extensions`.
@@ -299,7 +353,7 @@ pub struct UpdateTradeClientExtensionsResponse {
 }
 
 /// Documented rejection fields for `update_trade_client_extensions`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateTradeClientExtensionsRejection {
     /// The Transaction that rejects the modification of the Trade’s Client Extensions.
@@ -328,16 +382,19 @@ pub struct UpdateTradeClientExtensionsRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Update trade client extensions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn update_trade_client_extensions(
         &self,
         account_id: &AccountID,
@@ -353,12 +410,9 @@ impl Client {
             "/v3/accounts/{account_id_encoded}/trades/{trade_specifier_encoded}/clientExtensions"
         );
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Ordinary(account_id)),
-            None,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Ordinary(account_id)),
         )
         .await
     }
@@ -410,6 +464,33 @@ pub struct SetTradeDependentOrdersBody {
         skip_serializing_if = "crate::Patch::is_unchanged"
     )]
     pub guaranteed_stop_loss: crate::Patch<GuaranteedStopLossDetails>,
+}
+
+impl Validate for SetTradeDependentOrdersBody {
+    fn validate(&self) -> Result<()> {
+        if self.take_profit.is_unchanged()
+            && self.stop_loss.is_unchanged()
+            && self.trailing_stop_loss.is_unchanged()
+            && self.guaranteed_stop_loss.is_unchanged()
+        {
+            return Err(Error::InvalidInput(
+                "mutation body must not be empty".into(),
+            ));
+        }
+        if let crate::Patch::Set(details) = &self.take_profit {
+            details.validate()?;
+        }
+        if let crate::Patch::Set(details) = &self.stop_loss {
+            details.validate()?;
+        }
+        if let crate::Patch::Set(details) = &self.trailing_stop_loss {
+            details.validate()?;
+        }
+        if let crate::Patch::Set(details) = &self.guaranteed_stop_loss {
+            details.validate()?;
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `set_trade_dependent_orders`.
@@ -521,10 +602,10 @@ pub struct SetTradeDependentOrdersResponse {
 }
 
 /// Documented rejection fields for `set_trade_dependent_orders`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SetTradeDependentOrdersRejection {
-    /// An OrderCancelRejectTransaction represents the rejection of the cancellation of an Order in the client’s
+    /// An `OrderCancelRejectTransaction` represents the rejection of the cancellation of an Order in the client’s
     /// Account.
     #[serde(
         rename = "takeProfitOrderCancelRejectTransaction",
@@ -532,14 +613,14 @@ pub struct SetTradeDependentOrdersRejection {
         skip_serializing_if = "Option::is_none"
     )]
     pub take_profit_order_cancel_reject_transaction: Option<OrderCancelRejectTransaction>,
-    /// A TakeProfitOrderRejectTransaction represents the rejection of the creation of a TakeProfit Order.
+    /// A `TakeProfitOrderRejectTransaction` represents the rejection of the creation of a `TakeProfit` Order.
     #[serde(
         rename = "takeProfitOrderRejectTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub take_profit_order_reject_transaction: Option<TakeProfitOrderRejectTransaction>,
-    /// An OrderCancelRejectTransaction represents the rejection of the cancellation of an Order in the client’s
+    /// An `OrderCancelRejectTransaction` represents the rejection of the cancellation of an Order in the client’s
     /// Account.
     #[serde(
         rename = "stopLossOrderCancelRejectTransaction",
@@ -547,14 +628,14 @@ pub struct SetTradeDependentOrdersRejection {
         skip_serializing_if = "Option::is_none"
     )]
     pub stop_loss_order_cancel_reject_transaction: Option<OrderCancelRejectTransaction>,
-    /// A StopLossOrderRejectTransaction represents the rejection of the creation of a StopLoss Order.
+    /// A `StopLossOrderRejectTransaction` represents the rejection of the creation of a `StopLoss` Order.
     #[serde(
         rename = "stopLossOrderRejectTransaction",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub stop_loss_order_reject_transaction: Option<StopLossOrderRejectTransaction>,
-    /// An OrderCancelRejectTransaction represents the rejection of the cancellation of an Order in the client’s
+    /// An `OrderCancelRejectTransaction` represents the rejection of the cancellation of an Order in the client’s
     /// Account.
     #[serde(
         rename = "trailingStopLossOrderCancelRejectTransaction",
@@ -562,7 +643,7 @@ pub struct SetTradeDependentOrdersRejection {
         skip_serializing_if = "Option::is_none"
     )]
     pub trailing_stop_loss_order_cancel_reject_transaction: Option<OrderCancelRejectTransaction>,
-    /// A TrailingStopLossOrderRejectTransaction represents the rejection of the creation of a TrailingStopLoss
+    /// A `TrailingStopLossOrderRejectTransaction` represents the rejection of the creation of a `TrailingStopLoss`
     /// Order.
     #[serde(
         rename = "trailingStopLossOrderRejectTransaction",
@@ -570,7 +651,7 @@ pub struct SetTradeDependentOrdersRejection {
         skip_serializing_if = "Option::is_none"
     )]
     pub trailing_stop_loss_order_reject_transaction: Option<TrailingStopLossOrderRejectTransaction>,
-    /// An OrderCancelRejectTransaction represents the rejection of the cancellation of an Order in the client’s
+    /// An `OrderCancelRejectTransaction` represents the rejection of the cancellation of an Order in the client’s
     /// Account.
     #[serde(
         rename = "guaranteedStopLossOrderCancelRejectTransaction",
@@ -578,8 +659,8 @@ pub struct SetTradeDependentOrdersRejection {
         skip_serializing_if = "Option::is_none"
     )]
     pub guaranteed_stop_loss_order_cancel_reject_transaction: Option<OrderCancelRejectTransaction>,
-    /// A GuaranteedStopLossOrderRejectTransaction represents the rejection of the creation of a
-    /// GuaranteedStopLoss Order.
+    /// A `GuaranteedStopLossOrderRejectTransaction` represents the rejection of the creation of a
+    /// `GuaranteedStopLoss` Order.
     #[serde(
         rename = "guaranteedStopLossOrderRejectTransaction",
         default,
@@ -605,16 +686,19 @@ pub struct SetTradeDependentOrdersRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Set trade dependent orders.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn set_trade_dependent_orders(
         &self,
         account_id: &AccountID,
@@ -629,12 +713,9 @@ impl Client {
         let path =
             format!("/v3/accounts/{account_id_encoded}/trades/{trade_specifier_encoded}/orders");
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Ordinary(account_id)),
-            None,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Ordinary(account_id)),
         )
         .await
     }

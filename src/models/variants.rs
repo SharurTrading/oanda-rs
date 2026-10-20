@@ -1,8 +1,31 @@
 //! Tagged provider unions for orders and transactions.
-use super::*;
+//!
+//! Response unions preserve unknown tagged objects as evidence. Request unions
+//! reject unknown variants because their trading semantics have not been defined.
+use super::{
+    ClientConfigureRejectTransaction, ClientConfigureTransaction, CloseTransaction,
+    CreateTransaction, DailyFinancingTransaction, DelayedTradeClosureTransaction,
+    DividendAdjustmentTransaction, FixedPriceOrder, FixedPriceOrderTransaction,
+    GuaranteedStopLossOrder, GuaranteedStopLossOrderRejectTransaction,
+    GuaranteedStopLossOrderRequest, GuaranteedStopLossOrderTransaction, LimitOrder,
+    LimitOrderRejectTransaction, LimitOrderRequest, LimitOrderTransaction,
+    MarginCallEnterTransaction, MarginCallExitTransaction, MarginCallExtendTransaction,
+    MarketIfTouchedOrder, MarketIfTouchedOrderRejectTransaction, MarketIfTouchedOrderRequest,
+    MarketIfTouchedOrderTransaction, MarketOrder, MarketOrderRejectTransaction, MarketOrderRequest,
+    MarketOrderTransaction, OrderCancelRejectTransaction, OrderCancelTransaction,
+    OrderClientExtensionsModifyRejectTransaction, OrderClientExtensionsModifyTransaction,
+    OrderFillTransaction, ReopenTransaction, ResetResettablePLTransaction, StopLossOrder,
+    StopLossOrderRejectTransaction, StopLossOrderRequest, StopLossOrderTransaction, StopOrder,
+    StopOrderRejectTransaction, StopOrderRequest, StopOrderTransaction, TakeProfitOrder,
+    TakeProfitOrderRejectTransaction, TakeProfitOrderRequest, TakeProfitOrderTransaction,
+    TradeClientExtensionsModifyRejectTransaction, TradeClientExtensionsModifyTransaction,
+    TrailingStopLossOrder, TrailingStopLossOrderRejectTransaction, TrailingStopLossOrderRequest,
+    TrailingStopLossOrderTransaction, TransferFundsRejectTransaction, TransferFundsTransaction,
+};
 use serde::{Deserialize, Serialize};
 
 /// Documented Order variants identified by OANDA’s `type` field.
+/// Unknown provider objects retain their discriminator and raw fields for inspection.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum Order {
@@ -36,10 +59,7 @@ pub enum Order {
 impl<'de> Deserialize<'de> for Order {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = serde_json::Value::deserialize(deserializer)?;
-        let kind = value
-            .get("type")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| serde::de::Error::custom("missing OANDA type discriminator"))?;
+        let kind = discriminator(&value).map_err(serde::de::Error::custom)?;
         match kind {
             "MARKET" => serde_json::from_value(value)
                 .map(Self::MarketOrder)
@@ -78,7 +98,7 @@ impl<'de> Deserialize<'de> for Order {
 
 impl Serialize for Order {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let (kind, mut value) = match self {
+        let (kind, value) = match self {
             Self::MarketOrder(body) => (
                 "MARKET",
                 serde_json::to_value(body).map_err(serde::ser::Error::custom)?,
@@ -117,18 +137,13 @@ impl Serialize for Order {
             ),
             Self::Unknown { kind, raw } => (kind.as_str(), raw.clone()),
         };
-        let object = value
-            .as_object_mut()
-            .ok_or_else(|| serde::ser::Error::custom("OANDA variant must be an object"))?;
-        object.insert(
-            "type".to_owned(),
-            serde_json::Value::String(kind.to_owned()),
-        );
+        let value = tagged_value(kind, value).map_err(serde::ser::Error::custom)?;
         value.serialize(serializer)
     }
 }
 
-/// Documented OrderRequest variants identified by OANDA’s `type` field.
+/// Documented `OrderRequest` variants identified by OANDA’s `type` field.
+/// Unknown request variants are rejected rather than forwarded as trading instructions.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum OrderRequest {
@@ -153,10 +168,7 @@ pub enum OrderRequest {
 impl<'de> Deserialize<'de> for OrderRequest {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = serde_json::Value::deserialize(deserializer)?;
-        let kind = value
-            .get("type")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| serde::de::Error::custom("missing OANDA type discriminator"))?;
+        let kind = discriminator(&value).map_err(serde::de::Error::custom)?;
         match kind {
             "MARKET" => serde_json::from_value(value)
                 .map(Self::MarketOrderRequest)
@@ -182,14 +194,16 @@ impl<'de> Deserialize<'de> for OrderRequest {
             "TRAILING_STOP_LOSS" => serde_json::from_value(value)
                 .map(Self::TrailingStopLossOrderRequest)
                 .map_err(serde::de::Error::custom),
-            _ => Err(serde::de::Error::custom("unsupported OANDA request type")),
+            other => Err(serde::de::Error::custom(format!(
+                "unsupported OANDA request type {other:?}"
+            ))),
         }
     }
 }
 
 impl Serialize for OrderRequest {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let (kind, mut value) = match self {
+        let (kind, value) = match self {
             Self::MarketOrderRequest(body) => (
                 "MARKET",
                 serde_json::to_value(body).map_err(serde::ser::Error::custom)?,
@@ -223,18 +237,13 @@ impl Serialize for OrderRequest {
                 serde_json::to_value(body).map_err(serde::ser::Error::custom)?,
             ),
         };
-        let object = value
-            .as_object_mut()
-            .ok_or_else(|| serde::ser::Error::custom("OANDA variant must be an object"))?;
-        object.insert(
-            "type".to_owned(),
-            serde_json::Value::String(kind.to_owned()),
-        );
+        let value = tagged_value(kind, value).map_err(serde::ser::Error::custom)?;
         value.serialize(serializer)
     }
 }
 
 /// Documented Transaction variants identified by OANDA’s `type` field.
+/// Unknown provider objects retain their discriminator and raw fields for inspection.
 #[derive(Debug, Clone, PartialEq)]
 #[non_exhaustive]
 #[expect(
@@ -328,12 +337,13 @@ pub enum Transaction {
 }
 
 impl<'de> Deserialize<'de> for Transaction {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the exhaustive provider discriminator table keeps response decoding auditable"
+    )]
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let value = serde_json::Value::deserialize(deserializer)?;
-        let kind = value
-            .get("type")
-            .and_then(serde_json::Value::as_str)
-            .ok_or_else(|| serde::de::Error::custom("missing OANDA type discriminator"))?;
+        let kind = discriminator(&value).map_err(serde::de::Error::custom)?;
         match kind {
             "CREATE" => serde_json::from_value(value)
                 .map(Self::CreateTransaction)
@@ -458,8 +468,12 @@ impl<'de> Deserialize<'de> for Transaction {
 }
 
 impl Serialize for Transaction {
+    #[expect(
+        clippy::too_many_lines,
+        reason = "the exhaustive provider discriminator table keeps response serialization auditable"
+    )]
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        let (kind, mut value) = match self {
+        let (kind, value) = match self {
             Self::CreateTransaction(body) => (
                 "CREATE",
                 serde_json::to_value(body).map_err(serde::ser::Error::custom)?,
@@ -614,13 +628,54 @@ impl Serialize for Transaction {
             ),
             Self::Unknown { kind, raw } => (kind.as_str(), raw.clone()),
         };
+        let value = tagged_value(kind, value).map_err(serde::ser::Error::custom)?;
+        value.serialize(serializer)
+    }
+}
+
+fn discriminator(value: &serde_json::Value) -> Result<&str, String> {
+    match value.get("type") {
+        None => Err("missing OANDA type discriminator".to_owned()),
+        Some(serde_json::Value::String(kind)) => Ok(kind),
+        Some(observed) => Err(format!(
+            "OANDA type discriminator must be a string; observed {observed}"
+        )),
+    }
+}
+
+fn tagged_value(kind: &str, value: serde_json::Value) -> Result<serde_json::Value, String> {
+    let value = {
+        let mut value = value;
         let object = value
             .as_object_mut()
-            .ok_or_else(|| serde::ser::Error::custom("OANDA variant must be an object"))?;
+            .ok_or_else(|| "OANDA variant must be an object".to_owned())?;
+        if let Some(observed) = object.get("type")
+            && observed.as_str() != Some(kind)
+        {
+            return Err(format!(
+                "OANDA type discriminator mismatch: expected {kind:?}, observed {observed}"
+            ));
+        }
         object.insert(
             "type".to_owned(),
             serde_json::Value::String(kind.to_owned()),
         );
-        value.serialize(serializer)
+        value
+    };
+    Ok(value)
+}
+
+impl crate::validation::Validate for OrderRequest {
+    fn validate(&self) -> crate::Result<()> {
+        match self {
+            Self::MarketOrderRequest(body) => body.validate(),
+            Self::LimitOrderRequest(body) => body.validate(),
+            Self::StopOrderRequest(body) => body.validate(),
+            Self::MarketIfTouchedOrderRequest(body) => body.validate(),
+            Self::TakeProfitOrderRequest(body) => body.validate(),
+            Self::StopLossOrderRequest(body) => body.validate(),
+            Self::GuaranteedStopLossOrderRequest(body) => body.validate(),
+            Self::TrailingStopLossOrderRequest(body) => body.validate(),
+        }
     }
 }

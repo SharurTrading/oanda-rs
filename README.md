@@ -29,10 +29,10 @@ adapter is outside this repository.
 The project is licensed under [MIT No Attribution (MIT-0)](https://github.com/SharurTrading/oanda-rs/blob/main/LICENSE). The minimum supported Rust
 version is **1.95.0**.
 
-Published version 2 follows Semantic Versioning. The audit remediation on `main` contains
-source-breaking APIs intended for the next major release; see the Unreleased changelog and
-[upgrade notes](https://github.com/SharurTrading/oanda-rs/blob/main/CHANGELOG.md#unreleased--next-major). Public API changes that require downstream source changes
-will be released under a new major version; additive APIs and fixes use minor and patch releases.
+Version **3.0.0** follows Semantic Versioning and contains source-breaking API corrections
+from the Rust idioms audit; see [Upgrading from 2.x](#upgrading-from-2x). Public API changes
+that require downstream source changes use a new major version; additive APIs and fixes use
+minor and patch releases.
 Provider contract changes can still require callers to update operational behavior, so review the
 [changelog](https://github.com/SharurTrading/oanda-rs/blob/main/CHANGELOG.md) before upgrading and keep recovery around ambiguous money-moving
 outcomes.
@@ -61,20 +61,46 @@ fallbacks and swallowed failures, with a disposition for every candidate.
 ## Installation
 
 ```sh
-cargo add oanda-client@2
+cargo add oanda-client@3
 ```
 
 Or add the current major release directly:
 
 ```toml
 [dependencies]
-oanda-client = "2"
+oanda-client = "3"
 ```
 
 The complete public API is available on [docs.rs](https://docs.rs/oanda-client).
 
 The crate uses Rust edition 2024 and exposes capability modules for accounts, orders, trades,
 positions, transactions, pricing, instruments, transport, and primitives.
+
+## Upgrading from 2.x
+
+Version 3 requires downstream source changes. Review the full
+[3.0.0 changelog](https://github.com/SharurTrading/oanda-rs/blob/main/CHANGELOG.md#300---2026-10-20)
+before upgrading, especially request validation and definitive rejection handling.
+
+| 2.x usage | 3.0.0 migration |
+| --- | --- |
+| Access response fields through `ApiResponse<T>` dereferencing | Access the decoded value through `.body` |
+| String close quantities | Use `TradeCloseoutUnits::{All, Units}` or `PositionCloseoutUnits::{All, None, Units}` with exact `Decimal` quantities |
+| Position close request with an omitted side | Set that side explicitly to `PositionCloseoutUnits::None`; omission means `ALL` for each side |
+| Construct an endpoint rejection with `Default` or an optional message | Supply its required `error_message: String`; generic rejection reasons remain optional |
+| Match mutation errors with string accounts or response metadata with string request IDs | Handle `AccountID` and `Supplied<RequestID>`; use `.as_str()` when a borrowed spelling is needed |
+| Construct the affected transaction client trade IDs or fixed-price trade states as strings | Use `ClientID` and the preserving `TradeState` enum |
+| Construct or pattern-match the `InvalidId` unit struct | Match `error.kind()` against `InvalidIdKind`; recover the rejected spelling with `value()` or `into_value()` |
+| Treat a timestamp parse error as `String` | Handle the typed `InvalidTimestamp`; more than nine fractional digits now fail explicitly |
+| Exhaustively match `OperationError` | Handle `RejectedUnreadable { status, request_id, source }` as a definitive refusal with unreadable body evidence |
+
+Outgoing typed requests are validated before consuming admission capacity or sending data.
+Contradictory type tags and price/distance instructions fail explicitly. Serialize
+`Patch::Unchanged` only through an enclosing field that omits it; `Patch::Clear` remains the
+explicit cancellation instruction. Nonpositive outgoing close quantities are rejected while
+signed response quantities remain preserved. Definitive rejection body-read failures no
+longer fence an account, and decoded mutation successes retain their bodies when pagination
+metadata cannot be read. The recovery procedure for ambiguous mutations still applies.
 
 ## Quick start
 

@@ -8,6 +8,61 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
+## Unreleased — next major
+
+The changes below require a major release. The package version remains 2.0.0 until a
+separate reviewed release change runs the release gate; this section is not a release.
+
+- Breaking: the nine endpoint rejection DTOs require `error_message: String` and no longer
+  implement `Default`. A nonempty rejection body missing that documented required field is
+  `Supplied::Undecoded`; the separately readable provider reason is still preserved.
+- Breaking: close request quantities use `TradeCloseoutUnits` and `PositionCloseoutUnits`
+  instead of strings. Use `All`, `Units(Decimal)`, or position-only `None`; omission retains
+  OANDA's `ALL` default. Response closeout quantities use `TradeCloseoutUnits`, retaining
+  negative provider evidence while outgoing admission rejects nonpositive quantities.
+- Breaking: mutation fence errors carry `AccountID`, response metadata carries
+  `Supplied<RequestID>`, and the two inconsistent transaction `client_trade_id` fields use
+  `ClientID`. Fixed-price `trade_state` fields use the preserving `TradeState` enum.
+- Breaking: `ApiResponse<T>` no longer dereferences to `T`; access response fields through
+  `.body`. Timestamp parsing returns `InvalidTimestamp`; `InvalidId` retains the rejected
+  spelling and exposes an `InvalidIdKind` through `kind()`.
+- Add `Timestamp::new` and `From<DateTime<Utc>>`. Parse signed Unix fractions exactly,
+  reject excess fractional precision rather than truncate, and avoid temporary timestamp
+  strings during fractional parsing and serialization.
+- Validate typed request DTOs before serialization, rate admission, account reservation,
+  or network access. Request construction uses named parts and one prepared wire value,
+  replacing URL-suffix and JSON-key dispatch. Invalid requests preserve input and admission
+  state. Partial dependent-order modifications may omit both trigger fields to inherit the
+  existing value, but cannot supply both price and distance.
+- Fail serialization of standalone `Patch::Unchanged` instead of turning omission into
+  cancellation. Existing dependent-order fields continue to omit it. Reject conflicting
+  explicit order and transaction type discriminators instead of silently replacing them.
+- Accept an omitted position-close body as the documented `ALL` defaults for both sides.
+  To close only one side, explicitly use `PositionCloseoutUnits::None` on the other side;
+  no live probe of omitted sides was performed.
+- Preserve definitive rejections when body reading fails through
+  `OperationError::RejectedUnreadable { status, request_id, source }`; such outcomes do not
+  fence the account. A decoded mutation success retains its body when pagination metadata
+  is unusable. Internal lock failures are typed invariant errors. A failed cooldown
+  installation retains HTTP 429 through `Error::ProviderRateLimitedInvariant`, disarms the
+  mutation guard, and leaves cooldown state unchanged.
+- Check the mutation fence before inserting an in-flight reservation, so a lock failure
+  cannot leave a reservation without an owning guard.
+- Zeroize the library-owned bearer-token string on builder/client owner drop, using the
+  existing pinned `zeroize` crate as a direct dependency. This does not erase copies owned
+  by the caller or HTTP transport and requires human dependency/credential review.
+- Declare scalar enum spellings once, preserving all existing documented variants and
+  unknown spellings; add an independent pinned-spec scalar completeness check with explicit
+  website drift. Replace source-text tagged-fixture scanning with shared fixture values.
+- Decode stream records from borrowed buffers before compaction, retaining record limits,
+  ordering, backlog handling, and explicit gaps. Name the local heartbeat timeout.
+- Remove stale import and module-wide lint suppressions; document endpoint errors, unknown
+  enum behavior, and close defaults. Compile README examples as doctests, run credential-free
+  examples in CI, share integration-test transport helpers, and remove global panic-hook
+  manipulation from negative tests.
+- Commit the historical Rust idiom audit and record every final disposition, including
+  retained provider-native naming, valid query defaults, and schema-faithful ambiguous fields.
+
 ## [2.0.0] - 2026-10-18
 
 - Add consuming `HttpStream::close` and the move-only, fused `BufferedEvents` iterator.

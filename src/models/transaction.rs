@@ -1,17 +1,17 @@
 //! OANDA v20 transaction definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
+use super::{
+    AccountFinancingMode, ClientPrice, HomeConversionFactors, OrderPositionFill,
+    OrderTriggerCondition, TimeInForce, TradeState,
+};
+use crate::ids::{
+    AccountID, ClientComment, ClientID, ClientTag, Currency, InstrumentName, OrderID, RequestID,
+    TradeID, TransactionID,
+};
 use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
-/// A CreateTransaction represents the creation of an Account.
+/// A `CreateTransaction` represents the creation of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateTransaction {
@@ -34,8 +34,9 @@ pub struct CreateTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “CREATE” in a CreateTransaction.
+    /// The Type of the Transaction. Always set to “CREATE” in a `CreateTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_create_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Division that the Account is in
     #[serde(
@@ -70,7 +71,7 @@ pub struct CreateTransaction {
     pub home_currency: Option<Currency>,
 }
 
-/// A CloseTransaction represents the closing of an Account.
+/// A `CloseTransaction` represents the closing of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseTransaction {
@@ -93,12 +94,13 @@ pub struct CloseTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “CLOSE” in a CloseTransaction.
+    /// The Type of the Transaction. Always set to “CLOSE” in a `CloseTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_close_transaction_type")]
     pub r#type: Option<TransactionType>,
 }
 
-/// A ReopenTransaction represents the re-opening of a closed Account.
+/// A `ReopenTransaction` represents the re-opening of a closed Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReopenTransaction {
@@ -121,12 +123,13 @@ pub struct ReopenTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “REOPEN” in a ReopenTransaction.
+    /// The Type of the Transaction. Always set to “REOPEN” in a `ReopenTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_reopen_transaction_type")]
     pub r#type: Option<TransactionType>,
 }
 
-/// A ClientConfigureTransaction represents the configuration of an Account by a client.
+/// A `ClientConfigureTransaction` represents the configuration of an Account by a client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientConfigureTransaction {
@@ -149,8 +152,9 @@ pub struct ClientConfigureTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “CLIENT_CONFIGURE” in a ClientConfigureTransaction.
+    /// The Type of the Transaction. Always set to “`CLIENT_CONFIGURE`” in a `ClientConfigureTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_client_configure_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The client-provided alias for the Account.
     #[serde(rename = "alias", default, skip_serializing_if = "Option::is_none")]
@@ -165,7 +169,7 @@ pub struct ClientConfigureTransaction {
     pub margin_rate: Option<Decimal>,
 }
 
-/// A ClientConfigureRejectTransaction represents the rejection of configuration of an Account by a client.
+/// A `ClientConfigureRejectTransaction` represents the rejection of configuration of an Account by a client.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClientConfigureRejectTransaction {
@@ -188,9 +192,10 @@ pub struct ClientConfigureRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “CLIENT_CONFIGURE_REJECT” in a
-    /// ClientConfigureRejectTransaction.
+    /// The Type of the Transaction. Always set to “`CLIENT_CONFIGURE_REJECT`” in a
+    /// `ClientConfigureRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_client_configure_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The client-provided alias for the Account.
     #[serde(rename = "alias", default, skip_serializing_if = "Option::is_none")]
@@ -212,7 +217,7 @@ pub struct ClientConfigureRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A TransferFundsTransaction represents the transfer of funds in/out of an Account.
+/// A `TransferFundsTransaction` represents the transfer of funds in/out of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferFundsTransaction {
@@ -235,8 +240,9 @@ pub struct TransferFundsTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRANSFER_FUNDS” in a TransferFundsTransaction.
+    /// The Type of the Transaction. Always set to “`TRANSFER_FUNDS`” in a `TransferFundsTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_transfer_funds_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The amount to deposit/withdraw from the Account in the Account’s home currency. A positive value
     /// indicates a deposit, a negative value indicates a withdrawal.
@@ -263,7 +269,7 @@ pub struct TransferFundsTransaction {
     pub account_balance: Option<Decimal>,
 }
 
-/// A TransferFundsRejectTransaction represents the rejection of the transfer of funds in/out of an Account.
+/// A `TransferFundsRejectTransaction` represents the rejection of the transfer of funds in/out of an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferFundsRejectTransaction {
@@ -286,8 +292,9 @@ pub struct TransferFundsRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRANSFER_FUNDS_REJECT” in a TransferFundsRejectTransaction.
+    /// The Type of the Transaction. Always set to “`TRANSFER_FUNDS_REJECT`” in a `TransferFundsRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_transfer_funds_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The amount to deposit/withdraw from the Account in the Account’s home currency. A positive value
     /// indicates a deposit, a negative value indicates a withdrawal.
@@ -313,7 +320,7 @@ pub struct TransferFundsRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A MarketOrderTransaction represents the creation of a Market Order in the user’s account. A Market Order
+/// A `MarketOrderTransaction` represents the creation of a Market Order in the user’s account. A Market Order
 /// is an Order that is filled immediately at the current market price. Market Orders can be specialized
 /// when they are created to accomplish a specific task: to close a Trade, to closeout a Position or to
 /// participate in a Margin closeout.
@@ -339,8 +346,9 @@ pub struct MarketOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARKET_ORDER” in a MarketOrderTransaction.
+    /// The Type of the Transaction. Always set to “`MARKET_ORDER`” in a `MarketOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_market_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Market Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -350,7 +358,7 @@ pub struct MarketOrderTransaction {
     #[serde(rename = "units")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
-    /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
+    /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a `MarketOrder`.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
     /// The worst price that the client is willing to have the Market Order filled at.
@@ -455,7 +463,7 @@ pub struct MarketOrderTransaction {
     pub trade_client_extensions: Option<ClientExtensions>,
 }
 
-/// A MarketOrderRejectTransaction represents the rejection of the creation of a Market Order.
+/// A `MarketOrderRejectTransaction` represents the rejection of the creation of a Market Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarketOrderRejectTransaction {
@@ -478,8 +486,9 @@ pub struct MarketOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARKET_ORDER_REJECT” in a MarketOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`MARKET_ORDER_REJECT`” in a `MarketOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_market_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Market Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -494,7 +503,7 @@ pub struct MarketOrderRejectTransaction {
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
-    /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a MarketOrder.
+    /// The time-in-force requested for the Market Order. Restricted to FOK or IOC for a `MarketOrder`.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
     /// The worst price that the client is willing to have the Market Order filled at.
@@ -606,7 +615,7 @@ pub struct MarketOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A FixedPriceOrderTransaction represents the creation of a Fixed Price Order in the user’s account. A
+/// A `FixedPriceOrderTransaction` represents the creation of a Fixed Price Order in the user’s account. A
 /// Fixed Price Order is an Order that is filled immediately at a specified price.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -630,8 +639,9 @@ pub struct FixedPriceOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “FIXED_PRICE_ORDER” in a FixedPriceOrderTransaction.
+    /// The Type of the Transaction. Always set to “`FIXED_PRICE_ORDER`” in a `FixedPriceOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_fixed_price_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Fixed Price Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -651,7 +661,7 @@ pub struct FixedPriceOrderTransaction {
     pub position_fill: OrderPositionFill,
     /// The state that the trade resulting from the Fixed Price Order should be set to.
     #[serde(rename = "tradeState")]
-    pub trade_state: String,
+    pub trade_state: TradeState,
     /// The reason that the Fixed Price Order was created
     #[serde(rename = "reason", default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<FixedPriceOrderReason>,
@@ -704,7 +714,7 @@ pub struct FixedPriceOrderTransaction {
     pub trade_client_extensions: Option<ClientExtensions>,
 }
 
-/// A LimitOrderTransaction represents the creation of a Limit Order in the user’s Account.
+/// A `LimitOrderTransaction` represents the creation of a Limit Order in the user’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LimitOrderTransaction {
@@ -727,8 +737,9 @@ pub struct LimitOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “LIMIT_ORDER” in a LimitOrderTransaction.
+    /// The Type of the Transaction. Always set to “`LIMIT_ORDER`” in a `LimitOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_limit_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Limit Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -761,7 +772,7 @@ pub struct LimitOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -834,7 +845,7 @@ pub struct LimitOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A LimitOrderRejectTransaction represents the rejection of the creation of a Limit Order.
+/// A `LimitOrderRejectTransaction` represents the rejection of the creation of a Limit Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LimitOrderRejectTransaction {
@@ -857,8 +868,9 @@ pub struct LimitOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “LIMIT_ORDER_REJECT” in a LimitOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`LIMIT_ORDER_REJECT`” in a `LimitOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_limit_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Limit Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -891,7 +903,7 @@ pub struct LimitOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -964,7 +976,7 @@ pub struct LimitOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A StopOrderTransaction represents the creation of a Stop Order in the user’s Account.
+/// A `StopOrderTransaction` represents the creation of a Stop Order in the user’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StopOrderTransaction {
@@ -987,8 +999,9 @@ pub struct StopOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “STOP_ORDER” in a StopOrderTransaction.
+    /// The Type of the Transaction. Always set to “`STOP_ORDER`” in a `StopOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_stop_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Stop Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -1030,7 +1043,7 @@ pub struct StopOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1103,7 +1116,7 @@ pub struct StopOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A StopOrderRejectTransaction represents the rejection of the creation of a Stop Order.
+/// A `StopOrderRejectTransaction` represents the rejection of the creation of a Stop Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StopOrderRejectTransaction {
@@ -1126,8 +1139,9 @@ pub struct StopOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “STOP_ORDER_REJECT” in a StopOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`STOP_ORDER_REJECT`” in a `StopOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_stop_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The Stop Order’s Instrument.
     #[serde(rename = "instrument")]
@@ -1169,7 +1183,7 @@ pub struct StopOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1242,7 +1256,7 @@ pub struct StopOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A MarketIfTouchedOrderTransaction represents the creation of a MarketIfTouched Order in the user’s
+/// A `MarketIfTouchedOrderTransaction` represents the creation of a `MarketIfTouched` Order in the user’s
 /// Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1266,26 +1280,27 @@ pub struct MarketIfTouchedOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARKET_IF_TOUCHED_ORDER” in a
-    /// MarketIfTouchedOrderTransaction.
+    /// The Type of the Transaction. Always set to “`MARKET_IF_TOUCHED_ORDER`” in a
+    /// `MarketIfTouchedOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_market_if_touched_order_transaction_type")]
     pub r#type: Option<TransactionType>,
-    /// The MarketIfTouched Order’s Instrument.
+    /// The `MarketIfTouched` Order’s Instrument.
     #[serde(rename = "instrument")]
     pub instrument: InstrumentName,
-    /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
+    /// The quantity requested to be filled by the `MarketIfTouched` Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
-    /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
+    /// The price threshold specified for the `MarketIfTouched` Order. The `MarketIfTouched` Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
-    /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
+    /// initialMarketPrice, the `MarketIfTouchedOrder` will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
-    /// The worst market price that may be used to fill this MarketIfTouched Order.
+    /// The worst market price that may be used to fill this `MarketIfTouched` Order.
     #[serde(
         rename = "priceBound",
         default,
@@ -1293,11 +1308,11 @@ pub struct MarketIfTouchedOrderTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
-    /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// MarketIfTouched Orders.
+    /// The time-in-force requested for the `MarketIfTouched` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `MarketIfTouched` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the MarketIfTouched Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `MarketIfTouched` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
@@ -1312,7 +1327,7 @@ pub struct MarketIfTouchedOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1385,7 +1400,7 @@ pub struct MarketIfTouchedOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A MarketIfTouchedOrderRejectTransaction represents the rejection of the creation of a MarketIfTouched
+/// A `MarketIfTouchedOrderRejectTransaction` represents the rejection of the creation of a `MarketIfTouched`
 /// Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1409,26 +1424,27 @@ pub struct MarketIfTouchedOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARKET_IF_TOUCHED_ORDER_REJECT” in a
-    /// MarketIfTouchedOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`MARKET_IF_TOUCHED_ORDER_REJECT`” in a
+    /// `MarketIfTouchedOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_market_if_touched_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
-    /// The MarketIfTouched Order’s Instrument.
+    /// The `MarketIfTouched` Order’s Instrument.
     #[serde(rename = "instrument")]
     pub instrument: InstrumentName,
-    /// The quantity requested to be filled by the MarketIfTouched Order. A positive number of units results in
+    /// The quantity requested to be filled by the `MarketIfTouched` Order. A positive number of units results in
     /// a long Order, and a negative number of units results in a short Order.
     #[serde(rename = "units")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub units: Decimal,
-    /// The price threshold specified for the MarketIfTouched Order. The MarketIfTouched Order will only be
+    /// The price threshold specified for the `MarketIfTouched` Order. The `MarketIfTouched` Order will only be
     /// filled by a market price that crosses this price from the direction of the market price at the time when
     /// the Order was created (the initialMarketPrice). Depending on the value of the Order’s price and
-    /// initialMarketPrice, the MarketIfTouchedOrder will behave like a Limit or a Stop Order.
+    /// initialMarketPrice, the `MarketIfTouchedOrder` will behave like a Limit or a Stop Order.
     #[serde(rename = "price")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
-    /// The worst market price that may be used to fill this MarketIfTouched Order.
+    /// The worst market price that may be used to fill this `MarketIfTouched` Order.
     #[serde(
         rename = "priceBound",
         default,
@@ -1436,11 +1452,11 @@ pub struct MarketIfTouchedOrderRejectTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price_bound: Option<Decimal>,
-    /// The time-in-force requested for the MarketIfTouched Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// MarketIfTouched Orders.
+    /// The time-in-force requested for the `MarketIfTouched` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `MarketIfTouched` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the MarketIfTouched Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `MarketIfTouched` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of how Positions in the Account are modified when the Order is filled.
@@ -1455,7 +1471,7 @@ pub struct MarketIfTouchedOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1528,7 +1544,7 @@ pub struct MarketIfTouchedOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A TakeProfitOrderTransaction represents the creation of a TakeProfit Order in the user’s Account.
+/// A `TakeProfitOrderTransaction` represents the creation of a `TakeProfit` Order in the user’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TakeProfitOrderTransaction {
@@ -1551,8 +1567,9 @@ pub struct TakeProfitOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TAKE_PROFIT_ORDER” in a TakeProfitOrderTransaction.
+    /// The Type of the Transaction. Always set to “`TAKE_PROFIT_ORDER`” in a `TakeProfitOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_take_profit_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1564,16 +1581,16 @@ pub struct TakeProfitOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_trade_id: Option<ClientID>,
-    /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
+    /// The price threshold specified for the `TakeProfit` Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
-    /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// TakeProfit Orders.
+    /// The time-in-force requested for the `TakeProfit` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `TakeProfit` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the TakeProfit Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `TakeProfit` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -1585,7 +1602,7 @@ pub struct TakeProfitOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1601,7 +1618,7 @@ pub struct TakeProfitOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -1626,7 +1643,7 @@ pub struct TakeProfitOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A TakeProfitOrderRejectTransaction represents the rejection of the creation of a TakeProfit Order.
+/// A `TakeProfitOrderRejectTransaction` represents the rejection of the creation of a `TakeProfit` Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TakeProfitOrderRejectTransaction {
@@ -1649,9 +1666,10 @@ pub struct TakeProfitOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TAKE_PROFIT_ORDER_REJECT” in a
-    /// TakeProfitOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`TAKE_PROFIT_ORDER_REJECT`” in a
+    /// `TakeProfitOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_take_profit_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1663,16 +1681,16 @@ pub struct TakeProfitOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_trade_id: Option<ClientID>,
-    /// The price threshold specified for the TakeProfit Order. The associated Trade will be closed by a market
+    /// The price threshold specified for the `TakeProfit` Order. The associated Trade will be closed by a market
     /// price that is equal to or better than this threshold.
     #[serde(rename = "price")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub price: Decimal,
-    /// The time-in-force requested for the TakeProfit Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// TakeProfit Orders.
+    /// The time-in-force requested for the `TakeProfit` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `TakeProfit` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the TakeProfit Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `TakeProfit` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -1684,7 +1702,7 @@ pub struct TakeProfitOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -1700,7 +1718,7 @@ pub struct TakeProfitOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -1725,7 +1743,7 @@ pub struct TakeProfitOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A StopLossOrderTransaction represents the creation of a StopLoss Order in the user’s Account.
+/// A `StopLossOrderTransaction` represents the creation of a `StopLoss` Order in the user’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StopLossOrderTransaction {
@@ -1748,8 +1766,9 @@ pub struct StopLossOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “STOP_LOSS_ORDER” in a StopLossOrderTransaction.
+    /// The Type of the Transaction. Always set to “`STOP_LOSS_ORDER`” in a `StopLossOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_stop_loss_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1771,11 +1790,11 @@ pub struct StopLossOrderTransaction {
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
-    /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
+    /// The time-in-force requested for the `StopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for `StopLoss`
     /// Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the StopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `StopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -1787,13 +1806,13 @@ pub struct StopLossOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
     pub trigger_condition: OrderTriggerCondition,
     /// Flag indicating that the Stop Loss Order is guaranteed. The default value depends on the
-    /// GuaranteedStopLossOrderMode of the account, if it is REQUIRED, the default will be true, for DISABLED or
+    /// `GuaranteedStopLossOrderMode` of the account, if it is REQUIRED, the default will be true, for DISABLED or
     /// ENABLED the default is false. Deprecated: Will be removed in a future API update.
     #[serde(
         rename = "guaranteed",
@@ -1822,7 +1841,7 @@ pub struct StopLossOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -1847,7 +1866,7 @@ pub struct StopLossOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A StopLossOrderRejectTransaction represents the rejection of the creation of a StopLoss Order.
+/// A `StopLossOrderRejectTransaction` represents the rejection of the creation of a `StopLoss` Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StopLossOrderRejectTransaction {
@@ -1870,8 +1889,9 @@ pub struct StopLossOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “STOP_LOSS_ORDER_REJECT” in a StopLossOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`STOP_LOSS_ORDER_REJECT`” in a `StopLossOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_stop_loss_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -1893,11 +1913,11 @@ pub struct StopLossOrderRejectTransaction {
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
-    /// The time-in-force requested for the StopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for StopLoss
+    /// The time-in-force requested for the `StopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for `StopLoss`
     /// Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the StopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `StopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -1909,13 +1929,13 @@ pub struct StopLossOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
     pub trigger_condition: OrderTriggerCondition,
     /// Flag indicating that the Stop Loss Order is guaranteed. The default value depends on the
-    /// GuaranteedStopLossOrderMode of the account, if it is REQUIRED, the default will be true, for DISABLED or
+    /// `GuaranteedStopLossOrderMode` of the account, if it is REQUIRED, the default will be true, for DISABLED or
     /// ENABLED the default is false. Deprecated: Will be removed in a future API update.
     #[serde(
         rename = "guaranteed",
@@ -1934,7 +1954,7 @@ pub struct StopLossOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -1959,7 +1979,7 @@ pub struct StopLossOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A GuaranteedStopLossOrderTransaction represents the creation of a GuaranteedStopLoss Order in the user’s
+/// A `GuaranteedStopLossOrderTransaction` represents the creation of a `GuaranteedStopLoss` Order in the user’s
 /// Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -1983,9 +2003,10 @@ pub struct GuaranteedStopLossOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “GUARANTEED_STOP_LOSS_ORDER” in a
-    /// GuaranteedStopLossOrderTransaction.
+    /// The Type of the Transaction. Always set to “`GUARANTEED_STOP_LOSS_ORDER`” in a
+    /// `GuaranteedStopLossOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_guaranteed_stop_loss_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -2008,11 +2029,11 @@ pub struct GuaranteedStopLossOrderTransaction {
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
-    /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// GuaranteedStopLoss Orders.
+    /// The time-in-force requested for the `GuaranteedStopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `GuaranteedStopLoss` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the GuaranteedStopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `GuaranteedStopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -2024,7 +2045,7 @@ pub struct GuaranteedStopLossOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -2050,7 +2071,7 @@ pub struct GuaranteedStopLossOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -2075,8 +2096,8 @@ pub struct GuaranteedStopLossOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A GuaranteedStopLossOrderRejectTransaction represents the rejection of the creation of a
-/// GuaranteedStopLoss Order.
+/// A `GuaranteedStopLossOrderRejectTransaction` represents the rejection of the creation of a
+/// `GuaranteedStopLoss` Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuaranteedStopLossOrderRejectTransaction {
@@ -2099,9 +2120,10 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “GUARANTEED_STOP_LOSS_ORDER_REJECT” in a
-    /// GuaranteedStopLossOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`GUARANTEED_STOP_LOSS_ORDER_REJECT`” in a
+    /// `GuaranteedStopLossOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_guaranteed_stop_loss_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -2124,11 +2146,11 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
     #[serde(rename = "distance", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub distance: Option<Decimal>,
-    /// The time-in-force requested for the GuaranteedStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// GuaranteedStopLoss Orders.
+    /// The time-in-force requested for the `GuaranteedStopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `GuaranteedStopLoss` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the GuaranteedStopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `GuaranteedStopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -2140,7 +2162,7 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -2156,7 +2178,7 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -2181,7 +2203,7 @@ pub struct GuaranteedStopLossOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A TrailingStopLossOrderTransaction represents the creation of a TrailingStopLoss Order in the user’s
+/// A `TrailingStopLossOrderTransaction` represents the creation of a `TrailingStopLoss` Order in the user’s
 /// Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2205,9 +2227,10 @@ pub struct TrailingStopLossOrderTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRAILING_STOP_LOSS_ORDER” in a
-    /// TrailingStopLossOrderTransaction.
+    /// The Type of the Transaction. Always set to “`TRAILING_STOP_LOSS_ORDER`” in a
+    /// `TrailingStopLossOrderTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_trailing_stop_loss_order_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -2219,15 +2242,15 @@ pub struct TrailingStopLossOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_trade_id: Option<ClientID>,
-    /// The price distance (in price units) specified for the TrailingStopLoss Order.
+    /// The price distance (in price units) specified for the `TrailingStopLoss` Order.
     #[serde(rename = "distance")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
-    /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// TrailingStopLoss Orders.
+    /// The time-in-force requested for the `TrailingStopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `TrailingStopLoss` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the StopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `StopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -2239,7 +2262,7 @@ pub struct TrailingStopLossOrderTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -2255,7 +2278,7 @@ pub struct TrailingStopLossOrderTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -2280,7 +2303,7 @@ pub struct TrailingStopLossOrderTransaction {
     pub cancelling_transaction_id: Option<TransactionID>,
 }
 
-/// A TrailingStopLossOrderRejectTransaction represents the rejection of the creation of a TrailingStopLoss
+/// A `TrailingStopLossOrderRejectTransaction` represents the rejection of the creation of a `TrailingStopLoss`
 /// Order.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2304,9 +2327,10 @@ pub struct TrailingStopLossOrderRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRAILING_STOP_LOSS_ORDER_REJECT” in a
-    /// TrailingStopLossOrderRejectTransaction.
+    /// The Type of the Transaction. Always set to “`TRAILING_STOP_LOSS_ORDER_REJECT`” in a
+    /// `TrailingStopLossOrderRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_trailing_stop_loss_order_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade to close when the price threshold is breached.
     #[serde(rename = "tradeID")]
@@ -2318,15 +2342,15 @@ pub struct TrailingStopLossOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_trade_id: Option<ClientID>,
-    /// The price distance (in price units) specified for the TrailingStopLoss Order.
+    /// The price distance (in price units) specified for the `TrailingStopLoss` Order.
     #[serde(rename = "distance")]
     #[serde(deserialize_with = "crate::decimal_wire::number_or_string")]
     pub distance: Decimal,
-    /// The time-in-force requested for the TrailingStopLoss Order. Restricted to “GTC”, “GFD” and “GTD” for
-    /// TrailingStopLoss Orders.
+    /// The time-in-force requested for the `TrailingStopLoss` Order. Restricted to “GTC”, “GFD” and “GTD” for
+    /// `TrailingStopLoss` Orders.
     #[serde(rename = "timeInForce")]
     pub time_in_force: TimeInForce,
-    /// The date/time when the StopLoss Order will be cancelled if its timeInForce is “GTD”.
+    /// The date/time when the `StopLoss` Order will be cancelled if its timeInForce is “GTD”.
     #[serde(rename = "gtdTime", default, skip_serializing_if = "Option::is_none")]
     pub gtd_time: Option<Timestamp>,
     /// Specification of which price component should be used when determining if an Order should be triggered
@@ -2338,7 +2362,7 @@ pub struct TrailingStopLossOrderRejectTransaction {
     /// platforms always assume that an Order’s trigger condition is set to the default value when indicating
     /// the distance from an Order’s trigger price, and will always provide the default trigger condition when
     /// creating or modifying an Order. A special restriction applies when creating a Guaranteed Stop Loss
-    /// Order. In this case the TriggerCondition value must either be “DEFAULT”, or the “natural” trigger side
+    /// Order. In this case the `TriggerCondition` value must either be “DEFAULT”, or the “natural” trigger side
     /// “DEFAULT” results in. So for a Guaranteed Stop Loss Order for a long trade valid values are “DEFAULT”
     /// and “BID”, and for short trades “DEFAULT” and “ASK” are valid.
     #[serde(rename = "triggerCondition")]
@@ -2354,7 +2378,7 @@ pub struct TrailingStopLossOrderRejectTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub client_extensions: Option<ClientExtensions>,
-    /// The ID of the OrderFill Transaction that caused this Order to be created (only provided if this Order
+    /// The ID of the `OrderFill` Transaction that caused this Order to be created (only provided if this Order
     /// was created automatically when another Order was filled).
     #[serde(
         rename = "orderFillTransactionID",
@@ -2379,7 +2403,7 @@ pub struct TrailingStopLossOrderRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// An OrderFillTransaction represents the filling of an Order in the client’s Account.
+/// An `OrderFillTransaction` represents the filling of an Order in the client’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderFillTransaction {
@@ -2402,8 +2426,9 @@ pub struct OrderFillTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “ORDER_FILL” for an OrderFillTransaction.
+    /// The Type of the Transaction. Always set to “`ORDER_FILL`” for an `OrderFillTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_order_fill_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Order filled.
     #[serde(rename = "orderID", default, skip_serializing_if = "Option::is_none")]
@@ -2422,7 +2447,7 @@ pub struct OrderFillTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub instrument: Option<InstrumentName>,
-    /// The number of units filled by the OrderFill.
+    /// The number of units filled by the `OrderFill`.
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
@@ -2437,7 +2462,7 @@ pub struct OrderFillTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub requested_units: Option<Decimal>,
-    /// This is the conversion factor in effect for the Account at the time of the OrderFill for converting any
+    /// This is the conversion factor in effect for the Account at the time of the `OrderFill` for converting any
     /// gains realized in Instrument quote units into units of the Account’s home currency. Deprecated: Will be
     /// removed in a future API update.
     #[serde(
@@ -2447,7 +2472,7 @@ pub struct OrderFillTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub gain_quote_home_conversion_factor: Option<Decimal>,
-    /// This is the conversion factor in effect for the Account at the time of the OrderFill for converting any
+    /// This is the conversion factor in effect for the Account at the time of the `OrderFill` for converting any
     /// losses realized in Instrument quote units into units of the Account’s home currency. Deprecated: Will be
     /// removed in a future API update.
     #[serde(
@@ -2457,7 +2482,7 @@ pub struct OrderFillTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub loss_quote_home_conversion_factor: Option<Decimal>,
-    /// The HomeConversionFactors in effect at the time of the OrderFill.
+    /// The `HomeConversionFactors` in effect at the time of the `OrderFill`.
     #[serde(
         rename = "homeConversionFactors",
         default,
@@ -2470,9 +2495,9 @@ pub struct OrderFillTransaction {
     #[serde(rename = "price", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub price: Option<Decimal>,
-    /// The price that all of the units of the OrderFill should have been filled at, in the absence of
-    /// guaranteed price execution. This factors in the Account’s current ClientPrice, used liquidity and the
-    /// units of the OrderFill only. If no Trades were closed with their price clamped for guaranteed stop loss
+    /// The price that all of the units of the `OrderFill` should have been filled at, in the absence of
+    /// guaranteed price execution. This factors in the Account’s current `ClientPrice`, used liquidity and the
+    /// units of the `OrderFill` only. If no Trades were closed with their price clamped for guaranteed stop loss
     /// enforcement, then this value will match the price fields of each Trade opened, closed, and reduced, and
     /// they will all be the exact same.
     #[serde(rename = "fullVWAP", default, skip_serializing_if = "Option::is_none")]
@@ -2572,7 +2597,7 @@ pub struct OrderFillTransaction {
         skip_serializing_if = "Option::is_none"
     )]
     pub trade_reduced: Option<TradeReduce>,
-    /// The half spread cost for the OrderFill, which is the sum of the halfSpreadCost values in the
+    /// The half spread cost for the `OrderFill`, which is the sum of the halfSpreadCost values in the
     /// tradeOpened, tradesClosed and tradeReduced fields. This can be a positive or negative value and is
     /// represented in the home currency of the Account.
     #[serde(
@@ -2629,7 +2654,7 @@ pub struct OrderFillTransaction {
     pub home_conversion_cost: Option<Decimal>,
 }
 
-/// An OrderCancelTransaction represents the cancellation of an Order in the client’s Account.
+/// An `OrderCancelTransaction` represents the cancellation of an Order in the client’s Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderCancelTransaction {
@@ -2652,8 +2677,9 @@ pub struct OrderCancelTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “ORDER_CANCEL” for an OrderCancelTransaction.
+    /// The Type of the Transaction. Always set to “`ORDER_CANCEL`” for an `OrderCancelTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_order_cancel_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Order cancelled
     #[serde(rename = "orderID", default, skip_serializing_if = "Option::is_none")]
@@ -2677,7 +2703,7 @@ pub struct OrderCancelTransaction {
     pub replaced_by_order_id: Option<OrderID>,
 }
 
-/// An OrderCancelRejectTransaction represents the rejection of the cancellation of an Order in the client’s
+/// An `OrderCancelRejectTransaction` represents the rejection of the cancellation of an Order in the client’s
 /// Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2701,8 +2727,9 @@ pub struct OrderCancelRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “ORDER_CANCEL_REJECT” for an OrderCancelRejectTransaction.
+    /// The Type of the Transaction. Always set to “`ORDER_CANCEL_REJECT`” for an `OrderCancelRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_order_cancel_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Order intended to be cancelled
     #[serde(rename = "orderID", default, skip_serializing_if = "Option::is_none")]
@@ -2723,7 +2750,7 @@ pub struct OrderCancelRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A OrderClientExtensionsModifyTransaction represents the modification of an Order’s Client Extensions.
+/// A `OrderClientExtensionsModifyTransaction` represents the modification of an Order’s Client Extensions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OrderClientExtensionsModifyTransaction {
@@ -2746,9 +2773,10 @@ pub struct OrderClientExtensionsModifyTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “ORDER_CLIENT_EXTENSIONS_MODIFY” for a
-    /// OrderClientExtensionsModifyTransaction.
+    /// The Type of the Transaction. Always set to “`ORDER_CLIENT_EXTENSIONS_MODIFY`” for a
+    /// `OrderClientExtensionsModifyTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_order_client_extensions_modify_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Order who’s client extensions are to be modified.
     #[serde(rename = "orderID", default, skip_serializing_if = "Option::is_none")]
@@ -2776,7 +2804,7 @@ pub struct OrderClientExtensionsModifyTransaction {
     pub trade_client_extensions_modify: Option<ClientExtensions>,
 }
 
-/// A OrderClientExtensionsModifyRejectTransaction represents the rejection of the modification of an
+/// A `OrderClientExtensionsModifyRejectTransaction` represents the rejection of the modification of an
 /// Order’s Client Extensions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2800,9 +2828,10 @@ pub struct OrderClientExtensionsModifyRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT” for a
-    /// OrderClientExtensionsModifyRejectTransaction.
+    /// The Type of the Transaction. Always set to “`ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT`” for a
+    /// `OrderClientExtensionsModifyRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_order_client_extensions_modify_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Order who’s client extensions are to be modified.
     #[serde(rename = "orderID", default, skip_serializing_if = "Option::is_none")]
@@ -2837,7 +2866,7 @@ pub struct OrderClientExtensionsModifyRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A TradeClientExtensionsModifyTransaction represents the modification of a Trade’s Client Extensions.
+/// A `TradeClientExtensionsModifyTransaction` represents the modification of a Trade’s Client Extensions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TradeClientExtensionsModifyTransaction {
@@ -2860,9 +2889,10 @@ pub struct TradeClientExtensionsModifyTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRADE_CLIENT_EXTENSIONS_MODIFY” for a
-    /// TradeClientExtensionsModifyTransaction.
+    /// The Type of the Transaction. Always set to “`TRADE_CLIENT_EXTENSIONS_MODIFY`” for a
+    /// `TradeClientExtensionsModifyTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_trade_client_extensions_modify_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade who’s client extensions are to be modified.
     #[serde(rename = "tradeID", default, skip_serializing_if = "Option::is_none")]
@@ -2883,7 +2913,7 @@ pub struct TradeClientExtensionsModifyTransaction {
     pub trade_client_extensions_modify: Option<ClientExtensions>,
 }
 
-/// A TradeClientExtensionsModifyRejectTransaction represents the rejection of the modification of a Trade’s
+/// A `TradeClientExtensionsModifyRejectTransaction` represents the rejection of the modification of a Trade’s
 /// Client Extensions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -2907,9 +2937,10 @@ pub struct TradeClientExtensionsModifyRejectTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT” for a
-    /// TradeClientExtensionsModifyRejectTransaction.
+    /// The Type of the Transaction. Always set to “`TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT`” for a
+    /// `TradeClientExtensionsModifyRejectTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_trade_client_extensions_modify_reject_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The ID of the Trade who’s client extensions are to be modified.
     #[serde(rename = "tradeID", default, skip_serializing_if = "Option::is_none")]
@@ -2937,7 +2968,7 @@ pub struct TradeClientExtensionsModifyRejectTransaction {
     pub reject_reason: Option<TransactionRejectReason>,
 }
 
-/// A MarginCallEnterTransaction is created when an Account enters the margin call state.
+/// A `MarginCallEnterTransaction` is created when an Account enters the margin call state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarginCallEnterTransaction {
@@ -2960,12 +2991,13 @@ pub struct MarginCallEnterTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARGIN_CALL_ENTER” for an MarginCallEnterTransaction.
+    /// The Type of the Transaction. Always set to “`MARGIN_CALL_ENTER`” for an `MarginCallEnterTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_margin_call_enter_transaction_type")]
     pub r#type: Option<TransactionType>,
 }
 
-/// A MarginCallExtendTransaction is created when the margin call state for an Account has been extended.
+/// A `MarginCallExtendTransaction` is created when the margin call state for an Account has been extended.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarginCallExtendTransaction {
@@ -2988,11 +3020,12 @@ pub struct MarginCallExtendTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARGIN_CALL_EXTEND” for an MarginCallExtendTransaction.
+    /// The Type of the Transaction. Always set to “`MARGIN_CALL_EXTEND`” for an `MarginCallExtendTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_margin_call_extend_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The number of the extensions to the Account’s current margin call that have been applied. This value
-    /// will be set to 1 for the first MarginCallExtend Transaction
+    /// will be set to 1 for the first `MarginCallExtend` Transaction
     #[serde(
         rename = "extensionNumber",
         default,
@@ -3001,7 +3034,7 @@ pub struct MarginCallExtendTransaction {
     pub extension_number: Option<i64>,
 }
 
-/// A MarginCallExitTransaction is created when an Account leaves the margin call state.
+/// A `MarginCallExitTransaction` is created when an Account leaves the margin call state.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MarginCallExitTransaction {
@@ -3024,12 +3057,13 @@ pub struct MarginCallExitTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “MARGIN_CALL_EXIT” for an MarginCallExitTransaction.
+    /// The Type of the Transaction. Always set to “`MARGIN_CALL_EXIT`” for an `MarginCallExitTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_margin_call_exit_transaction_type")]
     pub r#type: Option<TransactionType>,
 }
 
-/// A DelayedTradeClosure Transaction is created administratively to indicate open trades that should have
+/// A `DelayedTradeClosure` Transaction is created administratively to indicate open trades that should have
 /// been closed but weren’t because the open trades’ instruments were untradeable at the time. Open trades
 /// listed in this transaction will be closed once their respective instruments become tradeable.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -3054,8 +3088,9 @@ pub struct DelayedTradeClosureTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “DELAYED_TRADE_CLOSURE” for an DelayedTradeClosureTransaction.
+    /// The Type of the Transaction. Always set to “`DELAYED_TRADE_CLOSURE`” for an `DelayedTradeClosureTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_delayed_trade_closure_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The reason for the delayed trade closure
     #[serde(rename = "reason", default, skip_serializing_if = "Option::is_none")]
@@ -3066,7 +3101,7 @@ pub struct DelayedTradeClosureTransaction {
     pub trade_ids: Option<TradeID>,
 }
 
-/// A DailyFinancingTransaction represents the daily payment/collection of financing for an Account.
+/// A `DailyFinancingTransaction` represents the daily payment/collection of financing for an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DailyFinancingTransaction {
@@ -3089,8 +3124,9 @@ pub struct DailyFinancingTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “DAILY_FINANCING” for a DailyFinancingTransaction.
+    /// The Type of the Transaction. Always set to “`DAILY_FINANCING`” for a `DailyFinancingTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_daily_financing_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The amount of financing paid/collected for the Account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
@@ -3122,7 +3158,7 @@ pub struct DailyFinancingTransaction {
     pub position_financings: Option<Vec<PositionFinancing>>,
 }
 
-/// A DividendAdjustment Transaction is created administratively to pay or collect dividend adjustment
+/// A `DividendAdjustment` Transaction is created administratively to pay or collect dividend adjustment
 /// mounts to or from an Account.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -3146,8 +3182,9 @@ pub struct DividendAdjustmentTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “DIVIDEND_ADJUSTMENT” for a DividendAdjustmentTransaction.
+    /// The Type of the Transaction. Always set to “`DIVIDEND_ADJUSTMENT`” for a `DividendAdjustmentTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_dividend_adjustment_transaction_type")]
     pub r#type: Option<TransactionType>,
     /// The name of the instrument for the dividendAdjustment transaction
     #[serde(
@@ -3157,8 +3194,8 @@ pub struct DividendAdjustmentTransaction {
     )]
     pub instrument: Option<InstrumentName>,
     /// The total dividend adjustment amount paid or collected in the Account’s home currency for the Account as
-    /// a result of applying the DividendAdjustment Transaction. This is the sum of the dividend adjustments
-    /// paid/collected for each OpenTradeDividendAdjustment found within the Transaction.
+    /// a result of applying the `DividendAdjustment` Transaction. This is the sum of the dividend adjustments
+    /// paid/collected for each `OpenTradeDividendAdjustment` found within the Transaction.
     #[serde(
         rename = "dividendAdjustment",
         default,
@@ -3167,8 +3204,8 @@ pub struct DividendAdjustmentTransaction {
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total dividend adjustment amount paid or collected in the Instrument’s quote currency for the
-    /// Account as a result of applying the DividendAdjustment Transaction. This is the sum of the quote
-    /// dividend adjustments paid/collected for each OpenTradeDividendAdjustment found within the Transaction.
+    /// Account as a result of applying the `DividendAdjustment` Transaction. This is the sum of the quote
+    /// dividend adjustments paid/collected for each `OpenTradeDividendAdjustment` found within the Transaction.
     #[serde(
         rename = "quoteDividendAdjustment",
         default,
@@ -3176,14 +3213,14 @@ pub struct DividendAdjustmentTransaction {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_dividend_adjustment: Option<Decimal>,
-    /// The HomeConversionFactors in effect at the time of the DividendAdjustment.
+    /// The `HomeConversionFactors` in effect at the time of the `DividendAdjustment`.
     #[serde(
         rename = "homeConversionFactors",
         default,
         skip_serializing_if = "Option::is_none"
     )]
     pub home_conversion_factors: Option<HomeConversionFactors>,
-    /// The Account balance after applying the DividendAdjustment Transaction
+    /// The Account balance after applying the `DividendAdjustment` Transaction
     #[serde(
         rename = "accountBalance",
         default,
@@ -3201,7 +3238,7 @@ pub struct DividendAdjustmentTransaction {
     pub open_trade_dividend_adjustments: Option<Vec<OpenTradeDividendAdjustment>>,
 }
 
-/// A ResetResettablePLTransaction represents the resetting of the Account’s resettable PL counters.
+/// A `ResetResettablePLTransaction` represents the resetting of the Account’s resettable PL counters.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResetResettablePLTransaction {
@@ -3224,1178 +3261,514 @@ pub struct ResetResettablePLTransaction {
     /// The Request ID of the request which generated the transaction.
     #[serde(rename = "requestID", default, skip_serializing_if = "Option::is_none")]
     pub request_id: Option<RequestID>,
-    /// The Type of the Transaction. Always set to “RESET_RESETTABLE_PL” for a ResetResettablePLTransaction.
+    /// The Type of the Transaction. Always set to “`RESET_RESETTABLE_PL`” for a `ResetResettablePLTransaction`.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
+    #[serde(serialize_with = "serialize_reset_resettable_p_l_transaction_type")]
     pub r#type: Option<TransactionType>,
 }
 
-/// The possible types of a Transaction
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TransactionType {
-    /// Account Create Transaction
-    Create,
-    /// Account Close Transaction
-    Close,
-    /// Account Reopen Transaction
-    Reopen,
-    /// Client Configuration Transaction
-    ClientConfigure,
-    /// Client Configuration Reject Transaction
-    ClientConfigureReject,
-    /// Transfer Funds Transaction
-    TransferFunds,
-    /// Transfer Funds Reject Transaction
-    TransferFundsReject,
-    /// Market Order Transaction
-    MarketOrder,
-    /// Market Order Reject Transaction
-    MarketOrderReject,
-    /// Fixed Price Order Transaction
-    FixedPriceOrder,
-    /// Limit Order Transaction
-    LimitOrder,
-    /// Limit Order Reject Transaction
-    LimitOrderReject,
-    /// Stop Order Transaction
-    StopOrder,
-    /// Stop Order Reject Transaction
-    StopOrderReject,
-    /// Market if Touched Order Transaction
-    MarketIfTouchedOrder,
-    /// Market if Touched Order Reject Transaction
-    MarketIfTouchedOrderReject,
-    /// Take Profit Order Transaction
-    TakeProfitOrder,
-    /// Take Profit Order Reject Transaction
-    TakeProfitOrderReject,
-    /// Stop Loss Order Transaction
-    StopLossOrder,
-    /// Stop Loss Order Reject Transaction
-    StopLossOrderReject,
-    /// Guaranteed Stop Loss Order Transaction
-    GuaranteedStopLossOrder,
-    /// Guaranteed Stop Loss Order Reject Transaction
-    GuaranteedStopLossOrderReject,
-    /// Trailing Stop Loss Order Transaction
-    TrailingStopLossOrder,
-    /// Trailing Stop Loss Order Reject Transaction
-    TrailingStopLossOrderReject,
-    /// Order Fill Transaction
-    OrderFill,
-    /// Order Cancel Transaction
-    OrderCancel,
-    /// Order Cancel Reject Transaction
-    OrderCancelReject,
-    /// Order Client Extensions Modify Transaction
-    OrderClientExtensionsModify,
-    /// Order Client Extensions Modify Reject Transaction
-    OrderClientExtensionsModifyReject,
-    /// Trade Client Extensions Modify Transaction
-    TradeClientExtensionsModify,
-    /// Trade Client Extensions Modify Reject Transaction
-    TradeClientExtensionsModifyReject,
-    /// Margin Call Enter Transaction
-    MarginCallEnter,
-    /// Margin Call Extend Transaction
-    MarginCallExtend,
-    /// Margin Call Exit Transaction
-    MarginCallExit,
-    /// Delayed Trade Closure Transaction
-    DelayedTradeClosure,
-    /// Daily Financing Transaction
-    DailyFinancing,
-    /// Dividend Adjustment Transaction
-    DividendAdjustment,
-    /// Reset Resettable PL Transaction
-    ResetResettablePl,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TransactionType {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Create => "CREATE",
-            Self::Close => "CLOSE",
-            Self::Reopen => "REOPEN",
-            Self::ClientConfigure => "CLIENT_CONFIGURE",
-            Self::ClientConfigureReject => "CLIENT_CONFIGURE_REJECT",
-            Self::TransferFunds => "TRANSFER_FUNDS",
-            Self::TransferFundsReject => "TRANSFER_FUNDS_REJECT",
-            Self::MarketOrder => "MARKET_ORDER",
-            Self::MarketOrderReject => "MARKET_ORDER_REJECT",
-            Self::FixedPriceOrder => "FIXED_PRICE_ORDER",
-            Self::LimitOrder => "LIMIT_ORDER",
-            Self::LimitOrderReject => "LIMIT_ORDER_REJECT",
-            Self::StopOrder => "STOP_ORDER",
-            Self::StopOrderReject => "STOP_ORDER_REJECT",
-            Self::MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
-            Self::MarketIfTouchedOrderReject => "MARKET_IF_TOUCHED_ORDER_REJECT",
-            Self::TakeProfitOrder => "TAKE_PROFIT_ORDER",
-            Self::TakeProfitOrderReject => "TAKE_PROFIT_ORDER_REJECT",
-            Self::StopLossOrder => "STOP_LOSS_ORDER",
-            Self::StopLossOrderReject => "STOP_LOSS_ORDER_REJECT",
-            Self::GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
-            Self::GuaranteedStopLossOrderReject => "GUARANTEED_STOP_LOSS_ORDER_REJECT",
-            Self::TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
-            Self::TrailingStopLossOrderReject => "TRAILING_STOP_LOSS_ORDER_REJECT",
-            Self::OrderFill => "ORDER_FILL",
-            Self::OrderCancel => "ORDER_CANCEL",
-            Self::OrderCancelReject => "ORDER_CANCEL_REJECT",
-            Self::OrderClientExtensionsModify => "ORDER_CLIENT_EXTENSIONS_MODIFY",
-            Self::OrderClientExtensionsModifyReject => "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
-            Self::TradeClientExtensionsModify => "TRADE_CLIENT_EXTENSIONS_MODIFY",
-            Self::TradeClientExtensionsModifyReject => "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
-            Self::MarginCallEnter => "MARGIN_CALL_ENTER",
-            Self::MarginCallExtend => "MARGIN_CALL_EXTEND",
-            Self::MarginCallExit => "MARGIN_CALL_EXIT",
-            Self::DelayedTradeClosure => "DELAYED_TRADE_CLOSURE",
-            Self::DailyFinancing => "DAILY_FINANCING",
-            Self::DividendAdjustment => "DIVIDEND_ADJUSTMENT",
-            Self::ResetResettablePl => "RESET_RESETTABLE_PL",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The possible types of a Transaction
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TransactionType {
+        /// Account Create Transaction
+        Create => "CREATE",
+        /// Account Close Transaction
+        Close => "CLOSE",
+        /// Account Reopen Transaction
+        Reopen => "REOPEN",
+        /// Client Configuration Transaction
+        ClientConfigure => "CLIENT_CONFIGURE",
+        /// Client Configuration Reject Transaction
+        ClientConfigureReject => "CLIENT_CONFIGURE_REJECT",
+        /// Transfer Funds Transaction
+        TransferFunds => "TRANSFER_FUNDS",
+        /// Transfer Funds Reject Transaction
+        TransferFundsReject => "TRANSFER_FUNDS_REJECT",
+        /// Market Order Transaction
+        MarketOrder => "MARKET_ORDER",
+        /// Market Order Reject Transaction
+        MarketOrderReject => "MARKET_ORDER_REJECT",
+        /// Fixed Price Order Transaction
+        FixedPriceOrder => "FIXED_PRICE_ORDER",
+        /// Limit Order Transaction
+        LimitOrder => "LIMIT_ORDER",
+        /// Limit Order Reject Transaction
+        LimitOrderReject => "LIMIT_ORDER_REJECT",
+        /// Stop Order Transaction
+        StopOrder => "STOP_ORDER",
+        /// Stop Order Reject Transaction
+        StopOrderReject => "STOP_ORDER_REJECT",
+        /// Market if Touched Order Transaction
+        MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
+        /// Market if Touched Order Reject Transaction
+        MarketIfTouchedOrderReject => "MARKET_IF_TOUCHED_ORDER_REJECT",
+        /// Take Profit Order Transaction
+        TakeProfitOrder => "TAKE_PROFIT_ORDER",
+        /// Take Profit Order Reject Transaction
+        TakeProfitOrderReject => "TAKE_PROFIT_ORDER_REJECT",
+        /// Stop Loss Order Transaction
+        StopLossOrder => "STOP_LOSS_ORDER",
+        /// Stop Loss Order Reject Transaction
+        StopLossOrderReject => "STOP_LOSS_ORDER_REJECT",
+        /// Guaranteed Stop Loss Order Transaction
+        GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
+        /// Guaranteed Stop Loss Order Reject Transaction
+        GuaranteedStopLossOrderReject => "GUARANTEED_STOP_LOSS_ORDER_REJECT",
+        /// Trailing Stop Loss Order Transaction
+        TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
+        /// Trailing Stop Loss Order Reject Transaction
+        TrailingStopLossOrderReject => "TRAILING_STOP_LOSS_ORDER_REJECT",
+        /// Order Fill Transaction
+        OrderFill => "ORDER_FILL",
+        /// Order Cancel Transaction
+        OrderCancel => "ORDER_CANCEL",
+        /// Order Cancel Reject Transaction
+        OrderCancelReject => "ORDER_CANCEL_REJECT",
+        /// Order Client Extensions Modify Transaction
+        OrderClientExtensionsModify => "ORDER_CLIENT_EXTENSIONS_MODIFY",
+        /// Order Client Extensions Modify Reject Transaction
+        OrderClientExtensionsModifyReject => "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        /// Trade Client Extensions Modify Transaction
+        TradeClientExtensionsModify => "TRADE_CLIENT_EXTENSIONS_MODIFY",
+        /// Trade Client Extensions Modify Reject Transaction
+        TradeClientExtensionsModifyReject => "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        /// Margin Call Enter Transaction
+        MarginCallEnter => "MARGIN_CALL_ENTER",
+        /// Margin Call Extend Transaction
+        MarginCallExtend => "MARGIN_CALL_EXTEND",
+        /// Margin Call Exit Transaction
+        MarginCallExit => "MARGIN_CALL_EXIT",
+        /// Delayed Trade Closure Transaction
+        DelayedTradeClosure => "DELAYED_TRADE_CLOSURE",
+        /// Daily Financing Transaction
+        DailyFinancing => "DAILY_FINANCING",
+        /// Dividend Adjustment Transaction
+        DividendAdjustment => "DIVIDEND_ADJUSTMENT",
+        /// Reset Resettable PL Transaction
+        ResetResettablePl => "RESET_RESETTABLE_PL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for TransactionType {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// The reason that an Account is being funded.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum FundingReason {
+        /// The client has initiated a funds transfer
+        ClientFunding => "CLIENT_FUNDING",
+        /// Funds are being transferred between two Accounts.
+        AccountTransfer => "ACCOUNT_TRANSFER",
+        /// Funds are being transferred as part of a Division migration
+        DivisionMigration => "DIVISION_MIGRATION",
+        /// Funds are being transferred as part of a Site migration
+        SiteMigration => "SITE_MIGRATION",
+        /// Funds are being transferred as part of an Account adjustment
+        Adjustment => "ADJUSTMENT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for TransactionType {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CREATE" => Self::Create,
-            "CLOSE" => Self::Close,
-            "REOPEN" => Self::Reopen,
-            "CLIENT_CONFIGURE" => Self::ClientConfigure,
-            "CLIENT_CONFIGURE_REJECT" => Self::ClientConfigureReject,
-            "TRANSFER_FUNDS" => Self::TransferFunds,
-            "TRANSFER_FUNDS_REJECT" => Self::TransferFundsReject,
-            "MARKET_ORDER" => Self::MarketOrder,
-            "MARKET_ORDER_REJECT" => Self::MarketOrderReject,
-            "FIXED_PRICE_ORDER" => Self::FixedPriceOrder,
-            "LIMIT_ORDER" => Self::LimitOrder,
-            "LIMIT_ORDER_REJECT" => Self::LimitOrderReject,
-            "STOP_ORDER" => Self::StopOrder,
-            "STOP_ORDER_REJECT" => Self::StopOrderReject,
-            "MARKET_IF_TOUCHED_ORDER" => Self::MarketIfTouchedOrder,
-            "MARKET_IF_TOUCHED_ORDER_REJECT" => Self::MarketIfTouchedOrderReject,
-            "TAKE_PROFIT_ORDER" => Self::TakeProfitOrder,
-            "TAKE_PROFIT_ORDER_REJECT" => Self::TakeProfitOrderReject,
-            "STOP_LOSS_ORDER" => Self::StopLossOrder,
-            "STOP_LOSS_ORDER_REJECT" => Self::StopLossOrderReject,
-            "GUARANTEED_STOP_LOSS_ORDER" => Self::GuaranteedStopLossOrder,
-            "GUARANTEED_STOP_LOSS_ORDER_REJECT" => Self::GuaranteedStopLossOrderReject,
-            "TRAILING_STOP_LOSS_ORDER" => Self::TrailingStopLossOrder,
-            "TRAILING_STOP_LOSS_ORDER_REJECT" => Self::TrailingStopLossOrderReject,
-            "ORDER_FILL" => Self::OrderFill,
-            "ORDER_CANCEL" => Self::OrderCancel,
-            "ORDER_CANCEL_REJECT" => Self::OrderCancelReject,
-            "ORDER_CLIENT_EXTENSIONS_MODIFY" => Self::OrderClientExtensionsModify,
-            "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT" => Self::OrderClientExtensionsModifyReject,
-            "TRADE_CLIENT_EXTENSIONS_MODIFY" => Self::TradeClientExtensionsModify,
-            "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT" => Self::TradeClientExtensionsModifyReject,
-            "MARGIN_CALL_ENTER" => Self::MarginCallEnter,
-            "MARGIN_CALL_EXTEND" => Self::MarginCallExtend,
-            "MARGIN_CALL_EXIT" => Self::MarginCallExit,
-            "DELAYED_TRADE_CLOSURE" => Self::DelayedTradeClosure,
-            "DAILY_FINANCING" => Self::DailyFinancing,
-            "DIVIDEND_ADJUSTMENT" => Self::DividendAdjustment,
-            "RESET_RESETTABLE_PL" => Self::ResetResettablePl,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that the Market Order was created
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum MarketOrderReason {
+        /// The Market Order was created at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Market Order was created to close a Trade at the request of a client
+        TradeClose => "TRADE_CLOSE",
+        /// The Market Order was created to close a Position at the request of a client
+        PositionCloseout => "POSITION_CLOSEOUT",
+        /// The Market Order was created as part of a Margin Closeout
+        MarginCloseout => "MARGIN_CLOSEOUT",
+        /// The Market Order was created to close a trade marked for delayed closure
+        DelayedTradeClose => "DELAYED_TRADE_CLOSE",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-/// The reason that an Account is being funded.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum FundingReason {
-    /// The client has initiated a funds transfer
-    ClientFunding,
-    /// Funds are being transferred between two Accounts.
-    AccountTransfer,
-    /// Funds are being transferred as part of a Division migration
-    DivisionMigration,
-    /// Funds are being transferred as part of a Site migration
-    SiteMigration,
-    /// Funds are being transferred as part of an Account adjustment
-    Adjustment,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl FundingReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientFunding => "CLIENT_FUNDING",
-            Self::AccountTransfer => "ACCOUNT_TRANSFER",
-            Self::DivisionMigration => "DIVISION_MIGRATION",
-            Self::SiteMigration => "SITE_MIGRATION",
-            Self::Adjustment => "ADJUSTMENT",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The reason that the Fixed Price Order was created
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum FixedPriceOrderReason {
+        /// The Fixed Price Order was created as part of a platform account migration
+        PlatformAccountMigration => "PLATFORM_ACCOUNT_MIGRATION",
+        /// The Fixed Price Order was created to close a Trade as part of division account migration
+        TradeCloseDivisionAccountMigration => "TRADE_CLOSE_DIVISION_ACCOUNT_MIGRATION",
+        /// The Fixed Price Order was created to close a Trade administratively
+        TradeCloseAdministrativeAction => "TRADE_CLOSE_ADMINISTRATIVE_ACTION",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for FundingReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// The reason that the Limit Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum LimitOrderReason {
+        /// The Limit Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Limit Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for FundingReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_FUNDING" => Self::ClientFunding,
-            "ACCOUNT_TRANSFER" => Self::AccountTransfer,
-            "DIVISION_MIGRATION" => Self::DivisionMigration,
-            "SITE_MIGRATION" => Self::SiteMigration,
-            "ADJUSTMENT" => Self::Adjustment,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that the Stop Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum StopOrderReason {
+        /// The Stop Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Stop Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-/// The reason that the Market Order was created
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum MarketOrderReason {
-    /// The Market Order was created at the request of a client
-    ClientOrder,
-    /// The Market Order was created to close a Trade at the request of a client
-    TradeClose,
-    /// The Market Order was created to close a Position at the request of a client
-    PositionCloseout,
-    /// The Market Order was created as part of a Margin Closeout
-    MarginCloseout,
-    /// The Market Order was created to close a trade marked for delayed closure
-    DelayedTradeClose,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl MarketOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::TradeClose => "TRADE_CLOSE",
-            Self::PositionCloseout => "POSITION_CLOSEOUT",
-            Self::MarginCloseout => "MARGIN_CLOSEOUT",
-            Self::DelayedTradeClose => "DELAYED_TRADE_CLOSE",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The reason that the Market-if-touched Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum MarketIfTouchedOrderReason {
+        /// The Market-if-touched Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Market-if-touched Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for MarketOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// The reason that the Take Profit Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TakeProfitOrderReason {
+        /// The Take Profit Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Take Profit Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        /// The Take Profit Order was initiated automatically when an Order was filled that opened a new Trade
+        /// requiring a Take Profit Order.
+        OnFill => "ON_FILL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for MarketOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "TRADE_CLOSE" => Self::TradeClose,
-            "POSITION_CLOSEOUT" => Self::PositionCloseout,
-            "MARGIN_CLOSEOUT" => Self::MarginCloseout,
-            "DELAYED_TRADE_CLOSE" => Self::DelayedTradeClose,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that the Stop Loss Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum StopLossOrderReason {
+        /// The Stop Loss Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Stop Loss Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        /// The Stop Loss Order was initiated automatically when an Order was filled that opened a new Trade
+        /// requiring a Stop Loss Order.
+        OnFill => "ON_FILL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-/// The reason that the Fixed Price Order was created
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum FixedPriceOrderReason {
-    /// The Fixed Price Order was created as part of a platform account migration
-    PlatformAccountMigration,
-    /// The Fixed Price Order was created to close a Trade as part of division account migration
-    TradeCloseDivisionAccountMigration,
-    /// The Fixed Price Order was created to close a Trade administratively
-    TradeCloseAdministrativeAction,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl FixedPriceOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::PlatformAccountMigration => "PLATFORM_ACCOUNT_MIGRATION",
-            Self::TradeCloseDivisionAccountMigration => "TRADE_CLOSE_DIVISION_ACCOUNT_MIGRATION",
-            Self::TradeCloseAdministrativeAction => "TRADE_CLOSE_ADMINISTRATIVE_ACTION",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The reason that the Guaranteed Stop Loss Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum GuaranteedStopLossOrderReason {
+        /// The Guaranteed Stop Loss Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Guaranteed Stop Loss Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        /// The Guaranteed Stop Loss Order was initiated automatically when an Order was filled that opened a new
+        /// Trade requiring a Guaranteed Stop Loss Order.
+        OnFill => "ON_FILL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for FixedPriceOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// The reason that the Trailing Stop Loss Order was initiated
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TrailingStopLossOrderReason {
+        /// The Trailing Stop Loss Order was initiated at the request of a client
+        ClientOrder => "CLIENT_ORDER",
+        /// The Trailing Stop Loss Order was initiated as a replacement for an existing Order
+        Replacement => "REPLACEMENT",
+        /// The Trailing Stop Loss Order was initiated automatically when an Order was filled that opened a new
+        /// Trade requiring a Trailing Stop Loss Order.
+        OnFill => "ON_FILL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for FixedPriceOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "PLATFORM_ACCOUNT_MIGRATION" => Self::PlatformAccountMigration,
-            "TRADE_CLOSE_DIVISION_ACCOUNT_MIGRATION" => Self::TradeCloseDivisionAccountMigration,
-            "TRADE_CLOSE_ADMINISTRATIVE_ACTION" => Self::TradeCloseAdministrativeAction,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that an Order was filled
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum OrderFillReason {
+        /// The Order filled was a Limit Order
+        LimitOrder => "LIMIT_ORDER",
+        /// The Order filled was a Stop Order
+        StopOrder => "STOP_ORDER",
+        /// The Order filled was a Market-if-touched Order
+        MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
+        /// The Order filled was a Take Profit Order
+        TakeProfitOrder => "TAKE_PROFIT_ORDER",
+        /// The Order filled was a Stop Loss Order
+        StopLossOrder => "STOP_LOSS_ORDER",
+        /// The Order filled was a Guaranteed Stop Loss Order
+        GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
+        /// The Order filled was a Trailing Stop Loss Order
+        TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
+        /// The Order filled was a Market Order
+        MarketOrder => "MARKET_ORDER",
+        /// The Order filled was a Market Order used to explicitly close a Trade
+        MarketOrderTradeClose => "MARKET_ORDER_TRADE_CLOSE",
+        /// The Order filled was a Market Order used to explicitly close a Position
+        MarketOrderPositionCloseout => "MARKET_ORDER_POSITION_CLOSEOUT",
+        /// The Order filled was a Market Order used for a Margin Closeout
+        MarketOrderMarginCloseout => "MARKET_ORDER_MARGIN_CLOSEOUT",
+        /// The Order filled was a Market Order used for a delayed Trade close
+        MarketOrderDelayedTradeClose => "MARKET_ORDER_DELAYED_TRADE_CLOSE",
+        /// The Order filled was a Fixed Price Order
+        FixedPriceOrder => "FIXED_PRICE_ORDER",
+        /// The Order filled was a Fixed Price Order created as part of a platform account migration
+        FixedPriceOrderPlatformAccountMigration => "FIXED_PRICE_ORDER_PLATFORM_ACCOUNT_MIGRATION",
+        /// The Order filled was a Fixed Price Order created to close a Trade as part of division account migration
+        FixedPriceOrderDivisionAccountMigration => "FIXED_PRICE_ORDER_DIVISION_ACCOUNT_MIGRATION",
+        /// The Order filled was a Fixed Price Order created to close a Trade administratively
+        FixedPriceOrderAdministrativeAction => "FIXED_PRICE_ORDER_ADMINISTRATIVE_ACTION",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-/// The reason that the Limit Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum LimitOrderReason {
-    /// The Limit Order was initiated at the request of a client
-    ClientOrder,
-    /// The Limit Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl LimitOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for LimitOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for LimitOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Stop Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum StopOrderReason {
-    /// The Stop Order was initiated at the request of a client
-    ClientOrder,
-    /// The Stop Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl StopOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for StopOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for StopOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Market-if-touched Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum MarketIfTouchedOrderReason {
-    /// The Market-if-touched Order was initiated at the request of a client
-    ClientOrder,
-    /// The Market-if-touched Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl MarketIfTouchedOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for MarketIfTouchedOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for MarketIfTouchedOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Take Profit Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TakeProfitOrderReason {
-    /// The Take Profit Order was initiated at the request of a client
-    ClientOrder,
-    /// The Take Profit Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// The Take Profit Order was initiated automatically when an Order was filled that opened a new Trade
-    /// requiring a Take Profit Order.
-    OnFill,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TakeProfitOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::OnFill => "ON_FILL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for TakeProfitOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TakeProfitOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            "ON_FILL" => Self::OnFill,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Stop Loss Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum StopLossOrderReason {
-    /// The Stop Loss Order was initiated at the request of a client
-    ClientOrder,
-    /// The Stop Loss Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// The Stop Loss Order was initiated automatically when an Order was filled that opened a new Trade
-    /// requiring a Stop Loss Order.
-    OnFill,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl StopLossOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::OnFill => "ON_FILL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for StopLossOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for StopLossOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            "ON_FILL" => Self::OnFill,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Guaranteed Stop Loss Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum GuaranteedStopLossOrderReason {
-    /// The Guaranteed Stop Loss Order was initiated at the request of a client
-    ClientOrder,
-    /// The Guaranteed Stop Loss Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// The Guaranteed Stop Loss Order was initiated automatically when an Order was filled that opened a new
-    /// Trade requiring a Guaranteed Stop Loss Order.
-    OnFill,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl GuaranteedStopLossOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::OnFill => "ON_FILL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for GuaranteedStopLossOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for GuaranteedStopLossOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            "ON_FILL" => Self::OnFill,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that the Trailing Stop Loss Order was initiated
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TrailingStopLossOrderReason {
-    /// The Trailing Stop Loss Order was initiated at the request of a client
-    ClientOrder,
-    /// The Trailing Stop Loss Order was initiated as a replacement for an existing Order
-    Replacement,
-    /// The Trailing Stop Loss Order was initiated automatically when an Order was filled that opened a new
-    /// Trade requiring a Trailing Stop Loss Order.
-    OnFill,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TrailingStopLossOrderReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::ClientOrder => "CLIENT_ORDER",
-            Self::Replacement => "REPLACEMENT",
-            Self::OnFill => "ON_FILL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for TrailingStopLossOrderReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TrailingStopLossOrderReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "CLIENT_ORDER" => Self::ClientOrder,
-            "REPLACEMENT" => Self::Replacement,
-            "ON_FILL" => Self::OnFill,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that an Order was filled
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum OrderFillReason {
-    /// The Order filled was a Limit Order
-    LimitOrder,
-    /// The Order filled was a Stop Order
-    StopOrder,
-    /// The Order filled was a Market-if-touched Order
-    MarketIfTouchedOrder,
-    /// The Order filled was a Take Profit Order
-    TakeProfitOrder,
-    /// The Order filled was a Stop Loss Order
-    StopLossOrder,
-    /// The Order filled was a Guaranteed Stop Loss Order
-    GuaranteedStopLossOrder,
-    /// The Order filled was a Trailing Stop Loss Order
-    TrailingStopLossOrder,
-    /// The Order filled was a Market Order
-    MarketOrder,
-    /// The Order filled was a Market Order used to explicitly close a Trade
-    MarketOrderTradeClose,
-    /// The Order filled was a Market Order used to explicitly close a Position
-    MarketOrderPositionCloseout,
-    /// The Order filled was a Market Order used for a Margin Closeout
-    MarketOrderMarginCloseout,
-    /// The Order filled was a Market Order used for a delayed Trade close
-    MarketOrderDelayedTradeClose,
-    /// The Order filled was a Fixed Price Order
-    FixedPriceOrder,
-    /// The Order filled was a Fixed Price Order created as part of a platform account migration
-    FixedPriceOrderPlatformAccountMigration,
-    /// The Order filled was a Fixed Price Order created to close a Trade as part of division account migration
-    FixedPriceOrderDivisionAccountMigration,
-    /// The Order filled was a Fixed Price Order created to close a Trade administratively
-    FixedPriceOrderAdministrativeAction,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl OrderFillReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::LimitOrder => "LIMIT_ORDER",
-            Self::StopOrder => "STOP_ORDER",
-            Self::MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
-            Self::TakeProfitOrder => "TAKE_PROFIT_ORDER",
-            Self::StopLossOrder => "STOP_LOSS_ORDER",
-            Self::GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
-            Self::TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
-            Self::MarketOrder => "MARKET_ORDER",
-            Self::MarketOrderTradeClose => "MARKET_ORDER_TRADE_CLOSE",
-            Self::MarketOrderPositionCloseout => "MARKET_ORDER_POSITION_CLOSEOUT",
-            Self::MarketOrderMarginCloseout => "MARKET_ORDER_MARGIN_CLOSEOUT",
-            Self::MarketOrderDelayedTradeClose => "MARKET_ORDER_DELAYED_TRADE_CLOSE",
-            Self::FixedPriceOrder => "FIXED_PRICE_ORDER",
-            Self::FixedPriceOrderPlatformAccountMigration => {
-                "FIXED_PRICE_ORDER_PLATFORM_ACCOUNT_MIGRATION"
-            }
-            Self::FixedPriceOrderDivisionAccountMigration => {
-                "FIXED_PRICE_ORDER_DIVISION_ACCOUNT_MIGRATION"
-            }
-            Self::FixedPriceOrderAdministrativeAction => "FIXED_PRICE_ORDER_ADMINISTRATIVE_ACTION",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for OrderFillReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for OrderFillReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "LIMIT_ORDER" => Self::LimitOrder,
-            "STOP_ORDER" => Self::StopOrder,
-            "MARKET_IF_TOUCHED_ORDER" => Self::MarketIfTouchedOrder,
-            "TAKE_PROFIT_ORDER" => Self::TakeProfitOrder,
-            "STOP_LOSS_ORDER" => Self::StopLossOrder,
-            "GUARANTEED_STOP_LOSS_ORDER" => Self::GuaranteedStopLossOrder,
-            "TRAILING_STOP_LOSS_ORDER" => Self::TrailingStopLossOrder,
-            "MARKET_ORDER" => Self::MarketOrder,
-            "MARKET_ORDER_TRADE_CLOSE" => Self::MarketOrderTradeClose,
-            "MARKET_ORDER_POSITION_CLOSEOUT" => Self::MarketOrderPositionCloseout,
-            "MARKET_ORDER_MARGIN_CLOSEOUT" => Self::MarketOrderMarginCloseout,
-            "MARKET_ORDER_DELAYED_TRADE_CLOSE" => Self::MarketOrderDelayedTradeClose,
-            "FIXED_PRICE_ORDER" => Self::FixedPriceOrder,
-            "FIXED_PRICE_ORDER_PLATFORM_ACCOUNT_MIGRATION" => {
-                Self::FixedPriceOrderPlatformAccountMigration
-            }
-            "FIXED_PRICE_ORDER_DIVISION_ACCOUNT_MIGRATION" => {
-                Self::FixedPriceOrderDivisionAccountMigration
-            }
-            "FIXED_PRICE_ORDER_ADMINISTRATIVE_ACTION" => Self::FixedPriceOrderAdministrativeAction,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// The reason that an Order was cancelled.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum OrderCancelReason {
-    /// The Order was cancelled because at the time of filling, an unexpected internal server error occurred.
-    InternalServerError,
-    /// The Order was cancelled because at the time of filling the account was locked.
-    AccountLocked,
-    /// The order was to be filled, however the account is configured to not allow new positions to be created.
-    AccountNewPositionsLocked,
-    /// Filling the Order wasn’t possible because it required the creation of a dependent Order and the Account
-    /// is locked for Order creation.
-    AccountOrderCreationLocked,
-    /// Filling the Order was not possible because the Account is locked for filling Orders.
-    AccountOrderFillLocked,
-    /// The Order was cancelled explicitly at the request of the client.
-    ClientRequest,
-    /// The Order cancelled because it is being migrated to another account.
-    Migration,
-    /// Filling the Order wasn’t possible because the Order’s instrument was halted.
-    MarketHalted,
-    /// The Order is linked to an open Trade that was closed.
-    LinkedTradeClosed,
-    /// The time in force specified for this order has passed.
-    TimeInForceExpired,
-    /// Filling the Order wasn’t possible because the Account had insufficient margin.
-    InsufficientMargin,
-    /// Filling the Order would have resulted in a a FIFO violation.
-    FifoViolation,
-    /// Filling the Order would have violated the Order’s price bound.
-    BoundsViolation,
-    /// The Order was cancelled for replacement at the request of the client.
-    ClientRequestReplaced,
-    /// The Order was cancelled for replacement with an adjusted fillPrice to accommodate for the price movement
-    /// caused by a dividendAdjustment.
-    DividendAdjustmentReplaced,
-    /// Filling the Order wasn’t possible because enough liquidity available.
-    InsufficientLiquidity,
-    /// Filling the Order would have resulted in the creation of a Take Profit Order with a GTD time in the past.
-    TakeProfitOnFillGtdTimestampInPast,
-    /// Filling the Order would result in the creation of a Take Profit Order that would have been filled
-    /// immediately, closing the new Trade at a loss.
-    TakeProfitOnFillLoss,
-    /// Filling the Order would result in the creation of a Take Profit Loss Order that would close the new
-    /// Trade at a loss when filled.
-    LosingTakeProfit,
-    /// Filling the Order would have resulted in the creation of a Stop Loss Order with a GTD time in the past.
-    StopLossOnFillGtdTimestampInPast,
-    /// Filling the Order would result in the creation of a Stop Loss Order that would have been filled
-    /// immediately, closing the new Trade at a loss.
-    StopLossOnFillLoss,
-    /// Filling the Order would result in the creation of a Stop Loss Order whose price would be zero or
-    /// negative due to the specified distance.
-    StopLossOnFillPriceDistanceMaximumExceeded,
-    /// Filling the Order would not result in the creation of Stop Loss Order, however the Account’s
-    /// configuration requires that all Trades have a Stop Loss Order attached to them.
-    StopLossOnFillRequired,
-    /// Filling the Order would not result in the creation of a guaranteed Stop Loss Order, however the
-    /// Account’s configuration requires that all Trades have a guaranteed Stop Loss Order attached to them.
-    StopLossOnFillGuaranteedRequired,
-    /// Filling the Order would result in the creation of a guaranteed Stop Loss Order, however the Account’s
-    /// configuration does not allow guaranteed Stop Loss Orders.
-    StopLossOnFillGuaranteedNotAllowed,
-    /// Filling the Order would result in the creation of a guaranteed Stop Loss Order with a distance smaller
-    /// than the configured minimum distance.
-    StopLossOnFillGuaranteedMinimumDistanceNotMet,
-    /// Filling the Order would result in the creation of a guaranteed Stop Loss Order with trigger price and
-    /// number of units that that violates the account’s guaranteed Stop Loss Order level restriction.
-    StopLossOnFillGuaranteedLevelRestrictionExceeded,
-    /// Filling the Order would result in the creation of a guaranteed Stop Loss Order for a hedged Trade,
-    /// however the Account’s configuration does not allow guaranteed Stop Loss Orders for hedged
-    /// Trades/Positions.
-    StopLossOnFillGuaranteedHedgingNotAllowed,
-    /// Filling the Order would result in the creation of a Stop Loss Order whose TimeInForce value is invalid.
-    /// A likely cause would be if the Account requires guaranteed stop loss orders and the TimeInForce value
-    /// were not GTC.
-    StopLossOnFillTimeInForceInvalid,
-    /// Filling the Order would result in the creation of a Stop Loss Order whose TriggerCondition value is
-    /// invalid. A likely cause would be if the stop loss order is guaranteed and the TimeInForce is not
-    /// TRIGGER_DEFAULT or TRIGGER_BID for a long trade, or not TRIGGER_DEFAULT or TRIGGER_ASK for a short trade.
-    StopLossOnFillTriggerConditionInvalid,
-    /// Filling the Order would have resulted in the creation of a Guaranteed Stop Loss Order with a GTD time in
-    /// the past.
-    GuaranteedStopLossOnFillGtdTimestampInPast,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order that would have been
-    /// filled immediately, closing the new Trade at a loss.
-    GuaranteedStopLossOnFillLoss,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose price would be zero
-    /// or negative due to the specified distance.
-    GuaranteedStopLossOnFillPriceDistanceMaximumExceeded,
-    /// Filling the Order would not result in the creation of a Guaranteed Stop Loss Order, however the
-    /// Account’s configuration requires that all Trades have a Guaranteed Stop Loss Order attached to them.
-    GuaranteedStopLossOnFillRequired,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order, however the Account’s
-    /// configuration does not allow Guaranteed Stop Loss Orders.
-    GuaranteedStopLossOnFillNotAllowed,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with a distance smaller
-    /// than the configured minimum distance.
-    GuaranteedStopLossOnFillMinimumDistanceNotMet,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger number of
-    /// units that violates the account’s Guaranteed Stop Loss Order level restriction volume.
-    GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger price that
-    /// violates the account’s Guaranteed Stop Loss Order level restriction price range.
-    GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order for a hedged Trade,
-    /// however the Account’s configuration does not allow Guaranteed Stop Loss Orders for hedged
-    /// Trades/Positions.
-    GuaranteedStopLossOnFillHedgingNotAllowed,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose TimeInForce value
-    /// is invalid. A likely cause would be if the Account requires guaranteed stop loss orders and the
-    /// TimeInForce value were not GTC.
-    GuaranteedStopLossOnFillTimeInForceInvalid,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose TriggerCondition
-    /// value is invalid. A likely cause would be the TimeInForce is not TRIGGER_DEFAULT or TRIGGER_BID for a
-    /// long trade, or not TRIGGER_DEFAULT or TRIGGER_ASK for a short trade.
-    GuaranteedStopLossOnFillTriggerConditionInvalid,
-    /// Filling the Order would result in the creation of a Take Profit Order whose price would be zero or
-    /// negative due to the specified distance.
-    TakeProfitOnFillPriceDistanceMaximumExceeded,
-    /// Filling the Order would have resulted in the creation of a Trailing Stop Loss Order with a GTD time in
-    /// the past.
-    TrailingStopLossOnFillGtdTimestampInPast,
-    /// Filling the Order would result in the creation of a new Open Trade with a client Trade ID already in use.
-    ClientTradeIdAlreadyExists,
-    /// Closing out a position wasn’t fully possible.
-    PositionCloseoutFailed,
-    /// Filling the Order would cause the maximum open trades allowed for the Account to be exceeded.
-    OpenTradesAllowedExceeded,
-    /// Filling the Order would have resulted in exceeding the number of pending Orders allowed for the Account.
-    PendingOrdersAllowedExceeded,
-    /// Filling the Order would have resulted in the creation of a Take Profit Order with a client Order ID that
-    /// is already in use.
-    TakeProfitOnFillClientOrderIdAlreadyExists,
-    /// Filling the Order would have resulted in the creation of a Stop Loss Order with a client Order ID that
-    /// is already in use.
-    StopLossOnFillClientOrderIdAlreadyExists,
-    /// Filling the Order would have resulted in the creation of a Guaranteed Stop Loss Order with a client
-    /// Order ID that is already in use.
-    GuaranteedStopLossOnFillClientOrderIdAlreadyExists,
-    /// Filling the Order would have resulted in the creation of a Trailing Stop Loss Order with a client Order
-    /// ID that is already in use.
-    TrailingStopLossOnFillClientOrderIdAlreadyExists,
-    /// Filling the Order would have resulted in the Account’s maximum position size limit being exceeded for
-    /// the Order’s instrument.
-    PositionSizeExceeded,
-    /// Filling the Order would result in the creation of a Trade, however there already exists an opposing
-    /// (hedged) Trade that has a guaranteed Stop Loss Order attached to it. Guaranteed Stop Loss Orders cannot
-    /// be combined with hedged positions.
-    HedgingGsloViolation,
-    /// Filling the order would cause the maximum position value allowed for the account to be exceeded. The
-    /// Order has been cancelled as a result.
-    AccountPositionValueLimitExceeded,
-    /// Filling the order would require the creation of a short trade, however the instrument is configured such
-    /// that orders being filled using bid prices can only reduce existing positions. New short positions cannot
-    /// be created, but existing long positions may be reduced or closed.
-    InstrumentBidReduceOnly,
-    /// Filling the order would require the creation of a long trade, however the instrument is configured such
-    /// that orders being filled using ask prices can only reduce existing positions. New long positions cannot
-    /// be created, but existing short positions may be reduced or closed.
-    InstrumentAskReduceOnly,
-    /// Filling the order would require using the bid, however the instrument is configured such that the bids
-    /// are halted, and so no short orders may be filled.
-    InstrumentBidHalted,
-    /// Filling the order would require using the ask, however the instrument is configured such that the asks
-    /// are halted, and so no long orders may be filled.
-    InstrumentAskHalted,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
-    /// is long the GSLO would be short, however the bid side is currently halted. GSLOs cannot be created in
-    /// this situation.
-    StopLossOnFillGuaranteedBidHalted,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
-    /// is short the GSLO would be long, however the ask side is currently halted. GSLOs cannot be created in
-    /// this situation.
-    StopLossOnFillGuaranteedAskHalted,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
-    /// is long the GSLO would be short, however the bid side is currently halted. GSLOs cannot be created in
-    /// this situation.
-    GuaranteedStopLossOnFillBidHalted,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
-    /// is short the GSLO would be long, however the ask side is currently halted. GSLOs cannot be created in
-    /// this situation.
-    GuaranteedStopLossOnFillAskHalted,
-    /// Filling the Order would have resulted in a new Trade that violates the FIFO violation safeguard
-    /// constraints.
-    FifoViolationSafeguardViolation,
-    /// Filling the Order would have reduced an existing Trade such that the reduced Trade violates the FIFO
-    /// violation safeguard constraints.
-    FifoViolationSafeguardPartialCloseViolation,
-    /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
-    /// specifying that only one risk management Order can be attached to a Trade.
-    OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl OrderCancelReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::InternalServerError => "INTERNAL_SERVER_ERROR",
-            Self::AccountLocked => "ACCOUNT_LOCKED",
-            Self::AccountNewPositionsLocked => "ACCOUNT_NEW_POSITIONS_LOCKED",
-            Self::AccountOrderCreationLocked => "ACCOUNT_ORDER_CREATION_LOCKED",
-            Self::AccountOrderFillLocked => "ACCOUNT_ORDER_FILL_LOCKED",
-            Self::ClientRequest => "CLIENT_REQUEST",
-            Self::Migration => "MIGRATION",
-            Self::MarketHalted => "MARKET_HALTED",
-            Self::LinkedTradeClosed => "LINKED_TRADE_CLOSED",
-            Self::TimeInForceExpired => "TIME_IN_FORCE_EXPIRED",
-            Self::InsufficientMargin => "INSUFFICIENT_MARGIN",
-            Self::FifoViolation => "FIFO_VIOLATION",
-            Self::BoundsViolation => "BOUNDS_VIOLATION",
-            Self::ClientRequestReplaced => "CLIENT_REQUEST_REPLACED",
-            Self::DividendAdjustmentReplaced => "DIVIDEND_ADJUSTMENT_REPLACED",
-            Self::InsufficientLiquidity => "INSUFFICIENT_LIQUIDITY",
-            Self::TakeProfitOnFillGtdTimestampInPast => "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
-            Self::TakeProfitOnFillLoss => "TAKE_PROFIT_ON_FILL_LOSS",
-            Self::LosingTakeProfit => "LOSING_TAKE_PROFIT",
-            Self::StopLossOnFillGtdTimestampInPast => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
-            Self::StopLossOnFillLoss => "STOP_LOSS_ON_FILL_LOSS",
-            Self::StopLossOnFillPriceDistanceMaximumExceeded => {
-                "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::StopLossOnFillRequired => "STOP_LOSS_ON_FILL_REQUIRED",
-            Self::StopLossOnFillGuaranteedRequired => "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
-            Self::StopLossOnFillGuaranteedNotAllowed => "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
-            Self::StopLossOnFillGuaranteedMinimumDistanceNotMet => {
-                "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::StopLossOnFillGuaranteedLevelRestrictionExceeded => {
-                "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED"
-            }
-            Self::StopLossOnFillGuaranteedHedgingNotAllowed => {
-                "STOP_LOSS_ON_FILL_GUARANTEED_HEDGING_NOT_ALLOWED"
-            }
-            Self::StopLossOnFillTimeInForceInvalid => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
-            Self::StopLossOnFillTriggerConditionInvalid => {
-                "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillGtdTimestampInPast => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST"
-            }
-            Self::GuaranteedStopLossOnFillLoss => "GUARANTEED_STOP_LOSS_ON_FILL_LOSS",
-            Self::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillRequired => "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
-            Self::GuaranteedStopLossOnFillNotAllowed => "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
-            Self::GuaranteedStopLossOnFillMinimumDistanceNotMet => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillHedgingNotAllowed => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_HEDGING_NOT_ALLOWED"
-            }
-            Self::GuaranteedStopLossOnFillTimeInForceInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillTriggerConditionInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::TakeProfitOnFillPriceDistanceMaximumExceeded => {
-                "TAKE_PROFIT_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::TrailingStopLossOnFillGtdTimestampInPast => {
-                "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST"
-            }
-            Self::ClientTradeIdAlreadyExists => "CLIENT_TRADE_ID_ALREADY_EXISTS",
-            Self::PositionCloseoutFailed => "POSITION_CLOSEOUT_FAILED",
-            Self::OpenTradesAllowedExceeded => "OPEN_TRADES_ALLOWED_EXCEEDED",
-            Self::PendingOrdersAllowedExceeded => "PENDING_ORDERS_ALLOWED_EXCEEDED",
-            Self::TakeProfitOnFillClientOrderIdAlreadyExists => {
-                "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS"
-            }
-            Self::StopLossOnFillClientOrderIdAlreadyExists => {
-                "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS"
-            }
-            Self::GuaranteedStopLossOnFillClientOrderIdAlreadyExists => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS"
-            }
-            Self::TrailingStopLossOnFillClientOrderIdAlreadyExists => {
-                "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS"
-            }
-            Self::PositionSizeExceeded => "POSITION_SIZE_EXCEEDED",
-            Self::HedgingGsloViolation => "HEDGING_GSLO_VIOLATION",
-            Self::AccountPositionValueLimitExceeded => "ACCOUNT_POSITION_VALUE_LIMIT_EXCEEDED",
-            Self::InstrumentBidReduceOnly => "INSTRUMENT_BID_REDUCE_ONLY",
-            Self::InstrumentAskReduceOnly => "INSTRUMENT_ASK_REDUCE_ONLY",
-            Self::InstrumentBidHalted => "INSTRUMENT_BID_HALTED",
-            Self::InstrumentAskHalted => "INSTRUMENT_ASK_HALTED",
-            Self::StopLossOnFillGuaranteedBidHalted => "STOP_LOSS_ON_FILL_GUARANTEED_BID_HALTED",
-            Self::StopLossOnFillGuaranteedAskHalted => "STOP_LOSS_ON_FILL_GUARANTEED_ASK_HALTED",
-            Self::GuaranteedStopLossOnFillBidHalted => "GUARANTEED_STOP_LOSS_ON_FILL_BID_HALTED",
-            Self::GuaranteedStopLossOnFillAskHalted => "GUARANTEED_STOP_LOSS_ON_FILL_ASK_HALTED",
-            Self::FifoViolationSafeguardViolation => "FIFO_VIOLATION_SAFEGUARD_VIOLATION",
-            Self::FifoViolationSafeguardPartialCloseViolation => {
-                "FIFO_VIOLATION_SAFEGUARD_PARTIAL_CLOSE_VIOLATION"
-            }
-            Self::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation => {
-                "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION"
-            }
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for OrderCancelReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for OrderCancelReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "INTERNAL_SERVER_ERROR" => Self::InternalServerError,
-            "ACCOUNT_LOCKED" => Self::AccountLocked,
-            "ACCOUNT_NEW_POSITIONS_LOCKED" => Self::AccountNewPositionsLocked,
-            "ACCOUNT_ORDER_CREATION_LOCKED" => Self::AccountOrderCreationLocked,
-            "ACCOUNT_ORDER_FILL_LOCKED" => Self::AccountOrderFillLocked,
-            "CLIENT_REQUEST" => Self::ClientRequest,
-            "MIGRATION" => Self::Migration,
-            "MARKET_HALTED" => Self::MarketHalted,
-            "LINKED_TRADE_CLOSED" => Self::LinkedTradeClosed,
-            "TIME_IN_FORCE_EXPIRED" => Self::TimeInForceExpired,
-            "INSUFFICIENT_MARGIN" => Self::InsufficientMargin,
-            "FIFO_VIOLATION" => Self::FifoViolation,
-            "BOUNDS_VIOLATION" => Self::BoundsViolation,
-            "CLIENT_REQUEST_REPLACED" => Self::ClientRequestReplaced,
-            "DIVIDEND_ADJUSTMENT_REPLACED" => Self::DividendAdjustmentReplaced,
-            "INSUFFICIENT_LIQUIDITY" => Self::InsufficientLiquidity,
-            "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST" => Self::TakeProfitOnFillGtdTimestampInPast,
-            "TAKE_PROFIT_ON_FILL_LOSS" => Self::TakeProfitOnFillLoss,
-            "LOSING_TAKE_PROFIT" => Self::LosingTakeProfit,
-            "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => Self::StopLossOnFillGtdTimestampInPast,
-            "STOP_LOSS_ON_FILL_LOSS" => Self::StopLossOnFillLoss,
-            "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::StopLossOnFillPriceDistanceMaximumExceeded
-            }
-            "STOP_LOSS_ON_FILL_REQUIRED" => Self::StopLossOnFillRequired,
-            "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED" => Self::StopLossOnFillGuaranteedRequired,
-            "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED" => Self::StopLossOnFillGuaranteedNotAllowed,
-            "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::StopLossOnFillGuaranteedMinimumDistanceNotMet
-            }
-            "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED" => {
-                Self::StopLossOnFillGuaranteedLevelRestrictionExceeded
-            }
-            "STOP_LOSS_ON_FILL_GUARANTEED_HEDGING_NOT_ALLOWED" => {
-                Self::StopLossOnFillGuaranteedHedgingNotAllowed
-            }
-            "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID" => Self::StopLossOnFillTimeInForceInvalid,
-            "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::StopLossOnFillTriggerConditionInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => {
-                Self::GuaranteedStopLossOnFillGtdTimestampInPast
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_LOSS" => Self::GuaranteedStopLossOnFillLoss,
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED" => Self::GuaranteedStopLossOnFillRequired,
-            "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED" => Self::GuaranteedStopLossOnFillNotAllowed,
-            "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::GuaranteedStopLossOnFillMinimumDistanceNotMet
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_HEDGING_NOT_ALLOWED" => {
-                Self::GuaranteedStopLossOnFillHedgingNotAllowed
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID" => {
-                Self::GuaranteedStopLossOnFillTimeInForceInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::GuaranteedStopLossOnFillTriggerConditionInvalid
-            }
-            "TAKE_PROFIT_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::TakeProfitOnFillPriceDistanceMaximumExceeded
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => {
-                Self::TrailingStopLossOnFillGtdTimestampInPast
-            }
-            "CLIENT_TRADE_ID_ALREADY_EXISTS" => Self::ClientTradeIdAlreadyExists,
-            "POSITION_CLOSEOUT_FAILED" => Self::PositionCloseoutFailed,
-            "OPEN_TRADES_ALLOWED_EXCEEDED" => Self::OpenTradesAllowedExceeded,
-            "PENDING_ORDERS_ALLOWED_EXCEEDED" => Self::PendingOrdersAllowedExceeded,
-            "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS" => {
-                Self::TakeProfitOnFillClientOrderIdAlreadyExists
-            }
-            "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS" => {
-                Self::StopLossOnFillClientOrderIdAlreadyExists
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS" => {
-                Self::GuaranteedStopLossOnFillClientOrderIdAlreadyExists
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS" => {
-                Self::TrailingStopLossOnFillClientOrderIdAlreadyExists
-            }
-            "POSITION_SIZE_EXCEEDED" => Self::PositionSizeExceeded,
-            "HEDGING_GSLO_VIOLATION" => Self::HedgingGsloViolation,
-            "ACCOUNT_POSITION_VALUE_LIMIT_EXCEEDED" => Self::AccountPositionValueLimitExceeded,
-            "INSTRUMENT_BID_REDUCE_ONLY" => Self::InstrumentBidReduceOnly,
-            "INSTRUMENT_ASK_REDUCE_ONLY" => Self::InstrumentAskReduceOnly,
-            "INSTRUMENT_BID_HALTED" => Self::InstrumentBidHalted,
-            "INSTRUMENT_ASK_HALTED" => Self::InstrumentAskHalted,
-            "STOP_LOSS_ON_FILL_GUARANTEED_BID_HALTED" => Self::StopLossOnFillGuaranteedBidHalted,
-            "STOP_LOSS_ON_FILL_GUARANTEED_ASK_HALTED" => Self::StopLossOnFillGuaranteedAskHalted,
-            "GUARANTEED_STOP_LOSS_ON_FILL_BID_HALTED" => Self::GuaranteedStopLossOnFillBidHalted,
-            "GUARANTEED_STOP_LOSS_ON_FILL_ASK_HALTED" => Self::GuaranteedStopLossOnFillAskHalted,
-            "FIFO_VIOLATION_SAFEGUARD_VIOLATION" => Self::FifoViolationSafeguardViolation,
-            "FIFO_VIOLATION_SAFEGUARD_PARTIAL_CLOSE_VIOLATION" => {
-                Self::FifoViolationSafeguardPartialCloseViolation
-            }
-            "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION" => {
-                Self::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation
-            }
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that an Order was cancelled.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum OrderCancelReason {
+        /// The Order was cancelled because at the time of filling, an unexpected internal server error occurred.
+        InternalServerError => "INTERNAL_SERVER_ERROR",
+        /// The Order was cancelled because at the time of filling the account was locked.
+        AccountLocked => "ACCOUNT_LOCKED",
+        /// The order was to be filled, however the account is configured to not allow new positions to be created.
+        AccountNewPositionsLocked => "ACCOUNT_NEW_POSITIONS_LOCKED",
+        /// Filling the Order wasn’t possible because it required the creation of a dependent Order and the Account
+        /// is locked for Order creation.
+        AccountOrderCreationLocked => "ACCOUNT_ORDER_CREATION_LOCKED",
+        /// Filling the Order was not possible because the Account is locked for filling Orders.
+        AccountOrderFillLocked => "ACCOUNT_ORDER_FILL_LOCKED",
+        /// The Order was cancelled explicitly at the request of the client.
+        ClientRequest => "CLIENT_REQUEST",
+        /// The Order cancelled because it is being migrated to another account.
+        Migration => "MIGRATION",
+        /// Filling the Order wasn’t possible because the Order’s instrument was halted.
+        MarketHalted => "MARKET_HALTED",
+        /// The Order is linked to an open Trade that was closed.
+        LinkedTradeClosed => "LINKED_TRADE_CLOSED",
+        /// The time in force specified for this order has passed.
+        TimeInForceExpired => "TIME_IN_FORCE_EXPIRED",
+        /// Filling the Order wasn’t possible because the Account had insufficient margin.
+        InsufficientMargin => "INSUFFICIENT_MARGIN",
+        /// Filling the Order would have resulted in a a FIFO violation.
+        FifoViolation => "FIFO_VIOLATION",
+        /// Filling the Order would have violated the Order’s price bound.
+        BoundsViolation => "BOUNDS_VIOLATION",
+        /// The Order was cancelled for replacement at the request of the client.
+        ClientRequestReplaced => "CLIENT_REQUEST_REPLACED",
+        /// The Order was cancelled for replacement with an adjusted fillPrice to accommodate for the price movement
+        /// caused by a dividendAdjustment.
+        DividendAdjustmentReplaced => "DIVIDEND_ADJUSTMENT_REPLACED",
+        /// Filling the Order wasn’t possible because enough liquidity available.
+        InsufficientLiquidity => "INSUFFICIENT_LIQUIDITY",
+        /// Filling the Order would have resulted in the creation of a Take Profit Order with a GTD time in the past.
+        TakeProfitOnFillGtdTimestampInPast => "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// Filling the Order would result in the creation of a Take Profit Order that would have been filled
+        /// immediately, closing the new Trade at a loss.
+        TakeProfitOnFillLoss => "TAKE_PROFIT_ON_FILL_LOSS",
+        /// Filling the Order would result in the creation of a Take Profit Loss Order that would close the new
+        /// Trade at a loss when filled.
+        LosingTakeProfit => "LOSING_TAKE_PROFIT",
+        /// Filling the Order would have resulted in the creation of a Stop Loss Order with a GTD time in the past.
+        StopLossOnFillGtdTimestampInPast => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// Filling the Order would result in the creation of a Stop Loss Order that would have been filled
+        /// immediately, closing the new Trade at a loss.
+        StopLossOnFillLoss => "STOP_LOSS_ON_FILL_LOSS",
+        /// Filling the Order would result in the creation of a Stop Loss Order whose price would be zero or
+        /// negative due to the specified distance.
+        StopLossOnFillPriceDistanceMaximumExceeded => "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// Filling the Order would not result in the creation of Stop Loss Order, however the Account’s
+        /// configuration requires that all Trades have a Stop Loss Order attached to them.
+        StopLossOnFillRequired => "STOP_LOSS_ON_FILL_REQUIRED",
+        /// Filling the Order would not result in the creation of a guaranteed Stop Loss Order, however the
+        /// Account’s configuration requires that all Trades have a guaranteed Stop Loss Order attached to them.
+        StopLossOnFillGuaranteedRequired => "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
+        /// Filling the Order would result in the creation of a guaranteed Stop Loss Order, however the Account’s
+        /// configuration does not allow guaranteed Stop Loss Orders.
+        StopLossOnFillGuaranteedNotAllowed => "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
+        /// Filling the Order would result in the creation of a guaranteed Stop Loss Order with a distance smaller
+        /// than the configured minimum distance.
+        StopLossOnFillGuaranteedMinimumDistanceNotMet => "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        /// Filling the Order would result in the creation of a guaranteed Stop Loss Order with trigger price and
+        /// number of units that that violates the account’s guaranteed Stop Loss Order level restriction.
+        StopLossOnFillGuaranteedLevelRestrictionExceeded => "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        /// Filling the Order would result in the creation of a guaranteed Stop Loss Order for a hedged Trade,
+        /// however the Account’s configuration does not allow guaranteed Stop Loss Orders for hedged
+        /// Trades/Positions.
+        StopLossOnFillGuaranteedHedgingNotAllowed => "STOP_LOSS_ON_FILL_GUARANTEED_HEDGING_NOT_ALLOWED",
+        /// Filling the Order would result in the creation of a Stop Loss Order whose `TimeInForce` value is invalid.
+        /// A likely cause would be if the Account requires guaranteed stop loss orders and the `TimeInForce` value
+        /// were not GTC.
+        StopLossOnFillTimeInForceInvalid => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// Filling the Order would result in the creation of a Stop Loss Order whose `TriggerCondition` value is
+        /// invalid. A likely cause would be if the stop loss order is guaranteed and the `TimeInForce` is not
+        /// `TRIGGER_DEFAULT` or `TRIGGER_BID` for a long trade, or not `TRIGGER_DEFAULT` or `TRIGGER_ASK` for a short trade.
+        StopLossOnFillTriggerConditionInvalid => "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// Filling the Order would have resulted in the creation of a Guaranteed Stop Loss Order with a GTD time in
+        /// the past.
+        GuaranteedStopLossOnFillGtdTimestampInPast => "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order that would have been
+        /// filled immediately, closing the new Trade at a loss.
+        GuaranteedStopLossOnFillLoss => "GUARANTEED_STOP_LOSS_ON_FILL_LOSS",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose price would be zero
+        /// or negative due to the specified distance.
+        GuaranteedStopLossOnFillPriceDistanceMaximumExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// Filling the Order would not result in the creation of a Guaranteed Stop Loss Order, however the
+        /// Account’s configuration requires that all Trades have a Guaranteed Stop Loss Order attached to them.
+        GuaranteedStopLossOnFillRequired => "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order, however the Account’s
+        /// configuration does not allow Guaranteed Stop Loss Orders.
+        GuaranteedStopLossOnFillNotAllowed => "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with a distance smaller
+        /// than the configured minimum distance.
+        GuaranteedStopLossOnFillMinimumDistanceNotMet => "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger number of
+        /// units that violates the account’s Guaranteed Stop Loss Order level restriction volume.
+        GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger price that
+        /// violates the account’s Guaranteed Stop Loss Order level restriction price range.
+        GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order for a hedged Trade,
+        /// however the Account’s configuration does not allow Guaranteed Stop Loss Orders for hedged
+        /// Trades/Positions.
+        GuaranteedStopLossOnFillHedgingNotAllowed => "GUARANTEED_STOP_LOSS_ON_FILL_HEDGING_NOT_ALLOWED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose `TimeInForce` value
+        /// is invalid. A likely cause would be if the Account requires guaranteed stop loss orders and the
+        /// `TimeInForce` value were not GTC.
+        GuaranteedStopLossOnFillTimeInForceInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order whose `TriggerCondition`
+        /// value is invalid. A likely cause would be the `TimeInForce` is not `TRIGGER_DEFAULT` or `TRIGGER_BID` for a
+        /// long trade, or not `TRIGGER_DEFAULT` or `TRIGGER_ASK` for a short trade.
+        GuaranteedStopLossOnFillTriggerConditionInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// Filling the Order would result in the creation of a Take Profit Order whose price would be zero or
+        /// negative due to the specified distance.
+        TakeProfitOnFillPriceDistanceMaximumExceeded => "TAKE_PROFIT_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// Filling the Order would have resulted in the creation of a Trailing Stop Loss Order with a GTD time in
+        /// the past.
+        TrailingStopLossOnFillGtdTimestampInPast => "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// Filling the Order would result in the creation of a new Open Trade with a client Trade ID already in use.
+        ClientTradeIdAlreadyExists => "CLIENT_TRADE_ID_ALREADY_EXISTS",
+        /// Closing out a position wasn’t fully possible.
+        PositionCloseoutFailed => "POSITION_CLOSEOUT_FAILED",
+        /// Filling the Order would cause the maximum open trades allowed for the Account to be exceeded.
+        OpenTradesAllowedExceeded => "OPEN_TRADES_ALLOWED_EXCEEDED",
+        /// Filling the Order would have resulted in exceeding the number of pending Orders allowed for the Account.
+        PendingOrdersAllowedExceeded => "PENDING_ORDERS_ALLOWED_EXCEEDED",
+        /// Filling the Order would have resulted in the creation of a Take Profit Order with a client Order ID that
+        /// is already in use.
+        TakeProfitOnFillClientOrderIdAlreadyExists => "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        /// Filling the Order would have resulted in the creation of a Stop Loss Order with a client Order ID that
+        /// is already in use.
+        StopLossOnFillClientOrderIdAlreadyExists => "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        /// Filling the Order would have resulted in the creation of a Guaranteed Stop Loss Order with a client
+        /// Order ID that is already in use.
+        GuaranteedStopLossOnFillClientOrderIdAlreadyExists => "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        /// Filling the Order would have resulted in the creation of a Trailing Stop Loss Order with a client Order
+        /// ID that is already in use.
+        TrailingStopLossOnFillClientOrderIdAlreadyExists => "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_ALREADY_EXISTS",
+        /// Filling the Order would have resulted in the Account’s maximum position size limit being exceeded for
+        /// the Order’s instrument.
+        PositionSizeExceeded => "POSITION_SIZE_EXCEEDED",
+        /// Filling the Order would result in the creation of a Trade, however there already exists an opposing
+        /// (hedged) Trade that has a guaranteed Stop Loss Order attached to it. Guaranteed Stop Loss Orders cannot
+        /// be combined with hedged positions.
+        HedgingGsloViolation => "HEDGING_GSLO_VIOLATION",
+        /// Filling the order would cause the maximum position value allowed for the account to be exceeded. The
+        /// Order has been cancelled as a result.
+        AccountPositionValueLimitExceeded => "ACCOUNT_POSITION_VALUE_LIMIT_EXCEEDED",
+        /// Filling the order would require the creation of a short trade, however the instrument is configured such
+        /// that orders being filled using bid prices can only reduce existing positions. New short positions cannot
+        /// be created, but existing long positions may be reduced or closed.
+        InstrumentBidReduceOnly => "INSTRUMENT_BID_REDUCE_ONLY",
+        /// Filling the order would require the creation of a long trade, however the instrument is configured such
+        /// that orders being filled using ask prices can only reduce existing positions. New long positions cannot
+        /// be created, but existing short positions may be reduced or closed.
+        InstrumentAskReduceOnly => "INSTRUMENT_ASK_REDUCE_ONLY",
+        /// Filling the order would require using the bid, however the instrument is configured such that the bids
+        /// are halted, and so no short orders may be filled.
+        InstrumentBidHalted => "INSTRUMENT_BID_HALTED",
+        /// Filling the order would require using the ask, however the instrument is configured such that the asks
+        /// are halted, and so no long orders may be filled.
+        InstrumentAskHalted => "INSTRUMENT_ASK_HALTED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
+        /// is long the GSLO would be short, however the bid side is currently halted. GSLOs cannot be created in
+        /// this situation.
+        StopLossOnFillGuaranteedBidHalted => "STOP_LOSS_ON_FILL_GUARANTEED_BID_HALTED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
+        /// is short the GSLO would be long, however the ask side is currently halted. GSLOs cannot be created in
+        /// this situation.
+        StopLossOnFillGuaranteedAskHalted => "STOP_LOSS_ON_FILL_GUARANTEED_ASK_HALTED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
+        /// is long the GSLO would be short, however the bid side is currently halted. GSLOs cannot be created in
+        /// this situation.
+        GuaranteedStopLossOnFillBidHalted => "GUARANTEED_STOP_LOSS_ON_FILL_BID_HALTED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order (GSLO). Since the trade
+        /// is short the GSLO would be long, however the ask side is currently halted. GSLOs cannot be created in
+        /// this situation.
+        GuaranteedStopLossOnFillAskHalted => "GUARANTEED_STOP_LOSS_ON_FILL_ASK_HALTED",
+        /// Filling the Order would have resulted in a new Trade that violates the FIFO violation safeguard
+        /// constraints.
+        FifoViolationSafeguardViolation => "FIFO_VIOLATION_SAFEGUARD_VIOLATION",
+        /// Filling the Order would have reduced an existing Trade such that the reduced Trade violates the FIFO
+        /// violation safeguard constraints.
+        FifoViolationSafeguardPartialCloseViolation => "FIFO_VIOLATION_SAFEGUARD_PARTIAL_CLOSE_VIOLATION",
+        /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
+        /// specifying that only one risk management Order can be attached to a Trade.
+        OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation => "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
@@ -4424,7 +3797,7 @@ pub struct OpenTradeDividendAdjustment {
     pub quote_dividend_adjustment: Option<Decimal>,
 }
 
-/// A ClientExtensions object allows a client to attach a clientID, tag and comment to Orders and Trades in
+/// A `ClientExtensions` object allows a client to attach a clientID, tag and comment to Orders and Trades in
 /// their Account. Do not set, modify, or delete this field if your account is associated with MT4.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -4440,7 +3813,7 @@ pub struct ClientExtensions {
     pub comment: Option<ClientComment>,
 }
 
-/// TakeProfitDetails specifies the details of a Take Profit Order to be created on behalf of a client. This
+/// `TakeProfitDetails` specifies the details of a Take Profit Order to be created on behalf of a client. This
 /// may happen when an Order is filled that opens a Trade requiring a Take Profit, or when a Trade’s
 /// dependent Take Profit Order is modified directly through the Trade.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -4470,9 +3843,13 @@ pub struct TakeProfitDetails {
     pub client_extensions: Option<ClientExtensions>,
 }
 
-/// StopLossDetails specifies the details of a Stop Loss Order to be created on behalf of a client. This may
+/// `StopLossDetails` specifies the details of a Stop Loss Order to be created on behalf of a client. This may
 /// happen when an Order is filled that opens a Trade requiring a Stop Loss, or when a Trade’s dependent
 /// Stop Loss Order is modified directly through the Trade.
+///
+/// Both trigger fields remain visible to preserve received evidence. Outbound
+/// endpoint admission rejects simultaneous `price` and `distance`; omitting both
+/// retains the existing trigger during a dependent-order modification.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StopLossDetails {
@@ -4504,7 +3881,7 @@ pub struct StopLossDetails {
     )]
     pub client_extensions: Option<ClientExtensions>,
     /// Flag indicating that the price for the Stop Loss Order is guaranteed. The default value depends on the
-    /// GuaranteedStopLossOrderMode of the account, if it is REQUIRED, the default will be true, for DISABLED or
+    /// `GuaranteedStopLossOrderMode` of the account, if it is REQUIRED, the default will be true, for DISABLED or
     /// ENABLED the default is false. Deprecated: Will be removed in a future API update.
     #[serde(
         rename = "guaranteed",
@@ -4514,9 +3891,12 @@ pub struct StopLossDetails {
     pub guaranteed: Option<bool>,
 }
 
-/// GuaranteedStopLossDetails specifies the details of a Guaranteed Stop Loss Order to be created on behalf
+/// `GuaranteedStopLossDetails` specifies the details of a Guaranteed Stop Loss Order to be created on behalf
 /// of a client. This may happen when an Order is filled that opens a Trade requiring a Guaranteed Stop
 /// Loss, or when a Trade’s dependent Guaranteed Stop Loss Order is modified directly through the Trade.
+///
+/// Outbound admission rejects simultaneous `price` and `distance`. Omitting both
+/// retains the existing trigger; decoding preserves either or both fields as evidence.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GuaranteedStopLossDetails {
@@ -4549,7 +3929,7 @@ pub struct GuaranteedStopLossDetails {
     pub client_extensions: Option<ClientExtensions>,
 }
 
-/// TrailingStopLossDetails specifies the details of a Trailing Stop Loss Order to be created on behalf of a
+/// `TrailingStopLossDetails` specifies the details of a Trailing Stop Loss Order to be created on behalf of a
 /// client. This may happen when an Order is filled that opens a Trade requiring a Trailing Stop Loss, or
 /// when a Trade’s dependent Trailing Stop Loss Order is modified directly through the Trade.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -4579,9 +3959,9 @@ pub struct TrailingStopLossDetails {
     pub client_extensions: Option<ClientExtensions>,
 }
 
-/// A TradeOpen object represents a Trade for an instrument that was opened in an Account. It is found
+/// A `TradeOpen` object represents a Trade for an instrument that was opened in an Account. It is found
 /// embedded in Transactions that affect the position of an instrument in the Account, specifically the
-/// OrderFill Transaction.
+/// `OrderFill` Transaction.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TradeOpen {
@@ -4654,9 +4034,9 @@ pub struct TradeOpen {
     pub guaranteed_execution_fee_home_conversion_cost: Option<Decimal>,
 }
 
-/// A TradeReduce object represents a Trade for an instrument that was reduced (either partially or fully)
+/// A `TradeReduce` object represents a Trade for an instrument that was reduced (either partially or fully)
 /// in an Account. It is found embedded in Transactions that affect the position of an instrument in the
-/// account, specifically the OrderFill Transaction.
+/// account, specifically the `OrderFill` Transaction.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TradeReduce {
@@ -4701,8 +4081,8 @@ pub struct TradeReduce {
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The financing rate in effect for the instrument used to calculate the amount of financing paid/collected
-    /// when reducing the Trade. This field will only be set if the AccountFinancingMode at the time of the
-    /// order fill is SECOND_BY_SECOND_INSTRUMENT. The value is in decimal rather than percentage points, e.g.
+    /// when reducing the Trade. This field will only be set if the `AccountFinancingMode` at the time of the
+    /// order fill is `SECOND_BY_SECOND_INSTRUMENT`. The value is in decimal rather than percentage points, e.g.
     /// 5% is represented as 0.05.
     #[serde(
         rename = "financingRate",
@@ -4786,7 +4166,7 @@ pub struct TradeReduce {
     pub home_conversion_cost: Option<Decimal>,
 }
 
-/// A MarketOrderTradeClose specifies the extensions to a Market Order that has been created specifically to
+/// A `MarketOrderTradeClose` specifies the extensions to a Market Order that has been created specifically to
 /// close a Trade.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -4800,11 +4180,11 @@ pub struct MarketOrderTradeClose {
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub client_trade_id: Option<String>,
-    /// Indication of how much of the Trade to close. Either “ALL”, or a DecimalNumber reflection a partial
+    pub client_trade_id: Option<ClientID>,
+    /// Indication of how much of the Trade to close. Either “ALL”, or a `DecimalNumber` reflection a partial
     /// close of the Trade.
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
-    pub units: Option<String>,
+    pub units: Option<crate::TradeCloseoutUnits>,
 }
 
 /// Details for the Market Order extensions specific to a Market Order placed that is part of a Market Order
@@ -4817,48 +4197,21 @@ pub struct MarketOrderMarginCloseout {
     pub reason: Option<MarketOrderMarginCloseoutReason>,
 }
 
-/// The reason that the Market Order was created to perform a margin closeout
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum MarketOrderMarginCloseoutReason {
-    /// Trade closures resulted from violating OANDA’s margin policy
-    MarginCheckViolation,
-    /// Trade closures came from a margin closeout event resulting from regulatory conditions placed on the
-    /// Account’s margin call
-    RegulatoryMarginCallViolation,
-    /// Trade closures resulted from violating the margin policy imposed by regulatory requirements
-    RegulatoryMarginCheckViolation,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl MarketOrderMarginCloseoutReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::MarginCheckViolation => "MARGIN_CHECK_VIOLATION",
-            Self::RegulatoryMarginCallViolation => "REGULATORY_MARGIN_CALL_VIOLATION",
-            Self::RegulatoryMarginCheckViolation => "REGULATORY_MARGIN_CHECK_VIOLATION",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for MarketOrderMarginCloseoutReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for MarketOrderMarginCloseoutReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "MARGIN_CHECK_VIOLATION" => Self::MarginCheckViolation,
-            "REGULATORY_MARGIN_CALL_VIOLATION" => Self::RegulatoryMarginCallViolation,
-            "REGULATORY_MARGIN_CHECK_VIOLATION" => Self::RegulatoryMarginCheckViolation,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The reason that the Market Order was created to perform a margin closeout
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum MarketOrderMarginCloseoutReason {
+        /// Trade closures resulted from violating OANDA’s margin policy
+        MarginCheckViolation => "MARGIN_CHECK_VIOLATION",
+        /// Trade closures came from a margin closeout event resulting from regulatory conditions placed on the
+        /// Account’s margin call
+        RegulatoryMarginCallViolation => "REGULATORY_MARGIN_CALL_VIOLATION",
+        /// Trade closures resulted from violating the margin policy imposed by regulatory requirements
+        RegulatoryMarginCheckViolation => "REGULATORY_MARGIN_CHECK_VIOLATION",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
@@ -4877,8 +4230,8 @@ pub struct MarketOrderDelayedTradeClose {
         default,
         skip_serializing_if = "Option::is_none"
     )]
-    pub client_trade_id: Option<TradeID>,
-    /// The Transaction ID of the DelayedTradeClosure transaction to which this Delayed Trade Close belongs to
+    pub client_trade_id: Option<ClientID>,
+    /// The Transaction ID of the `DelayedTradeClosure` transaction to which this Delayed Trade Close belongs to
     #[serde(
         rename = "sourceTransactionID",
         default,
@@ -4887,7 +4240,7 @@ pub struct MarketOrderDelayedTradeClose {
     pub source_transaction_id: Option<TransactionID>,
 }
 
-/// A MarketOrderPositionCloseout specifies the extensions to a Market Order when it has been created to
+/// A `MarketOrderPositionCloseout` specifies the extensions to a Market Order when it has been created to
 /// closeout a specific Position.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -4899,14 +4252,14 @@ pub struct MarketOrderPositionCloseout {
         skip_serializing_if = "Option::is_none"
     )]
     pub instrument: Option<InstrumentName>,
-    /// Indication of how much of the Position to close. Either “ALL”, or a DecimalNumber reflection a partial
-    /// close of the Trade. The DecimalNumber must always be positive, and represent a number that doesn’t
+    /// Indication of how much of the Position to close. Either “ALL”, or a `DecimalNumber` reflection a partial
+    /// close of the Trade. The `DecimalNumber` must always be positive, and represent a number that doesn’t
     /// exceed the absolute size of the Position.
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
-    pub units: Option<String>,
+    pub units: Option<crate::TradeCloseoutUnits>,
 }
 
-/// A LiquidityRegenerationSchedule indicates how liquidity that is used when filling an Order for an
+/// A `LiquidityRegenerationSchedule` indicates how liquidity that is used when filling an Order for an
 /// instrument is regenerated following the fill. A liquidity regeneration schedule will be in effect until
 /// the timestamp of its final step, but may be replaced by a schedule created for an Order of the same
 /// instrument that is filled while it is still in effect.
@@ -4944,7 +4297,7 @@ pub struct LiquidityRegenerationScheduleStep {
     pub ask_liquidity_used: Option<Decimal>,
 }
 
-/// OpenTradeFinancing is used to pay/collect daily financing charge for an open Trade within an Account
+/// `OpenTradeFinancing` is used to pay/collect daily financing charge for an open Trade within an Account
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct OpenTradeFinancing {
@@ -4972,8 +4325,8 @@ pub struct OpenTradeFinancing {
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
     /// The financing rate in effect for the instrument used to calculate the the amount of financing
-    /// paid/collected for the Trade. This field will only be set if the AccountFinancingMode at the time of the
-    /// daily financing is DAILY_INSTRUMENT or SECOND_BY_SECOND_INSTRUMENT. The value is in decimal rather than
+    /// paid/collected for the Trade. This field will only be set if the `AccountFinancingMode` at the time of the
+    /// daily financing is `DAILY_INSTRUMENT` or `SECOND_BY_SECOND_INSTRUMENT`. The value is in decimal rather than
     /// percentage points, e.g. 5% is represented as 0.05.
     #[serde(
         rename = "financingRate",
@@ -4984,7 +4337,7 @@ pub struct OpenTradeFinancing {
     pub financing_rate: Option<Decimal>,
 }
 
-/// OpenTradeFinancing is used to pay/collect daily financing charge for a Position within an Account
+/// `OpenTradeFinancing` is used to pay/collect daily financing charge for a Position within an Account
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PositionFinancing {
@@ -5015,7 +4368,7 @@ pub struct PositionFinancing {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub quote_financing: Option<Decimal>,
-    /// The HomeConversionFactors in effect for the Position’s Instrument at the time of the DailyFinancing.
+    /// The `HomeConversionFactors` in effect for the Position’s Instrument at the time of the `DailyFinancing`.
     #[serde(
         rename = "homeConversionFactors",
         default,
@@ -5038,1471 +4391,575 @@ pub struct PositionFinancing {
     pub account_financing_mode: Option<AccountFinancingMode>,
 }
 
-/// The reason that a Transaction was rejected.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TransactionRejectReason {
-    /// An unexpected internal server error has occurred
-    InternalServerError,
-    /// The system was unable to determine the current price for the Order’s instrument
-    InstrumentPriceUnknown,
-    /// The Account is not active
-    AccountNotActive,
-    /// The Account is locked
-    AccountLocked,
-    /// The Account is locked for Order creation
-    AccountOrderCreationLocked,
-    /// The Account is locked for configuration
-    AccountConfigurationLocked,
-    /// The Account is locked for deposits
-    AccountDepositLocked,
-    /// The Account is locked for withdrawals
-    AccountWithdrawalLocked,
-    /// The Account is locked for Order cancellation
-    AccountOrderCancelLocked,
-    /// The instrument specified is not tradeable by the Account
-    InstrumentNotTradeable,
-    /// Creating the Order would result in the maximum number of allowed pending Orders being exceeded
-    PendingOrdersAllowedExceeded,
-    /// Neither the Order ID nor client Order ID are specified
-    OrderIdUnspecified,
-    /// The Order specified does not exist
-    OrderDoesntExist,
-    /// The Order ID and client Order ID specified do not identify the same Order
-    OrderIdentifierInconsistency,
-    /// Neither the Trade ID nor client Trade ID are specified
-    TradeIdUnspecified,
-    /// The Trade specified does not exist
-    TradeDoesntExist,
-    /// The Trade ID and client Trade ID specified do not identify the same Trade
-    TradeIdentifierInconsistency,
-    /// The Account had insufficient margin to perform the action specified. One possible reason for this is due
-    /// to the creation or modification of a guaranteed StopLoss Order.
-    InsufficientMargin,
-    /// Order instrument has not been specified
-    InstrumentMissing,
-    /// The instrument specified is unknown
-    InstrumentUnknown,
-    /// Order units have not been not specified
-    UnitsMissing,
-    /// Order units specified are invalid
-    UnitsInvalid,
-    /// The units specified contain more precision than is allowed for the Order’s instrument
-    UnitsPrecisionExceeded,
-    /// The units specified exceeds the maximum number of units allowed
-    UnitsLimitExceeded,
-    /// The units specified is less than the minimum number of units required
-    UnitsMinimumNotMet,
-    /// The price has not been specified
-    PriceMissing,
-    /// The price specified is invalid
-    PriceInvalid,
-    /// The price specified contains more precision than is allowed for the instrument
-    PricePrecisionExceeded,
-    /// The price distance has not been specified
-    PriceDistanceMissing,
-    /// The price distance specified is invalid
-    PriceDistanceInvalid,
-    /// The price distance specified contains more precision than is allowed for the instrument
-    PriceDistancePrecisionExceeded,
-    /// The price distance exceeds that maximum allowed amount
-    PriceDistanceMaximumExceeded,
-    /// The price distance does not meet the minimum allowed amount
-    PriceDistanceMinimumNotMet,
-    /// The TimeInForce field has not been specified
-    TimeInForceMissing,
-    /// The TimeInForce specified is invalid
-    TimeInForceInvalid,
-    /// The TimeInForce is GTD but no GTD timestamp is provided
-    TimeInForceGtdTimestampMissing,
-    /// The TimeInForce is GTD but the GTD timestamp is in the past
-    TimeInForceGtdTimestampInPast,
-    /// The price bound specified is invalid
-    PriceBoundInvalid,
-    /// The price bound specified contains more precision than is allowed for the Order’s instrument
-    PriceBoundPrecisionExceeded,
-    /// Multiple Orders on fill share the same client Order ID
-    OrdersOnFillDuplicateClientOrderIds,
-    /// The Order does not support Trade on fill client extensions because it cannot create a new Trade
-    TradeOnFillClientExtensionsNotSupported,
-    /// The client Order ID specified is invalid
-    ClientOrderIdInvalid,
-    /// The client Order ID specified is already assigned to another pending Order
-    ClientOrderIdAlreadyExists,
-    /// The client Order tag specified is invalid
-    ClientOrderTagInvalid,
-    /// The client Order comment specified is invalid
-    ClientOrderCommentInvalid,
-    /// The client Trade ID specified is invalid
-    ClientTradeIdInvalid,
-    /// The client Trade ID specified is already assigned to another open Trade
-    ClientTradeIdAlreadyExists,
-    /// The client Trade tag specified is invalid
-    ClientTradeTagInvalid,
-    /// The client Trade comment is invalid
-    ClientTradeCommentInvalid,
-    /// The OrderFillPositionAction field has not been specified
-    OrderFillPositionActionMissing,
-    /// The OrderFillPositionAction specified is invalid
-    OrderFillPositionActionInvalid,
-    /// The TriggerCondition field has not been specified
-    TriggerConditionMissing,
-    /// The TriggerCondition specified is invalid
-    TriggerConditionInvalid,
-    /// The OrderFillPositionAction field has not been specified
-    OrderPartialFillOptionMissing,
-    /// The OrderFillPositionAction specified is invalid.
-    OrderPartialFillOptionInvalid,
-    /// When attempting to reissue an order (currently only a MarketIfTouched) that was immediately partially
-    /// filled, it is not possible to create a correct pending Order.
-    InvalidReissueImmediatePartialFill,
-    /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
-    /// specifying that only one risk management Order can be attached to a Trade.
-    OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation,
-    /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
-    /// specifying that if a GSLO is already attached to a Trade, no other risk management Order can be attached
-    /// to a Trade.
-    OrdersOnFillRmoMutualExclusivityGsloExcludesOthersViolation,
-    /// A Take Profit Order for the specified Trade already exists
-    TakeProfitOrderAlreadyExists,
-    /// The Take Profit Order would cause the associated Trade to be in violation of the FIFO violation
-    /// safeguard constraints.
-    TakeProfitOrderWouldViolateFifoViolationSafeguard,
-    /// The Take Profit on fill specified does not provide a price
-    TakeProfitOnFillPriceMissing,
-    /// The Take Profit on fill specified contains an invalid price
-    TakeProfitOnFillPriceInvalid,
-    /// The Take Profit on fill specified contains a price with more precision than is allowed by the Order’s
-    /// instrument
-    TakeProfitOnFillPricePrecisionExceeded,
-    /// The Take Profit on fill specified does not provide a TimeInForce
-    TakeProfitOnFillTimeInForceMissing,
-    /// The Take Profit on fill specifies an invalid TimeInForce
-    TakeProfitOnFillTimeInForceInvalid,
-    /// The Take Profit on fill specifies a GTD TimeInForce but does not provide a GTD timestamp
-    TakeProfitOnFillGtdTimestampMissing,
-    /// The Take Profit on fill specifies a GTD timestamp that is in the past
-    TakeProfitOnFillGtdTimestampInPast,
-    /// The Take Profit on fill client Order ID specified is invalid
-    TakeProfitOnFillClientOrderIdInvalid,
-    /// The Take Profit on fill client Order tag specified is invalid
-    TakeProfitOnFillClientOrderTagInvalid,
-    /// The Take Profit on fill client Order comment specified is invalid
-    TakeProfitOnFillClientOrderCommentInvalid,
-    /// The Take Profit on fill specified does not provide a TriggerCondition
-    TakeProfitOnFillTriggerConditionMissing,
-    /// The Take Profit on fill specifies an invalid TriggerCondition
-    TakeProfitOnFillTriggerConditionInvalid,
-    /// A Stop Loss Order for the specified Trade already exists
-    StopLossOrderAlreadyExists,
-    /// An attempt was made to to create a non-guaranteed stop loss order in an account that requires all stop
-    /// loss orders to be guaranteed.
-    StopLossOrderGuaranteedRequired,
-    /// An attempt to create a guaranteed stop loss order with a price that is within the current tradeable
-    /// spread.
-    StopLossOrderGuaranteedPriceWithinSpread,
-    /// An attempt was made to create a guaranteed Stop Loss Order, however the Account’s configuration does not
-    /// allow guaranteed Stop Loss Orders.
-    StopLossOrderGuaranteedNotAllowed,
-    /// An attempt was made to create a guaranteed Stop Loss Order when the market was halted.
-    StopLossOrderGuaranteedHaltedCreateViolation,
-    /// An attempt was made to re-create a guaranteed Stop Loss Order with a tighter fill price when the market
-    /// was halted.
-    StopLossOrderGuaranteedHaltedTightenViolation,
-    /// An attempt was made to create a guaranteed Stop Loss Order on a hedged Trade (ie there is an existing
-    /// open Trade in the opposing direction), however the Account’s configuration does not allow guaranteed
-    /// Stop Loss Orders for hedged Trades/Positions.
-    StopLossOrderGuaranteedHedgingNotAllowed,
-    /// An attempt was made to create a guaranteed Stop Loss Order, however the distance between the current
-    /// price and the trigger price does not meet the Account’s configured minimum Guaranteed Stop Loss distance.
-    StopLossOrderGuaranteedMinimumDistanceNotMet,
-    /// An attempt was made to cancel a Stop Loss Order, however the Account’s configuration requires every
-    /// Trade have an associated Stop Loss Order.
-    StopLossOrderNotCancelable,
-    /// An attempt was made to cancel and replace a Stop Loss Order, however the Account’s configuration
-    /// prevents the modification of Stop Loss Orders.
-    StopLossOrderNotReplaceable,
-    /// An attempt was made to create a guaranteed Stop Loss Order, however doing so would exceed the Account’s
-    /// configured guaranteed StopLoss Order level restriction volume.
-    StopLossOrderGuaranteedLevelRestrictionExceeded,
-    /// The Stop Loss Order request contains both the price and distance fields.
-    StopLossOrderPriceAndDistanceBothSpecified,
-    /// The Stop Loss Order request contains neither the price nor distance fields.
-    StopLossOrderPriceAndDistanceBothMissing,
-    /// The Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation safeguard
-    /// constraints
-    StopLossOrderWouldViolateFifoViolationSafeguard,
-    /// The Stop Loss Order would be in violation of the risk management Order mutual exclusivity configuration
-    /// specifying that only one risk management order can be attached to a Trade.
-    StopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
-    /// The Stop Loss Order would be in violation of the risk management Order mutual exclusivity configuration
-    /// specifying that if a GSLO is already attached to a Trade, no other risk management Order can be attached
-    /// to the same Trade.
-    StopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
-    /// An attempt to create a pending Order was made with no Stop Loss Order on fill specified and the
-    /// Account’s configuration requires that every Trade have an associated Stop Loss Order.
-    StopLossOnFillRequiredForPendingOrder,
-    /// An attempt to create a pending Order was made with a Stop Loss Order on fill that was explicitly
-    /// configured to be guaranteed, however the Account’s configuration does not allow guaranteed Stop Loss
-    /// Orders.
-    StopLossOnFillGuaranteedNotAllowed,
-    /// An attempt to create a pending Order was made with a Stop Loss Order on fill that was explicitly
-    /// configured to be not guaranteed, however the Account’s configuration requires guaranteed Stop Loss
-    /// Orders.
-    StopLossOnFillGuaranteedRequired,
-    /// The Stop Loss on fill specified does not provide a price
-    StopLossOnFillPriceMissing,
-    /// The Stop Loss on fill specifies an invalid price
-    StopLossOnFillPriceInvalid,
-    /// The Stop Loss on fill specifies a price with more precision than is allowed by the Order’s instrument
-    StopLossOnFillPricePrecisionExceeded,
-    /// An attempt to create a pending Order was made with the distance between the guaranteed Stop Loss Order
-    /// on fill’s price and the pending Order’s price is less than the Account’s configured minimum guaranteed
-    /// stop loss distance.
-    StopLossOnFillGuaranteedMinimumDistanceNotMet,
-    /// An attempt to create a pending Order was made with a guaranteed Stop Loss Order on fill configured, and
-    /// the Order’s units exceed the Account’s configured guaranteed StopLoss Order level restriction volume.
-    StopLossOnFillGuaranteedLevelRestrictionExceeded,
-    /// The Stop Loss on fill distance is invalid
-    StopLossOnFillDistanceInvalid,
-    /// The Stop Loss on fill price distance exceeds the maximum allowed amount
-    StopLossOnFillPriceDistanceMaximumExceeded,
-    /// The Stop Loss on fill distance contains more precision than is allowed by the instrument
-    StopLossOnFillDistancePrecisionExceeded,
-    /// The Stop Loss on fill contains both the price and distance fields.
-    StopLossOnFillPriceAndDistanceBothSpecified,
-    /// The Stop Loss on fill contains neither the price nor distance fields.
-    StopLossOnFillPriceAndDistanceBothMissing,
-    /// The Stop Loss on fill specified does not provide a TimeInForce
-    StopLossOnFillTimeInForceMissing,
-    /// The Stop Loss on fill specifies an invalid TimeInForce
-    StopLossOnFillTimeInForceInvalid,
-    /// The Stop Loss on fill specifies a GTD TimeInForce but does not provide a GTD timestamp
-    StopLossOnFillGtdTimestampMissing,
-    /// The Stop Loss on fill specifies a GTD timestamp that is in the past
-    StopLossOnFillGtdTimestampInPast,
-    /// The Stop Loss on fill client Order ID specified is invalid
-    StopLossOnFillClientOrderIdInvalid,
-    /// The Stop Loss on fill client Order tag specified is invalid
-    StopLossOnFillClientOrderTagInvalid,
-    /// The Stop Loss on fill client Order comment specified is invalid
-    StopLossOnFillClientOrderCommentInvalid,
-    /// The Stop Loss on fill specified does not provide a TriggerCondition
-    StopLossOnFillTriggerConditionMissing,
-    /// The Stop Loss on fill specifies an invalid TriggerCondition
-    StopLossOnFillTriggerConditionInvalid,
-    /// A Guaranteed Stop Loss Order for the specified Trade already exists
-    GuaranteedStopLossOrderAlreadyExists,
-    /// An attempt was made to to create a non-guaranteed stop loss order in an account that requires all stop
-    /// loss orders to be guaranteed.
-    GuaranteedStopLossOrderRequired,
-    /// An attempt to create a guaranteed stop loss order with a price that is within the current tradeable
-    /// spread.
-    GuaranteedStopLossOrderPriceWithinSpread,
-    /// An attempt was made to create a Guaranteed Stop Loss Order, however the Account’s configuration does not
-    /// allow Guaranteed Stop Loss Orders.
-    GuaranteedStopLossOrderNotAllowed,
-    /// An attempt was made to create a Guaranteed Stop Loss Order when the market was halted.
-    GuaranteedStopLossOrderHaltedCreateViolation,
-    /// An attempt was made to create a Guaranteed Stop Loss Order when the market was open.
-    GuaranteedStopLossOrderCreateViolation,
-    /// An attempt was made to re-create a Guaranteed Stop Loss Order with a tighter fill price when the market
-    /// was halted.
-    GuaranteedStopLossOrderHaltedTightenViolation,
-    /// An attempt was made to re-create a Guaranteed Stop Loss Order with a tighter fill price when the market
-    /// was open.
-    GuaranteedStopLossOrderTightenViolation,
-    /// An attempt was made to create a Guaranteed Stop Loss Order on a hedged Trade (ie there is an existing
-    /// open Trade in the opposing direction), however the Account’s configuration does not allow Guaranteed
-    /// Stop Loss Orders for hedged Trades/Positions.
-    GuaranteedStopLossOrderHedgingNotAllowed,
-    /// An attempt was made to create a Guaranteed Stop Loss Order, however the distance between the current
-    /// price and the trigger price does not meet the Account’s configured minimum Guaranteed Stop Loss distance.
-    GuaranteedStopLossOrderMinimumDistanceNotMet,
-    /// An attempt was made to cancel a Guaranteed Stop Loss Order when the market is open, however the
-    /// Account’s configuration requires every Trade have an associated Guaranteed Stop Loss Order.
-    GuaranteedStopLossOrderNotCancelable,
-    /// An attempt was made to cancel a Guaranteed Stop Loss Order when the market is halted, however the
-    /// Account’s configuration requires every Trade have an associated Guaranteed Stop Loss Order.
-    GuaranteedStopLossOrderHaltedNotCancelable,
-    /// An attempt was made to cancel and replace a Guaranteed Stop Loss Order when the market is open, however
-    /// the Account’s configuration prevents the modification of Guaranteed Stop Loss Orders.
-    GuaranteedStopLossOrderNotReplaceable,
-    /// An attempt was made to cancel and replace a Guaranteed Stop Loss Order when the market is halted,
-    /// however the Account’s configuration prevents the modification of Guaranteed Stop Loss Orders.
-    GuaranteedStopLossOrderHaltedNotReplaceable,
-    /// An attempt was made to create a Guaranteed Stop Loss Order, however doing so would exceed the Account’s
-    /// configured guaranteed StopLoss Order level restriction volume.
-    GuaranteedStopLossOrderLevelRestrictionVolumeExceeded,
-    /// An attempt was made to create a Guaranteed Stop Loss Order, however doing so would exceed the Account’s
-    /// configured guaranteed StopLoss Order level restriction price range.
-    GuaranteedStopLossOrderLevelRestrictionPriceRangeExceeded,
-    /// The Guaranteed Stop Loss Order request contains both the price and distance fields.
-    GuaranteedStopLossOrderPriceAndDistanceBothSpecified,
-    /// The Guaranteed Stop Loss Order request contains neither the price nor distance fields.
-    GuaranteedStopLossOrderPriceAndDistanceBothMissing,
-    /// The Guaranteed Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation
-    /// safeguard constraints
-    GuaranteedStopLossOrderWouldViolateFifoViolationSafeguard,
-    /// The Guaranteed Stop Loss Order would be in violation of the risk management Order mutual exclusivity
-    /// configuration specifying that only one risk management order can be attached to a Trade.
-    GuaranteedStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
-    /// The Guaranteed Stop Loss Order would be in violation of the risk management Order mutual exclusivity
-    /// configuration specifying that if a GSLO is already attached to a Trade, no other risk management Order
-    /// can be attached to the same Trade.
-    GuaranteedStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
-    /// An attempt to create a pending Order was made with no Guaranteed Stop Loss Order on fill specified and
-    /// the Account’s configuration requires that every Trade have an associated Guaranteed Stop Loss Order.
-    GuaranteedStopLossOnFillRequiredForPendingOrder,
-    /// An attempt to create a pending Order was made with a Guaranteed Stop Loss Order on fill that was
-    /// explicitly configured to be guaranteed, however the Account’s configuration does not allow guaranteed
-    /// Stop Loss Orders.
-    GuaranteedStopLossOnFillNotAllowed,
-    /// An attempt to create a pending Order was made with a Guaranteed Stop Loss Order on fill that was
-    /// explicitly configured to be not guaranteed, however the Account’s configuration requires Guaranteed Stop
-    /// Loss Orders.
-    GuaranteedStopLossOnFillRequired,
-    /// The Guaranteed Stop Loss on fill specified does not provide a price
-    GuaranteedStopLossOnFillPriceMissing,
-    /// The Guaranteed Stop Loss on fill specifies an invalid price
-    GuaranteedStopLossOnFillPriceInvalid,
-    /// The Guaranteed Stop Loss on fill specifies a price with more precision than is allowed by the Order’s
-    /// instrument
-    GuaranteedStopLossOnFillPricePrecisionExceeded,
-    /// An attempt to create a pending Order was made with the distance between the Guaranteed Stop Loss Order
-    /// on fill’s price and the pending Order’s price is less than the Account’s configured minimum guaranteed
-    /// stop loss distance.
-    GuaranteedStopLossOnFillMinimumDistanceNotMet,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger number of
-    /// units that violates the account’s Guaranteed Stop Loss Order level restriction volume.
-    GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded,
-    /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger price that
-    /// violates the account’s Guaranteed Stop Loss Order level restriction price range.
-    GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded,
-    /// The Guaranteed Stop Loss on fill distance is invalid
-    GuaranteedStopLossOnFillDistanceInvalid,
-    /// The Guaranteed Stop Loss on fill price distance exceeds the maximum allowed amount.
-    GuaranteedStopLossOnFillPriceDistanceMaximumExceeded,
-    /// The Guaranteed Stop Loss on fill distance contains more precision than is allowed by the instrument
-    GuaranteedStopLossOnFillDistancePrecisionExceeded,
-    /// The Guaranteed Stop Loss on fill contains both the price and distance fields.
-    GuaranteedStopLossOnFillPriceAndDistanceBothSpecified,
-    /// The Guaranteed Stop Loss on fill contains neither the price nor distance fields.
-    GuaranteedStopLossOnFillPriceAndDistanceBothMissing,
-    /// The Guaranteed Stop Loss on fill specified does not provide a TimeInForce
-    GuaranteedStopLossOnFillTimeInForceMissing,
-    /// The Guaranteed Stop Loss on fill specifies an invalid TimeInForce
-    GuaranteedStopLossOnFillTimeInForceInvalid,
-    /// The Guaranteed Stop Loss on fill specifies a GTD TimeInForce but does not provide a GTD timestamp
-    GuaranteedStopLossOnFillGtdTimestampMissing,
-    /// The Guaranteed Stop Loss on fill specifies a GTD timestamp that is in the past.
-    GuaranteedStopLossOnFillGtdTimestampInPast,
-    /// The Guaranteed Stop Loss on fill client Order ID specified is invalid
-    GuaranteedStopLossOnFillClientOrderIdInvalid,
-    /// The Guaranteed Stop Loss on fill client Order tag specified is invalid
-    GuaranteedStopLossOnFillClientOrderTagInvalid,
-    /// The Guaranteed Stop Loss on fill client Order comment specified is invalid.
-    GuaranteedStopLossOnFillClientOrderCommentInvalid,
-    /// The Guaranteed Stop Loss on fill specified does not provide a TriggerCondition.
-    GuaranteedStopLossOnFillTriggerConditionMissing,
-    /// The Guaranteed Stop Loss on fill specifies an invalid TriggerCondition.
-    GuaranteedStopLossOnFillTriggerConditionInvalid,
-    /// A Trailing Stop Loss Order for the specified Trade already exists
-    TrailingStopLossOrderAlreadyExists,
-    /// The Trailing Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation
-    /// safeguard constraints
-    TrailingStopLossOrderWouldViolateFifoViolationSafeguard,
-    /// The Trailing Stop Loss Order would be in violation of the risk management Order mutual exclusivity
-    /// configuration specifying that only one risk management order can be attached to a Trade.
-    TrailingStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation,
-    /// The Trailing Stop Loss Order would be in violation of the risk management Order mutual exclusivity
-    /// configuration specifying that if a GSLO is already attached to a Trade, no other risk management Order
-    /// can be attached to the same Trade.
-    TrailingStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation,
-    /// The Trailing Stop Loss on fill specified does not provide a distance
-    TrailingStopLossOnFillPriceDistanceMissing,
-    /// The Trailing Stop Loss on fill distance is invalid
-    TrailingStopLossOnFillPriceDistanceInvalid,
-    /// The Trailing Stop Loss on fill distance contains more precision than is allowed by the instrument
-    TrailingStopLossOnFillPriceDistancePrecisionExceeded,
-    /// The Trailing Stop Loss on fill price distance exceeds the maximum allowed amount
-    TrailingStopLossOnFillPriceDistanceMaximumExceeded,
-    /// The Trailing Stop Loss on fill price distance does not meet the minimum allowed amount
-    TrailingStopLossOnFillPriceDistanceMinimumNotMet,
-    /// The Trailing Stop Loss on fill specified does not provide a TimeInForce
-    TrailingStopLossOnFillTimeInForceMissing,
-    /// The Trailing Stop Loss on fill specifies an invalid TimeInForce
-    TrailingStopLossOnFillTimeInForceInvalid,
-    /// The Trailing Stop Loss on fill TimeInForce is specified as GTD but no GTD timestamp is provided
-    TrailingStopLossOnFillGtdTimestampMissing,
-    /// The Trailing Stop Loss on fill GTD timestamp is in the past
-    TrailingStopLossOnFillGtdTimestampInPast,
-    /// The Trailing Stop Loss on fill client Order ID specified is invalid
-    TrailingStopLossOnFillClientOrderIdInvalid,
-    /// The Trailing Stop Loss on fill client Order tag specified is invalid
-    TrailingStopLossOnFillClientOrderTagInvalid,
-    /// The Trailing Stop Loss on fill client Order comment specified is invalid
-    TrailingStopLossOnFillClientOrderCommentInvalid,
-    /// A client attempted to create either a Trailing Stop Loss order or an order with a Trailing Stop Loss On
-    /// Fill specified, which may not yet be supported.
-    TrailingStopLossOrdersNotSupported,
-    /// The Trailing Stop Loss on fill specified does not provide a TriggerCondition
-    TrailingStopLossOnFillTriggerConditionMissing,
-    /// The Tailing Stop Loss on fill specifies an invalid TriggerCondition
-    TrailingStopLossOnFillTriggerConditionInvalid,
-    /// The request to close a Trade does not specify a full or partial close
-    CloseTradeTypeMissing,
-    /// The request to close a Trade partially did not specify the number of units to close
-    CloseTradePartialUnitsMissing,
-    /// The request to partially close a Trade specifies a number of units that exceeds the current size of the
-    /// given Trade
-    CloseTradeUnitsExceedTradeSize,
-    /// The Position requested to be closed out does not exist
-    CloseoutPositionDoesntExist,
-    /// The request to closeout a Position was specified incompletely
-    CloseoutPositionIncompleteSpecification,
-    /// A partial Position closeout request specifies a number of units that exceeds the current Position
-    CloseoutPositionUnitsExceedPositionSize,
-    /// The request to closeout a Position could not be fully satisfied
-    CloseoutPositionReject,
-    /// The request to partially closeout a Position did not specify the number of units to close.
-    CloseoutPositionPartialUnitsMissing,
-    /// The markup group ID provided is invalid
-    MarkupGroupIdInvalid,
-    /// The PositionAggregationMode provided is not supported/valid.
-    PositionAggregationModeInvalid,
-    /// No configuration parameters provided
-    AdminConfigureDataMissing,
-    /// The margin rate provided is invalid
-    MarginRateInvalid,
-    /// The margin rate provided would cause an immediate margin closeout
-    MarginRateWouldTriggerCloseout,
-    /// The account alias string provided is invalid
-    AliasInvalid,
-    /// No configuration parameters provided
-    ClientConfigureDataMissing,
-    /// The margin rate provided would cause the Account to enter a margin call state.
-    MarginRateWouldTriggerMarginCall,
-    /// Funding is not possible because the requested transfer amount is invalid
-    AmountInvalid,
-    /// The Account does not have sufficient balance to complete the funding request
-    InsufficientFunds,
-    /// Funding amount has not been specified
-    AmountMissing,
-    /// Funding reason has not been specified
-    FundingReasonMissing,
-    /// The list of Order Identifiers provided for a One Cancels All Order contains an Order Identifier that
-    /// refers to a Stop Loss Order. OCA groups cannot contain Stop Loss Orders.
-    OcaOrderIdsStopLossNotAllowed,
-    /// Neither Order nor Trade on Fill client extensions were provided for modification
-    ClientExtensionsDataMissing,
-    /// The Order to be replaced has a different type than the replacing Order.
-    ReplacingOrderInvalid,
-    /// The replacing Order refers to a different Trade than the Order that is being replaced.
-    ReplacingTradeIdInvalid,
-    /// Canceling the order would cause an immediate margin closeout.
-    OrderCancelWouldTriggerCloseout,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TransactionRejectReason {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::InternalServerError => "INTERNAL_SERVER_ERROR",
-            Self::InstrumentPriceUnknown => "INSTRUMENT_PRICE_UNKNOWN",
-            Self::AccountNotActive => "ACCOUNT_NOT_ACTIVE",
-            Self::AccountLocked => "ACCOUNT_LOCKED",
-            Self::AccountOrderCreationLocked => "ACCOUNT_ORDER_CREATION_LOCKED",
-            Self::AccountConfigurationLocked => "ACCOUNT_CONFIGURATION_LOCKED",
-            Self::AccountDepositLocked => "ACCOUNT_DEPOSIT_LOCKED",
-            Self::AccountWithdrawalLocked => "ACCOUNT_WITHDRAWAL_LOCKED",
-            Self::AccountOrderCancelLocked => "ACCOUNT_ORDER_CANCEL_LOCKED",
-            Self::InstrumentNotTradeable => "INSTRUMENT_NOT_TRADEABLE",
-            Self::PendingOrdersAllowedExceeded => "PENDING_ORDERS_ALLOWED_EXCEEDED",
-            Self::OrderIdUnspecified => "ORDER_ID_UNSPECIFIED",
-            Self::OrderDoesntExist => "ORDER_DOESNT_EXIST",
-            Self::OrderIdentifierInconsistency => "ORDER_IDENTIFIER_INCONSISTENCY",
-            Self::TradeIdUnspecified => "TRADE_ID_UNSPECIFIED",
-            Self::TradeDoesntExist => "TRADE_DOESNT_EXIST",
-            Self::TradeIdentifierInconsistency => "TRADE_IDENTIFIER_INCONSISTENCY",
-            Self::InsufficientMargin => "INSUFFICIENT_MARGIN",
-            Self::InstrumentMissing => "INSTRUMENT_MISSING",
-            Self::InstrumentUnknown => "INSTRUMENT_UNKNOWN",
-            Self::UnitsMissing => "UNITS_MISSING",
-            Self::UnitsInvalid => "UNITS_INVALID",
-            Self::UnitsPrecisionExceeded => "UNITS_PRECISION_EXCEEDED",
-            Self::UnitsLimitExceeded => "UNITS_LIMIT_EXCEEDED",
-            Self::UnitsMinimumNotMet => "UNITS_MINIMUM_NOT_MET",
-            Self::PriceMissing => "PRICE_MISSING",
-            Self::PriceInvalid => "PRICE_INVALID",
-            Self::PricePrecisionExceeded => "PRICE_PRECISION_EXCEEDED",
-            Self::PriceDistanceMissing => "PRICE_DISTANCE_MISSING",
-            Self::PriceDistanceInvalid => "PRICE_DISTANCE_INVALID",
-            Self::PriceDistancePrecisionExceeded => "PRICE_DISTANCE_PRECISION_EXCEEDED",
-            Self::PriceDistanceMaximumExceeded => "PRICE_DISTANCE_MAXIMUM_EXCEEDED",
-            Self::PriceDistanceMinimumNotMet => "PRICE_DISTANCE_MINIMUM_NOT_MET",
-            Self::TimeInForceMissing => "TIME_IN_FORCE_MISSING",
-            Self::TimeInForceInvalid => "TIME_IN_FORCE_INVALID",
-            Self::TimeInForceGtdTimestampMissing => "TIME_IN_FORCE_GTD_TIMESTAMP_MISSING",
-            Self::TimeInForceGtdTimestampInPast => "TIME_IN_FORCE_GTD_TIMESTAMP_IN_PAST",
-            Self::PriceBoundInvalid => "PRICE_BOUND_INVALID",
-            Self::PriceBoundPrecisionExceeded => "PRICE_BOUND_PRECISION_EXCEEDED",
-            Self::OrdersOnFillDuplicateClientOrderIds => {
-                "ORDERS_ON_FILL_DUPLICATE_CLIENT_ORDER_IDS"
-            }
-            Self::TradeOnFillClientExtensionsNotSupported => {
-                "TRADE_ON_FILL_CLIENT_EXTENSIONS_NOT_SUPPORTED"
-            }
-            Self::ClientOrderIdInvalid => "CLIENT_ORDER_ID_INVALID",
-            Self::ClientOrderIdAlreadyExists => "CLIENT_ORDER_ID_ALREADY_EXISTS",
-            Self::ClientOrderTagInvalid => "CLIENT_ORDER_TAG_INVALID",
-            Self::ClientOrderCommentInvalid => "CLIENT_ORDER_COMMENT_INVALID",
-            Self::ClientTradeIdInvalid => "CLIENT_TRADE_ID_INVALID",
-            Self::ClientTradeIdAlreadyExists => "CLIENT_TRADE_ID_ALREADY_EXISTS",
-            Self::ClientTradeTagInvalid => "CLIENT_TRADE_TAG_INVALID",
-            Self::ClientTradeCommentInvalid => "CLIENT_TRADE_COMMENT_INVALID",
-            Self::OrderFillPositionActionMissing => "ORDER_FILL_POSITION_ACTION_MISSING",
-            Self::OrderFillPositionActionInvalid => "ORDER_FILL_POSITION_ACTION_INVALID",
-            Self::TriggerConditionMissing => "TRIGGER_CONDITION_MISSING",
-            Self::TriggerConditionInvalid => "TRIGGER_CONDITION_INVALID",
-            Self::OrderPartialFillOptionMissing => "ORDER_PARTIAL_FILL_OPTION_MISSING",
-            Self::OrderPartialFillOptionInvalid => "ORDER_PARTIAL_FILL_OPTION_INVALID",
-            Self::InvalidReissueImmediatePartialFill => "INVALID_REISSUE_IMMEDIATE_PARTIAL_FILL",
-            Self::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation => {
-                "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION"
-            }
-            Self::OrdersOnFillRmoMutualExclusivityGsloExcludesOthersViolation => {
-                "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION"
-            }
-            Self::TakeProfitOrderAlreadyExists => "TAKE_PROFIT_ORDER_ALREADY_EXISTS",
-            Self::TakeProfitOrderWouldViolateFifoViolationSafeguard => {
-                "TAKE_PROFIT_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD"
-            }
-            Self::TakeProfitOnFillPriceMissing => "TAKE_PROFIT_ON_FILL_PRICE_MISSING",
-            Self::TakeProfitOnFillPriceInvalid => "TAKE_PROFIT_ON_FILL_PRICE_INVALID",
-            Self::TakeProfitOnFillPricePrecisionExceeded => {
-                "TAKE_PROFIT_ON_FILL_PRICE_PRECISION_EXCEEDED"
-            }
-            Self::TakeProfitOnFillTimeInForceMissing => "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_MISSING",
-            Self::TakeProfitOnFillTimeInForceInvalid => "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_INVALID",
-            Self::TakeProfitOnFillGtdTimestampMissing => {
-                "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_MISSING"
-            }
-            Self::TakeProfitOnFillGtdTimestampInPast => "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
-            Self::TakeProfitOnFillClientOrderIdInvalid => {
-                "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_INVALID"
-            }
-            Self::TakeProfitOnFillClientOrderTagInvalid => {
-                "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_TAG_INVALID"
-            }
-            Self::TakeProfitOnFillClientOrderCommentInvalid => {
-                "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_COMMENT_INVALID"
-            }
-            Self::TakeProfitOnFillTriggerConditionMissing => {
-                "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_MISSING"
-            }
-            Self::TakeProfitOnFillTriggerConditionInvalid => {
-                "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::StopLossOrderAlreadyExists => "STOP_LOSS_ORDER_ALREADY_EXISTS",
-            Self::StopLossOrderGuaranteedRequired => "STOP_LOSS_ORDER_GUARANTEED_REQUIRED",
-            Self::StopLossOrderGuaranteedPriceWithinSpread => {
-                "STOP_LOSS_ORDER_GUARANTEED_PRICE_WITHIN_SPREAD"
-            }
-            Self::StopLossOrderGuaranteedNotAllowed => "STOP_LOSS_ORDER_GUARANTEED_NOT_ALLOWED",
-            Self::StopLossOrderGuaranteedHaltedCreateViolation => {
-                "STOP_LOSS_ORDER_GUARANTEED_HALTED_CREATE_VIOLATION"
-            }
-            Self::StopLossOrderGuaranteedHaltedTightenViolation => {
-                "STOP_LOSS_ORDER_GUARANTEED_HALTED_TIGHTEN_VIOLATION"
-            }
-            Self::StopLossOrderGuaranteedHedgingNotAllowed => {
-                "STOP_LOSS_ORDER_GUARANTEED_HEDGING_NOT_ALLOWED"
-            }
-            Self::StopLossOrderGuaranteedMinimumDistanceNotMet => {
-                "STOP_LOSS_ORDER_GUARANTEED_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::StopLossOrderNotCancelable => "STOP_LOSS_ORDER_NOT_CANCELABLE",
-            Self::StopLossOrderNotReplaceable => "STOP_LOSS_ORDER_NOT_REPLACEABLE",
-            Self::StopLossOrderGuaranteedLevelRestrictionExceeded => {
-                "STOP_LOSS_ORDER_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED"
-            }
-            Self::StopLossOrderPriceAndDistanceBothSpecified => {
-                "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED"
-            }
-            Self::StopLossOrderPriceAndDistanceBothMissing => {
-                "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING"
-            }
-            Self::StopLossOrderWouldViolateFifoViolationSafeguard => {
-                "STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD"
-            }
-            Self::StopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => {
-                "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION"
-            }
-            Self::StopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => {
-                "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION"
-            }
-            Self::StopLossOnFillRequiredForPendingOrder => {
-                "STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER"
-            }
-            Self::StopLossOnFillGuaranteedNotAllowed => "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
-            Self::StopLossOnFillGuaranteedRequired => "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
-            Self::StopLossOnFillPriceMissing => "STOP_LOSS_ON_FILL_PRICE_MISSING",
-            Self::StopLossOnFillPriceInvalid => "STOP_LOSS_ON_FILL_PRICE_INVALID",
-            Self::StopLossOnFillPricePrecisionExceeded => {
-                "STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED"
-            }
-            Self::StopLossOnFillGuaranteedMinimumDistanceNotMet => {
-                "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::StopLossOnFillGuaranteedLevelRestrictionExceeded => {
-                "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED"
-            }
-            Self::StopLossOnFillDistanceInvalid => "STOP_LOSS_ON_FILL_DISTANCE_INVALID",
-            Self::StopLossOnFillPriceDistanceMaximumExceeded => {
-                "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::StopLossOnFillDistancePrecisionExceeded => {
-                "STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED"
-            }
-            Self::StopLossOnFillPriceAndDistanceBothSpecified => {
-                "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED"
-            }
-            Self::StopLossOnFillPriceAndDistanceBothMissing => {
-                "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING"
-            }
-            Self::StopLossOnFillTimeInForceMissing => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
-            Self::StopLossOnFillTimeInForceInvalid => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
-            Self::StopLossOnFillGtdTimestampMissing => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
-            Self::StopLossOnFillGtdTimestampInPast => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
-            Self::StopLossOnFillClientOrderIdInvalid => "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
-            Self::StopLossOnFillClientOrderTagInvalid => {
-                "STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID"
-            }
-            Self::StopLossOnFillClientOrderCommentInvalid => {
-                "STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID"
-            }
-            Self::StopLossOnFillTriggerConditionMissing => {
-                "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING"
-            }
-            Self::StopLossOnFillTriggerConditionInvalid => {
-                "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::GuaranteedStopLossOrderAlreadyExists => {
-                "GUARANTEED_STOP_LOSS_ORDER_ALREADY_EXISTS"
-            }
-            Self::GuaranteedStopLossOrderRequired => "GUARANTEED_STOP_LOSS_ORDER_REQUIRED",
-            Self::GuaranteedStopLossOrderPriceWithinSpread => {
-                "GUARANTEED_STOP_LOSS_ORDER_PRICE_WITHIN_SPREAD"
-            }
-            Self::GuaranteedStopLossOrderNotAllowed => "GUARANTEED_STOP_LOSS_ORDER_NOT_ALLOWED",
-            Self::GuaranteedStopLossOrderHaltedCreateViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_HALTED_CREATE_VIOLATION"
-            }
-            Self::GuaranteedStopLossOrderCreateViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_CREATE_VIOLATION"
-            }
-            Self::GuaranteedStopLossOrderHaltedTightenViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_HALTED_TIGHTEN_VIOLATION"
-            }
-            Self::GuaranteedStopLossOrderTightenViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_TIGHTEN_VIOLATION"
-            }
-            Self::GuaranteedStopLossOrderHedgingNotAllowed => {
-                "GUARANTEED_STOP_LOSS_ORDER_HEDGING_NOT_ALLOWED"
-            }
-            Self::GuaranteedStopLossOrderMinimumDistanceNotMet => {
-                "GUARANTEED_STOP_LOSS_ORDER_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::GuaranteedStopLossOrderNotCancelable => {
-                "GUARANTEED_STOP_LOSS_ORDER_NOT_CANCELABLE"
-            }
-            Self::GuaranteedStopLossOrderHaltedNotCancelable => {
-                "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_CANCELABLE"
-            }
-            Self::GuaranteedStopLossOrderNotReplaceable => {
-                "GUARANTEED_STOP_LOSS_ORDER_NOT_REPLACEABLE"
-            }
-            Self::GuaranteedStopLossOrderHaltedNotReplaceable => {
-                "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_REPLACEABLE"
-            }
-            Self::GuaranteedStopLossOrderLevelRestrictionVolumeExceeded => {
-                "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_VOLUME_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOrderLevelRestrictionPriceRangeExceeded => {
-                "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOrderPriceAndDistanceBothSpecified => {
-                "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED"
-            }
-            Self::GuaranteedStopLossOrderPriceAndDistanceBothMissing => {
-                "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING"
-            }
-            Self::GuaranteedStopLossOrderWouldViolateFifoViolationSafeguard => {
-                "GUARANTEED_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD"
-            }
-            Self::GuaranteedStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION"
-            }
-            Self::GuaranteedStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => {
-                "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION"
-            }
-            Self::GuaranteedStopLossOnFillRequiredForPendingOrder => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER"
-            }
-            Self::GuaranteedStopLossOnFillNotAllowed => "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
-            Self::GuaranteedStopLossOnFillRequired => "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
-            Self::GuaranteedStopLossOnFillPriceMissing => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_MISSING"
-            }
-            Self::GuaranteedStopLossOnFillPriceInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillPricePrecisionExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillMinimumDistanceNotMet => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET"
-            }
-            Self::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillDistanceInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillDistancePrecisionExceeded => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED"
-            }
-            Self::GuaranteedStopLossOnFillPriceAndDistanceBothSpecified => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED"
-            }
-            Self::GuaranteedStopLossOnFillPriceAndDistanceBothMissing => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING"
-            }
-            Self::GuaranteedStopLossOnFillTimeInForceMissing => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING"
-            }
-            Self::GuaranteedStopLossOnFillTimeInForceInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillGtdTimestampMissing => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING"
-            }
-            Self::GuaranteedStopLossOnFillGtdTimestampInPast => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST"
-            }
-            Self::GuaranteedStopLossOnFillClientOrderIdInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillClientOrderTagInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillClientOrderCommentInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID"
-            }
-            Self::GuaranteedStopLossOnFillTriggerConditionMissing => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING"
-            }
-            Self::GuaranteedStopLossOnFillTriggerConditionInvalid => {
-                "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::TrailingStopLossOrderAlreadyExists => "TRAILING_STOP_LOSS_ORDER_ALREADY_EXISTS",
-            Self::TrailingStopLossOrderWouldViolateFifoViolationSafeguard => {
-                "TRAILING_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD"
-            }
-            Self::TrailingStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => {
-                "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION"
-            }
-            Self::TrailingStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => {
-                "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION"
-            }
-            Self::TrailingStopLossOnFillPriceDistanceMissing => {
-                "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MISSING"
-            }
-            Self::TrailingStopLossOnFillPriceDistanceInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_INVALID"
-            }
-            Self::TrailingStopLossOnFillPriceDistancePrecisionExceeded => {
-                "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_PRECISION_EXCEEDED"
-            }
-            Self::TrailingStopLossOnFillPriceDistanceMaximumExceeded => {
-                "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED"
-            }
-            Self::TrailingStopLossOnFillPriceDistanceMinimumNotMet => {
-                "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MINIMUM_NOT_MET"
-            }
-            Self::TrailingStopLossOnFillTimeInForceMissing => {
-                "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING"
-            }
-            Self::TrailingStopLossOnFillTimeInForceInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID"
-            }
-            Self::TrailingStopLossOnFillGtdTimestampMissing => {
-                "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING"
-            }
-            Self::TrailingStopLossOnFillGtdTimestampInPast => {
-                "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST"
-            }
-            Self::TrailingStopLossOnFillClientOrderIdInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID"
-            }
-            Self::TrailingStopLossOnFillClientOrderTagInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID"
-            }
-            Self::TrailingStopLossOnFillClientOrderCommentInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID"
-            }
-            Self::TrailingStopLossOrdersNotSupported => "TRAILING_STOP_LOSS_ORDERS_NOT_SUPPORTED",
-            Self::TrailingStopLossOnFillTriggerConditionMissing => {
-                "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING"
-            }
-            Self::TrailingStopLossOnFillTriggerConditionInvalid => {
-                "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID"
-            }
-            Self::CloseTradeTypeMissing => "CLOSE_TRADE_TYPE_MISSING",
-            Self::CloseTradePartialUnitsMissing => "CLOSE_TRADE_PARTIAL_UNITS_MISSING",
-            Self::CloseTradeUnitsExceedTradeSize => "CLOSE_TRADE_UNITS_EXCEED_TRADE_SIZE",
-            Self::CloseoutPositionDoesntExist => "CLOSEOUT_POSITION_DOESNT_EXIST",
-            Self::CloseoutPositionIncompleteSpecification => {
-                "CLOSEOUT_POSITION_INCOMPLETE_SPECIFICATION"
-            }
-            Self::CloseoutPositionUnitsExceedPositionSize => {
-                "CLOSEOUT_POSITION_UNITS_EXCEED_POSITION_SIZE"
-            }
-            Self::CloseoutPositionReject => "CLOSEOUT_POSITION_REJECT",
-            Self::CloseoutPositionPartialUnitsMissing => "CLOSEOUT_POSITION_PARTIAL_UNITS_MISSING",
-            Self::MarkupGroupIdInvalid => "MARKUP_GROUP_ID_INVALID",
-            Self::PositionAggregationModeInvalid => "POSITION_AGGREGATION_MODE_INVALID",
-            Self::AdminConfigureDataMissing => "ADMIN_CONFIGURE_DATA_MISSING",
-            Self::MarginRateInvalid => "MARGIN_RATE_INVALID",
-            Self::MarginRateWouldTriggerCloseout => "MARGIN_RATE_WOULD_TRIGGER_CLOSEOUT",
-            Self::AliasInvalid => "ALIAS_INVALID",
-            Self::ClientConfigureDataMissing => "CLIENT_CONFIGURE_DATA_MISSING",
-            Self::MarginRateWouldTriggerMarginCall => "MARGIN_RATE_WOULD_TRIGGER_MARGIN_CALL",
-            Self::AmountInvalid => "AMOUNT_INVALID",
-            Self::InsufficientFunds => "INSUFFICIENT_FUNDS",
-            Self::AmountMissing => "AMOUNT_MISSING",
-            Self::FundingReasonMissing => "FUNDING_REASON_MISSING",
-            Self::OcaOrderIdsStopLossNotAllowed => "OCA_ORDER_IDS_STOP_LOSS_NOT_ALLOWED",
-            Self::ClientExtensionsDataMissing => "CLIENT_EXTENSIONS_DATA_MISSING",
-            Self::ReplacingOrderInvalid => "REPLACING_ORDER_INVALID",
-            Self::ReplacingTradeIdInvalid => "REPLACING_TRADE_ID_INVALID",
-            Self::OrderCancelWouldTriggerCloseout => "ORDER_CANCEL_WOULD_TRIGGER_CLOSEOUT",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The reason that a Transaction was rejected.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TransactionRejectReason {
+        /// An unexpected internal server error has occurred
+        InternalServerError => "INTERNAL_SERVER_ERROR",
+        /// The system was unable to determine the current price for the Order’s instrument
+        InstrumentPriceUnknown => "INSTRUMENT_PRICE_UNKNOWN",
+        /// The Account is not active
+        AccountNotActive => "ACCOUNT_NOT_ACTIVE",
+        /// The Account is locked
+        AccountLocked => "ACCOUNT_LOCKED",
+        /// The Account is locked for Order creation
+        AccountOrderCreationLocked => "ACCOUNT_ORDER_CREATION_LOCKED",
+        /// The Account is locked for configuration
+        AccountConfigurationLocked => "ACCOUNT_CONFIGURATION_LOCKED",
+        /// The Account is locked for deposits
+        AccountDepositLocked => "ACCOUNT_DEPOSIT_LOCKED",
+        /// The Account is locked for withdrawals
+        AccountWithdrawalLocked => "ACCOUNT_WITHDRAWAL_LOCKED",
+        /// The Account is locked for Order cancellation
+        AccountOrderCancelLocked => "ACCOUNT_ORDER_CANCEL_LOCKED",
+        /// The instrument specified is not tradeable by the Account
+        InstrumentNotTradeable => "INSTRUMENT_NOT_TRADEABLE",
+        /// Creating the Order would result in the maximum number of allowed pending Orders being exceeded
+        PendingOrdersAllowedExceeded => "PENDING_ORDERS_ALLOWED_EXCEEDED",
+        /// Neither the Order ID nor client Order ID are specified
+        OrderIdUnspecified => "ORDER_ID_UNSPECIFIED",
+        /// The Order specified does not exist
+        OrderDoesntExist => "ORDER_DOESNT_EXIST",
+        /// The Order ID and client Order ID specified do not identify the same Order
+        OrderIdentifierInconsistency => "ORDER_IDENTIFIER_INCONSISTENCY",
+        /// Neither the Trade ID nor client Trade ID are specified
+        TradeIdUnspecified => "TRADE_ID_UNSPECIFIED",
+        /// The Trade specified does not exist
+        TradeDoesntExist => "TRADE_DOESNT_EXIST",
+        /// The Trade ID and client Trade ID specified do not identify the same Trade
+        TradeIdentifierInconsistency => "TRADE_IDENTIFIER_INCONSISTENCY",
+        /// The Account had insufficient margin to perform the action specified. One possible reason for this is due
+        /// to the creation or modification of a guaranteed `StopLoss` Order.
+        InsufficientMargin => "INSUFFICIENT_MARGIN",
+        /// Order instrument has not been specified
+        InstrumentMissing => "INSTRUMENT_MISSING",
+        /// The instrument specified is unknown
+        InstrumentUnknown => "INSTRUMENT_UNKNOWN",
+        /// Order units have not been not specified
+        UnitsMissing => "UNITS_MISSING",
+        /// Order units specified are invalid
+        UnitsInvalid => "UNITS_INVALID",
+        /// The units specified contain more precision than is allowed for the Order’s instrument
+        UnitsPrecisionExceeded => "UNITS_PRECISION_EXCEEDED",
+        /// The units specified exceeds the maximum number of units allowed
+        UnitsLimitExceeded => "UNITS_LIMIT_EXCEEDED",
+        /// The units specified is less than the minimum number of units required
+        UnitsMinimumNotMet => "UNITS_MINIMUM_NOT_MET",
+        /// The price has not been specified
+        PriceMissing => "PRICE_MISSING",
+        /// The price specified is invalid
+        PriceInvalid => "PRICE_INVALID",
+        /// The price specified contains more precision than is allowed for the instrument
+        PricePrecisionExceeded => "PRICE_PRECISION_EXCEEDED",
+        /// The price distance has not been specified
+        PriceDistanceMissing => "PRICE_DISTANCE_MISSING",
+        /// The price distance specified is invalid
+        PriceDistanceInvalid => "PRICE_DISTANCE_INVALID",
+        /// The price distance specified contains more precision than is allowed for the instrument
+        PriceDistancePrecisionExceeded => "PRICE_DISTANCE_PRECISION_EXCEEDED",
+        /// The price distance exceeds that maximum allowed amount
+        PriceDistanceMaximumExceeded => "PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// The price distance does not meet the minimum allowed amount
+        PriceDistanceMinimumNotMet => "PRICE_DISTANCE_MINIMUM_NOT_MET",
+        /// The `TimeInForce` field has not been specified
+        TimeInForceMissing => "TIME_IN_FORCE_MISSING",
+        /// The `TimeInForce` specified is invalid
+        TimeInForceInvalid => "TIME_IN_FORCE_INVALID",
+        /// The `TimeInForce` is GTD but no GTD timestamp is provided
+        TimeInForceGtdTimestampMissing => "TIME_IN_FORCE_GTD_TIMESTAMP_MISSING",
+        /// The `TimeInForce` is GTD but the GTD timestamp is in the past
+        TimeInForceGtdTimestampInPast => "TIME_IN_FORCE_GTD_TIMESTAMP_IN_PAST",
+        /// The price bound specified is invalid
+        PriceBoundInvalid => "PRICE_BOUND_INVALID",
+        /// The price bound specified contains more precision than is allowed for the Order’s instrument
+        PriceBoundPrecisionExceeded => "PRICE_BOUND_PRECISION_EXCEEDED",
+        /// Multiple Orders on fill share the same client Order ID
+        OrdersOnFillDuplicateClientOrderIds => "ORDERS_ON_FILL_DUPLICATE_CLIENT_ORDER_IDS",
+        /// The Order does not support Trade on fill client extensions because it cannot create a new Trade
+        TradeOnFillClientExtensionsNotSupported => "TRADE_ON_FILL_CLIENT_EXTENSIONS_NOT_SUPPORTED",
+        /// The client Order ID specified is invalid
+        ClientOrderIdInvalid => "CLIENT_ORDER_ID_INVALID",
+        /// The client Order ID specified is already assigned to another pending Order
+        ClientOrderIdAlreadyExists => "CLIENT_ORDER_ID_ALREADY_EXISTS",
+        /// The client Order tag specified is invalid
+        ClientOrderTagInvalid => "CLIENT_ORDER_TAG_INVALID",
+        /// The client Order comment specified is invalid
+        ClientOrderCommentInvalid => "CLIENT_ORDER_COMMENT_INVALID",
+        /// The client Trade ID specified is invalid
+        ClientTradeIdInvalid => "CLIENT_TRADE_ID_INVALID",
+        /// The client Trade ID specified is already assigned to another open Trade
+        ClientTradeIdAlreadyExists => "CLIENT_TRADE_ID_ALREADY_EXISTS",
+        /// The client Trade tag specified is invalid
+        ClientTradeTagInvalid => "CLIENT_TRADE_TAG_INVALID",
+        /// The client Trade comment is invalid
+        ClientTradeCommentInvalid => "CLIENT_TRADE_COMMENT_INVALID",
+        /// The `OrderFillPositionAction` field has not been specified
+        OrderFillPositionActionMissing => "ORDER_FILL_POSITION_ACTION_MISSING",
+        /// The `OrderFillPositionAction` specified is invalid
+        OrderFillPositionActionInvalid => "ORDER_FILL_POSITION_ACTION_INVALID",
+        /// The `TriggerCondition` field has not been specified
+        TriggerConditionMissing => "TRIGGER_CONDITION_MISSING",
+        /// The `TriggerCondition` specified is invalid
+        TriggerConditionInvalid => "TRIGGER_CONDITION_INVALID",
+        /// The `OrderFillPositionAction` field has not been specified
+        OrderPartialFillOptionMissing => "ORDER_PARTIAL_FILL_OPTION_MISSING",
+        /// The `OrderFillPositionAction` specified is invalid.
+        OrderPartialFillOptionInvalid => "ORDER_PARTIAL_FILL_OPTION_INVALID",
+        /// When attempting to reissue an order (currently only a `MarketIfTouched`) that was immediately partially
+        /// filled, it is not possible to create a correct pending Order.
+        InvalidReissueImmediatePartialFill => "INVALID_REISSUE_IMMEDIATE_PARTIAL_FILL",
+        /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
+        /// specifying that only one risk management Order can be attached to a Trade.
+        OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation => "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        /// The Orders on fill would be in violation of the risk management Order mutual exclusivity configuration
+        /// specifying that if a GSLO is already attached to a Trade, no other risk management Order can be attached
+        /// to a Trade.
+        OrdersOnFillRmoMutualExclusivityGsloExcludesOthersViolation => "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        /// A Take Profit Order for the specified Trade already exists
+        TakeProfitOrderAlreadyExists => "TAKE_PROFIT_ORDER_ALREADY_EXISTS",
+        /// The Take Profit Order would cause the associated Trade to be in violation of the FIFO violation
+        /// safeguard constraints.
+        TakeProfitOrderWouldViolateFifoViolationSafeguard => "TAKE_PROFIT_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        /// The Take Profit on fill specified does not provide a price
+        TakeProfitOnFillPriceMissing => "TAKE_PROFIT_ON_FILL_PRICE_MISSING",
+        /// The Take Profit on fill specified contains an invalid price
+        TakeProfitOnFillPriceInvalid => "TAKE_PROFIT_ON_FILL_PRICE_INVALID",
+        /// The Take Profit on fill specified contains a price with more precision than is allowed by the Order’s
+        /// instrument
+        TakeProfitOnFillPricePrecisionExceeded => "TAKE_PROFIT_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        /// The Take Profit on fill specified does not provide a `TimeInForce`
+        TakeProfitOnFillTimeInForceMissing => "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_MISSING",
+        /// The Take Profit on fill specifies an invalid `TimeInForce`
+        TakeProfitOnFillTimeInForceInvalid => "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// The Take Profit on fill specifies a GTD `TimeInForce` but does not provide a GTD timestamp
+        TakeProfitOnFillGtdTimestampMissing => "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_MISSING",
+        /// The Take Profit on fill specifies a GTD timestamp that is in the past
+        TakeProfitOnFillGtdTimestampInPast => "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// The Take Profit on fill client Order ID specified is invalid
+        TakeProfitOnFillClientOrderIdInvalid => "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        /// The Take Profit on fill client Order tag specified is invalid
+        TakeProfitOnFillClientOrderTagInvalid => "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        /// The Take Profit on fill client Order comment specified is invalid
+        TakeProfitOnFillClientOrderCommentInvalid => "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        /// The Take Profit on fill specified does not provide a `TriggerCondition`
+        TakeProfitOnFillTriggerConditionMissing => "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_MISSING",
+        /// The Take Profit on fill specifies an invalid `TriggerCondition`
+        TakeProfitOnFillTriggerConditionInvalid => "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// A Stop Loss Order for the specified Trade already exists
+        StopLossOrderAlreadyExists => "STOP_LOSS_ORDER_ALREADY_EXISTS",
+        /// An attempt was made to to create a non-guaranteed stop loss order in an account that requires all stop
+        /// loss orders to be guaranteed.
+        StopLossOrderGuaranteedRequired => "STOP_LOSS_ORDER_GUARANTEED_REQUIRED",
+        /// An attempt to create a guaranteed stop loss order with a price that is within the current tradeable
+        /// spread.
+        StopLossOrderGuaranteedPriceWithinSpread => "STOP_LOSS_ORDER_GUARANTEED_PRICE_WITHIN_SPREAD",
+        /// An attempt was made to create a guaranteed Stop Loss Order, however the Account’s configuration does not
+        /// allow guaranteed Stop Loss Orders.
+        StopLossOrderGuaranteedNotAllowed => "STOP_LOSS_ORDER_GUARANTEED_NOT_ALLOWED",
+        /// An attempt was made to create a guaranteed Stop Loss Order when the market was halted.
+        StopLossOrderGuaranteedHaltedCreateViolation => "STOP_LOSS_ORDER_GUARANTEED_HALTED_CREATE_VIOLATION",
+        /// An attempt was made to re-create a guaranteed Stop Loss Order with a tighter fill price when the market
+        /// was halted.
+        StopLossOrderGuaranteedHaltedTightenViolation => "STOP_LOSS_ORDER_GUARANTEED_HALTED_TIGHTEN_VIOLATION",
+        /// An attempt was made to create a guaranteed Stop Loss Order on a hedged Trade (ie there is an existing
+        /// open Trade in the opposing direction), however the Account’s configuration does not allow guaranteed
+        /// Stop Loss Orders for hedged Trades/Positions.
+        StopLossOrderGuaranteedHedgingNotAllowed => "STOP_LOSS_ORDER_GUARANTEED_HEDGING_NOT_ALLOWED",
+        /// An attempt was made to create a guaranteed Stop Loss Order, however the distance between the current
+        /// price and the trigger price does not meet the Account’s configured minimum Guaranteed Stop Loss distance.
+        StopLossOrderGuaranteedMinimumDistanceNotMet => "STOP_LOSS_ORDER_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        /// An attempt was made to cancel a Stop Loss Order, however the Account’s configuration requires every
+        /// Trade have an associated Stop Loss Order.
+        StopLossOrderNotCancelable => "STOP_LOSS_ORDER_NOT_CANCELABLE",
+        /// An attempt was made to cancel and replace a Stop Loss Order, however the Account’s configuration
+        /// prevents the modification of Stop Loss Orders.
+        StopLossOrderNotReplaceable => "STOP_LOSS_ORDER_NOT_REPLACEABLE",
+        /// An attempt was made to create a guaranteed Stop Loss Order, however doing so would exceed the Account’s
+        /// configured guaranteed `StopLoss` Order level restriction volume.
+        StopLossOrderGuaranteedLevelRestrictionExceeded => "STOP_LOSS_ORDER_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        /// The Stop Loss Order request contains both the price and distance fields.
+        StopLossOrderPriceAndDistanceBothSpecified => "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        /// The Stop Loss Order request contains neither the price nor distance fields.
+        StopLossOrderPriceAndDistanceBothMissing => "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING",
+        /// The Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation safeguard
+        /// constraints
+        StopLossOrderWouldViolateFifoViolationSafeguard => "STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        /// The Stop Loss Order would be in violation of the risk management Order mutual exclusivity configuration
+        /// specifying that only one risk management order can be attached to a Trade.
+        StopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        /// The Stop Loss Order would be in violation of the risk management Order mutual exclusivity configuration
+        /// specifying that if a GSLO is already attached to a Trade, no other risk management Order can be attached
+        /// to the same Trade.
+        StopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        /// An attempt to create a pending Order was made with no Stop Loss Order on fill specified and the
+        /// Account’s configuration requires that every Trade have an associated Stop Loss Order.
+        StopLossOnFillRequiredForPendingOrder => "STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER",
+        /// An attempt to create a pending Order was made with a Stop Loss Order on fill that was explicitly
+        /// configured to be guaranteed, however the Account’s configuration does not allow guaranteed Stop Loss
+        /// Orders.
+        StopLossOnFillGuaranteedNotAllowed => "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED",
+        /// An attempt to create a pending Order was made with a Stop Loss Order on fill that was explicitly
+        /// configured to be not guaranteed, however the Account’s configuration requires guaranteed Stop Loss
+        /// Orders.
+        StopLossOnFillGuaranteedRequired => "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED",
+        /// The Stop Loss on fill specified does not provide a price
+        StopLossOnFillPriceMissing => "STOP_LOSS_ON_FILL_PRICE_MISSING",
+        /// The Stop Loss on fill specifies an invalid price
+        StopLossOnFillPriceInvalid => "STOP_LOSS_ON_FILL_PRICE_INVALID",
+        /// The Stop Loss on fill specifies a price with more precision than is allowed by the Order’s instrument
+        StopLossOnFillPricePrecisionExceeded => "STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        /// An attempt to create a pending Order was made with the distance between the guaranteed Stop Loss Order
+        /// on fill’s price and the pending Order’s price is less than the Account’s configured minimum guaranteed
+        /// stop loss distance.
+        StopLossOnFillGuaranteedMinimumDistanceNotMet => "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET",
+        /// An attempt to create a pending Order was made with a guaranteed Stop Loss Order on fill configured, and
+        /// the Order’s units exceed the Account’s configured guaranteed `StopLoss` Order level restriction volume.
+        StopLossOnFillGuaranteedLevelRestrictionExceeded => "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED",
+        /// The Stop Loss on fill distance is invalid
+        StopLossOnFillDistanceInvalid => "STOP_LOSS_ON_FILL_DISTANCE_INVALID",
+        /// The Stop Loss on fill price distance exceeds the maximum allowed amount
+        StopLossOnFillPriceDistanceMaximumExceeded => "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// The Stop Loss on fill distance contains more precision than is allowed by the instrument
+        StopLossOnFillDistancePrecisionExceeded => "STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED",
+        /// The Stop Loss on fill contains both the price and distance fields.
+        StopLossOnFillPriceAndDistanceBothSpecified => "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        /// The Stop Loss on fill contains neither the price nor distance fields.
+        StopLossOnFillPriceAndDistanceBothMissing => "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING",
+        /// The Stop Loss on fill specified does not provide a `TimeInForce`
+        StopLossOnFillTimeInForceMissing => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        /// The Stop Loss on fill specifies an invalid `TimeInForce`
+        StopLossOnFillTimeInForceInvalid => "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// The Stop Loss on fill specifies a GTD `TimeInForce` but does not provide a GTD timestamp
+        StopLossOnFillGtdTimestampMissing => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        /// The Stop Loss on fill specifies a GTD timestamp that is in the past
+        StopLossOnFillGtdTimestampInPast => "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// The Stop Loss on fill client Order ID specified is invalid
+        StopLossOnFillClientOrderIdInvalid => "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        /// The Stop Loss on fill client Order tag specified is invalid
+        StopLossOnFillClientOrderTagInvalid => "STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        /// The Stop Loss on fill client Order comment specified is invalid
+        StopLossOnFillClientOrderCommentInvalid => "STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        /// The Stop Loss on fill specified does not provide a `TriggerCondition`
+        StopLossOnFillTriggerConditionMissing => "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        /// The Stop Loss on fill specifies an invalid `TriggerCondition`
+        StopLossOnFillTriggerConditionInvalid => "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// A Guaranteed Stop Loss Order for the specified Trade already exists
+        GuaranteedStopLossOrderAlreadyExists => "GUARANTEED_STOP_LOSS_ORDER_ALREADY_EXISTS",
+        /// An attempt was made to to create a non-guaranteed stop loss order in an account that requires all stop
+        /// loss orders to be guaranteed.
+        GuaranteedStopLossOrderRequired => "GUARANTEED_STOP_LOSS_ORDER_REQUIRED",
+        /// An attempt to create a guaranteed stop loss order with a price that is within the current tradeable
+        /// spread.
+        GuaranteedStopLossOrderPriceWithinSpread => "GUARANTEED_STOP_LOSS_ORDER_PRICE_WITHIN_SPREAD",
+        /// An attempt was made to create a Guaranteed Stop Loss Order, however the Account’s configuration does not
+        /// allow Guaranteed Stop Loss Orders.
+        GuaranteedStopLossOrderNotAllowed => "GUARANTEED_STOP_LOSS_ORDER_NOT_ALLOWED",
+        /// An attempt was made to create a Guaranteed Stop Loss Order when the market was halted.
+        GuaranteedStopLossOrderHaltedCreateViolation => "GUARANTEED_STOP_LOSS_ORDER_HALTED_CREATE_VIOLATION",
+        /// An attempt was made to create a Guaranteed Stop Loss Order when the market was open.
+        GuaranteedStopLossOrderCreateViolation => "GUARANTEED_STOP_LOSS_ORDER_CREATE_VIOLATION",
+        /// An attempt was made to re-create a Guaranteed Stop Loss Order with a tighter fill price when the market
+        /// was halted.
+        GuaranteedStopLossOrderHaltedTightenViolation => "GUARANTEED_STOP_LOSS_ORDER_HALTED_TIGHTEN_VIOLATION",
+        /// An attempt was made to re-create a Guaranteed Stop Loss Order with a tighter fill price when the market
+        /// was open.
+        GuaranteedStopLossOrderTightenViolation => "GUARANTEED_STOP_LOSS_ORDER_TIGHTEN_VIOLATION",
+        /// An attempt was made to create a Guaranteed Stop Loss Order on a hedged Trade (ie there is an existing
+        /// open Trade in the opposing direction), however the Account’s configuration does not allow Guaranteed
+        /// Stop Loss Orders for hedged Trades/Positions.
+        GuaranteedStopLossOrderHedgingNotAllowed => "GUARANTEED_STOP_LOSS_ORDER_HEDGING_NOT_ALLOWED",
+        /// An attempt was made to create a Guaranteed Stop Loss Order, however the distance between the current
+        /// price and the trigger price does not meet the Account’s configured minimum Guaranteed Stop Loss distance.
+        GuaranteedStopLossOrderMinimumDistanceNotMet => "GUARANTEED_STOP_LOSS_ORDER_MINIMUM_DISTANCE_NOT_MET",
+        /// An attempt was made to cancel a Guaranteed Stop Loss Order when the market is open, however the
+        /// Account’s configuration requires every Trade have an associated Guaranteed Stop Loss Order.
+        GuaranteedStopLossOrderNotCancelable => "GUARANTEED_STOP_LOSS_ORDER_NOT_CANCELABLE",
+        /// An attempt was made to cancel a Guaranteed Stop Loss Order when the market is halted, however the
+        /// Account’s configuration requires every Trade have an associated Guaranteed Stop Loss Order.
+        GuaranteedStopLossOrderHaltedNotCancelable => "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_CANCELABLE",
+        /// An attempt was made to cancel and replace a Guaranteed Stop Loss Order when the market is open, however
+        /// the Account’s configuration prevents the modification of Guaranteed Stop Loss Orders.
+        GuaranteedStopLossOrderNotReplaceable => "GUARANTEED_STOP_LOSS_ORDER_NOT_REPLACEABLE",
+        /// An attempt was made to cancel and replace a Guaranteed Stop Loss Order when the market is halted,
+        /// however the Account’s configuration prevents the modification of Guaranteed Stop Loss Orders.
+        GuaranteedStopLossOrderHaltedNotReplaceable => "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_REPLACEABLE",
+        /// An attempt was made to create a Guaranteed Stop Loss Order, however doing so would exceed the Account’s
+        /// configured guaranteed `StopLoss` Order level restriction volume.
+        GuaranteedStopLossOrderLevelRestrictionVolumeExceeded => "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        /// An attempt was made to create a Guaranteed Stop Loss Order, however doing so would exceed the Account’s
+        /// configured guaranteed `StopLoss` Order level restriction price range.
+        GuaranteedStopLossOrderLevelRestrictionPriceRangeExceeded => "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        /// The Guaranteed Stop Loss Order request contains both the price and distance fields.
+        GuaranteedStopLossOrderPriceAndDistanceBothSpecified => "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        /// The Guaranteed Stop Loss Order request contains neither the price nor distance fields.
+        GuaranteedStopLossOrderPriceAndDistanceBothMissing => "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING",
+        /// The Guaranteed Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation
+        /// safeguard constraints
+        GuaranteedStopLossOrderWouldViolateFifoViolationSafeguard => "GUARANTEED_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        /// The Guaranteed Stop Loss Order would be in violation of the risk management Order mutual exclusivity
+        /// configuration specifying that only one risk management order can be attached to a Trade.
+        GuaranteedStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        /// The Guaranteed Stop Loss Order would be in violation of the risk management Order mutual exclusivity
+        /// configuration specifying that if a GSLO is already attached to a Trade, no other risk management Order
+        /// can be attached to the same Trade.
+        GuaranteedStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        /// An attempt to create a pending Order was made with no Guaranteed Stop Loss Order on fill specified and
+        /// the Account’s configuration requires that every Trade have an associated Guaranteed Stop Loss Order.
+        GuaranteedStopLossOnFillRequiredForPendingOrder => "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER",
+        /// An attempt to create a pending Order was made with a Guaranteed Stop Loss Order on fill that was
+        /// explicitly configured to be guaranteed, however the Account’s configuration does not allow guaranteed
+        /// Stop Loss Orders.
+        GuaranteedStopLossOnFillNotAllowed => "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED",
+        /// An attempt to create a pending Order was made with a Guaranteed Stop Loss Order on fill that was
+        /// explicitly configured to be not guaranteed, however the Account’s configuration requires Guaranteed Stop
+        /// Loss Orders.
+        GuaranteedStopLossOnFillRequired => "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED",
+        /// The Guaranteed Stop Loss on fill specified does not provide a price
+        GuaranteedStopLossOnFillPriceMissing => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_MISSING",
+        /// The Guaranteed Stop Loss on fill specifies an invalid price
+        GuaranteedStopLossOnFillPriceInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_INVALID",
+        /// The Guaranteed Stop Loss on fill specifies a price with more precision than is allowed by the Order’s
+        /// instrument
+        GuaranteedStopLossOnFillPricePrecisionExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED",
+        /// An attempt to create a pending Order was made with the distance between the Guaranteed Stop Loss Order
+        /// on fill’s price and the pending Order’s price is less than the Account’s configured minimum guaranteed
+        /// stop loss distance.
+        GuaranteedStopLossOnFillMinimumDistanceNotMet => "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger number of
+        /// units that violates the account’s Guaranteed Stop Loss Order level restriction volume.
+        GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED",
+        /// Filling the Order would result in the creation of a Guaranteed Stop Loss Order with trigger price that
+        /// violates the account’s Guaranteed Stop Loss Order level restriction price range.
+        GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED",
+        /// The Guaranteed Stop Loss on fill distance is invalid
+        GuaranteedStopLossOnFillDistanceInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_INVALID",
+        /// The Guaranteed Stop Loss on fill price distance exceeds the maximum allowed amount.
+        GuaranteedStopLossOnFillPriceDistanceMaximumExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// The Guaranteed Stop Loss on fill distance contains more precision than is allowed by the instrument
+        GuaranteedStopLossOnFillDistancePrecisionExceeded => "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED",
+        /// The Guaranteed Stop Loss on fill contains both the price and distance fields.
+        GuaranteedStopLossOnFillPriceAndDistanceBothSpecified => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED",
+        /// The Guaranteed Stop Loss on fill contains neither the price nor distance fields.
+        GuaranteedStopLossOnFillPriceAndDistanceBothMissing => "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING",
+        /// The Guaranteed Stop Loss on fill specified does not provide a `TimeInForce`
+        GuaranteedStopLossOnFillTimeInForceMissing => "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        /// The Guaranteed Stop Loss on fill specifies an invalid `TimeInForce`
+        GuaranteedStopLossOnFillTimeInForceInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// The Guaranteed Stop Loss on fill specifies a GTD `TimeInForce` but does not provide a GTD timestamp
+        GuaranteedStopLossOnFillGtdTimestampMissing => "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        /// The Guaranteed Stop Loss on fill specifies a GTD timestamp that is in the past.
+        GuaranteedStopLossOnFillGtdTimestampInPast => "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// The Guaranteed Stop Loss on fill client Order ID specified is invalid
+        GuaranteedStopLossOnFillClientOrderIdInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        /// The Guaranteed Stop Loss on fill client Order tag specified is invalid
+        GuaranteedStopLossOnFillClientOrderTagInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        /// The Guaranteed Stop Loss on fill client Order comment specified is invalid.
+        GuaranteedStopLossOnFillClientOrderCommentInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        /// The Guaranteed Stop Loss on fill specified does not provide a `TriggerCondition`.
+        GuaranteedStopLossOnFillTriggerConditionMissing => "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        /// The Guaranteed Stop Loss on fill specifies an invalid `TriggerCondition`.
+        GuaranteedStopLossOnFillTriggerConditionInvalid => "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// A Trailing Stop Loss Order for the specified Trade already exists
+        TrailingStopLossOrderAlreadyExists => "TRAILING_STOP_LOSS_ORDER_ALREADY_EXISTS",
+        /// The Trailing Stop Loss Order would cause the associated Trade to be in violation of the FIFO violation
+        /// safeguard constraints
+        TrailingStopLossOrderWouldViolateFifoViolationSafeguard => "TRAILING_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD",
+        /// The Trailing Stop Loss Order would be in violation of the risk management Order mutual exclusivity
+        /// configuration specifying that only one risk management order can be attached to a Trade.
+        TrailingStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation => "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION",
+        /// The Trailing Stop Loss Order would be in violation of the risk management Order mutual exclusivity
+        /// configuration specifying that if a GSLO is already attached to a Trade, no other risk management Order
+        /// can be attached to the same Trade.
+        TrailingStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation => "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION",
+        /// The Trailing Stop Loss on fill specified does not provide a distance
+        TrailingStopLossOnFillPriceDistanceMissing => "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MISSING",
+        /// The Trailing Stop Loss on fill distance is invalid
+        TrailingStopLossOnFillPriceDistanceInvalid => "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_INVALID",
+        /// The Trailing Stop Loss on fill distance contains more precision than is allowed by the instrument
+        TrailingStopLossOnFillPriceDistancePrecisionExceeded => "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_PRECISION_EXCEEDED",
+        /// The Trailing Stop Loss on fill price distance exceeds the maximum allowed amount
+        TrailingStopLossOnFillPriceDistanceMaximumExceeded => "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED",
+        /// The Trailing Stop Loss on fill price distance does not meet the minimum allowed amount
+        TrailingStopLossOnFillPriceDistanceMinimumNotMet => "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MINIMUM_NOT_MET",
+        /// The Trailing Stop Loss on fill specified does not provide a `TimeInForce`
+        TrailingStopLossOnFillTimeInForceMissing => "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING",
+        /// The Trailing Stop Loss on fill specifies an invalid `TimeInForce`
+        TrailingStopLossOnFillTimeInForceInvalid => "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID",
+        /// The Trailing Stop Loss on fill `TimeInForce` is specified as GTD but no GTD timestamp is provided
+        TrailingStopLossOnFillGtdTimestampMissing => "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING",
+        /// The Trailing Stop Loss on fill GTD timestamp is in the past
+        TrailingStopLossOnFillGtdTimestampInPast => "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST",
+        /// The Trailing Stop Loss on fill client Order ID specified is invalid
+        TrailingStopLossOnFillClientOrderIdInvalid => "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID",
+        /// The Trailing Stop Loss on fill client Order tag specified is invalid
+        TrailingStopLossOnFillClientOrderTagInvalid => "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID",
+        /// The Trailing Stop Loss on fill client Order comment specified is invalid
+        TrailingStopLossOnFillClientOrderCommentInvalid => "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID",
+        /// A client attempted to create either a Trailing Stop Loss order or an order with a Trailing Stop Loss On
+        /// Fill specified, which may not yet be supported.
+        TrailingStopLossOrdersNotSupported => "TRAILING_STOP_LOSS_ORDERS_NOT_SUPPORTED",
+        /// The Trailing Stop Loss on fill specified does not provide a `TriggerCondition`
+        TrailingStopLossOnFillTriggerConditionMissing => "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING",
+        /// The Tailing Stop Loss on fill specifies an invalid `TriggerCondition`
+        TrailingStopLossOnFillTriggerConditionInvalid => "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID",
+        /// The request to close a Trade does not specify a full or partial close
+        CloseTradeTypeMissing => "CLOSE_TRADE_TYPE_MISSING",
+        /// The request to close a Trade partially did not specify the number of units to close
+        CloseTradePartialUnitsMissing => "CLOSE_TRADE_PARTIAL_UNITS_MISSING",
+        /// The request to partially close a Trade specifies a number of units that exceeds the current size of the
+        /// given Trade
+        CloseTradeUnitsExceedTradeSize => "CLOSE_TRADE_UNITS_EXCEED_TRADE_SIZE",
+        /// The Position requested to be closed out does not exist
+        CloseoutPositionDoesntExist => "CLOSEOUT_POSITION_DOESNT_EXIST",
+        /// The request to closeout a Position was specified incompletely
+        CloseoutPositionIncompleteSpecification => "CLOSEOUT_POSITION_INCOMPLETE_SPECIFICATION",
+        /// A partial Position closeout request specifies a number of units that exceeds the current Position
+        CloseoutPositionUnitsExceedPositionSize => "CLOSEOUT_POSITION_UNITS_EXCEED_POSITION_SIZE",
+        /// The request to closeout a Position could not be fully satisfied
+        CloseoutPositionReject => "CLOSEOUT_POSITION_REJECT",
+        /// The request to partially closeout a Position did not specify the number of units to close.
+        CloseoutPositionPartialUnitsMissing => "CLOSEOUT_POSITION_PARTIAL_UNITS_MISSING",
+        /// The markup group ID provided is invalid
+        MarkupGroupIdInvalid => "MARKUP_GROUP_ID_INVALID",
+        /// The `PositionAggregationMode` provided is not supported/valid.
+        PositionAggregationModeInvalid => "POSITION_AGGREGATION_MODE_INVALID",
+        /// No configuration parameters provided
+        AdminConfigureDataMissing => "ADMIN_CONFIGURE_DATA_MISSING",
+        /// The margin rate provided is invalid
+        MarginRateInvalid => "MARGIN_RATE_INVALID",
+        /// The margin rate provided would cause an immediate margin closeout
+        MarginRateWouldTriggerCloseout => "MARGIN_RATE_WOULD_TRIGGER_CLOSEOUT",
+        /// The account alias string provided is invalid
+        AliasInvalid => "ALIAS_INVALID",
+        /// No configuration parameters provided
+        ClientConfigureDataMissing => "CLIENT_CONFIGURE_DATA_MISSING",
+        /// The margin rate provided would cause the Account to enter a margin call state.
+        MarginRateWouldTriggerMarginCall => "MARGIN_RATE_WOULD_TRIGGER_MARGIN_CALL",
+        /// Funding is not possible because the requested transfer amount is invalid
+        AmountInvalid => "AMOUNT_INVALID",
+        /// The Account does not have sufficient balance to complete the funding request
+        InsufficientFunds => "INSUFFICIENT_FUNDS",
+        /// Funding amount has not been specified
+        AmountMissing => "AMOUNT_MISSING",
+        /// Funding reason has not been specified
+        FundingReasonMissing => "FUNDING_REASON_MISSING",
+        /// The list of Order Identifiers provided for a One Cancels All Order contains an Order Identifier that
+        /// refers to a Stop Loss Order. OCA groups cannot contain Stop Loss Orders.
+        OcaOrderIdsStopLossNotAllowed => "OCA_ORDER_IDS_STOP_LOSS_NOT_ALLOWED",
+        /// Neither Order nor Trade on Fill client extensions were provided for modification
+        ClientExtensionsDataMissing => "CLIENT_EXTENSIONS_DATA_MISSING",
+        /// The Order to be replaced has a different type than the replacing Order.
+        ReplacingOrderInvalid => "REPLACING_ORDER_INVALID",
+        /// The replacing Order refers to a different Trade than the Order that is being replaced.
+        ReplacingTradeIdInvalid => "REPLACING_TRADE_ID_INVALID",
+        /// Canceling the order would cause an immediate margin closeout.
+        OrderCancelWouldTriggerCloseout => "ORDER_CANCEL_WOULD_TRIGGER_CLOSEOUT",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for TransactionRejectReason {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// Unrecognized spellings are retained and serialized unchanged for provider
+    /// compatibility; endpoint admission applies any operation-specific restrictions.
+    /// A filter that can be used when fetching Transactions
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum TransactionFilter {
+        /// Order-related Transactions. These are the Transactions that create, cancel, fill or trigger Orders
+        Order => "ORDER",
+        /// Funding-related Transactions
+        Funding => "FUNDING",
+        /// Administrative Transactions
+        Admin => "ADMIN",
+        /// Account Create Transaction
+        Create => "CREATE",
+        /// Account Close Transaction
+        Close => "CLOSE",
+        /// Account Reopen Transaction
+        Reopen => "REOPEN",
+        /// Client Configuration Transaction
+        ClientConfigure => "CLIENT_CONFIGURE",
+        /// Client Configuration Reject Transaction
+        ClientConfigureReject => "CLIENT_CONFIGURE_REJECT",
+        /// Transfer Funds Transaction
+        TransferFunds => "TRANSFER_FUNDS",
+        /// Transfer Funds Reject Transaction
+        TransferFundsReject => "TRANSFER_FUNDS_REJECT",
+        /// Market Order Transaction
+        MarketOrder => "MARKET_ORDER",
+        /// Market Order Reject Transaction
+        MarketOrderReject => "MARKET_ORDER_REJECT",
+        /// Limit Order Transaction
+        LimitOrder => "LIMIT_ORDER",
+        /// Limit Order Reject Transaction
+        LimitOrderReject => "LIMIT_ORDER_REJECT",
+        /// Stop Order Transaction
+        StopOrder => "STOP_ORDER",
+        /// Stop Order Reject Transaction
+        StopOrderReject => "STOP_ORDER_REJECT",
+        /// Market if Touched Order Transaction
+        MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
+        /// Market if Touched Order Reject Transaction
+        MarketIfTouchedOrderReject => "MARKET_IF_TOUCHED_ORDER_REJECT",
+        /// Take Profit Order Transaction
+        TakeProfitOrder => "TAKE_PROFIT_ORDER",
+        /// Take Profit Order Reject Transaction
+        TakeProfitOrderReject => "TAKE_PROFIT_ORDER_REJECT",
+        /// Stop Loss Order Transaction
+        StopLossOrder => "STOP_LOSS_ORDER",
+        /// Stop Loss Order Reject Transaction
+        StopLossOrderReject => "STOP_LOSS_ORDER_REJECT",
+        /// Guaranteed Stop Loss Order Transaction
+        GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
+        /// Guaranteed Stop Loss Order Reject Transaction
+        GuaranteedStopLossOrderReject => "GUARANTEED_STOP_LOSS_ORDER_REJECT",
+        /// Trailing Stop Loss Order Transaction
+        TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
+        /// Trailing Stop Loss Order Reject Transaction
+        TrailingStopLossOrderReject => "TRAILING_STOP_LOSS_ORDER_REJECT",
+        /// One Cancels All Order Transaction
+        OneCancelsAllOrder => "ONE_CANCELS_ALL_ORDER",
+        /// One Cancels All Order Reject Transaction
+        OneCancelsAllOrderReject => "ONE_CANCELS_ALL_ORDER_REJECT",
+        /// One Cancels All Order Trigger Transaction
+        OneCancelsAllOrderTriggered => "ONE_CANCELS_ALL_ORDER_TRIGGERED",
+        /// Order Fill Transaction
+        OrderFill => "ORDER_FILL",
+        /// Order Cancel Transaction
+        OrderCancel => "ORDER_CANCEL",
+        /// Order Cancel Reject Transaction
+        OrderCancelReject => "ORDER_CANCEL_REJECT",
+        /// Order Client Extensions Modify Transaction
+        OrderClientExtensionsModify => "ORDER_CLIENT_EXTENSIONS_MODIFY",
+        /// Order Client Extensions Modify Reject Transaction
+        OrderClientExtensionsModifyReject => "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        /// Trade Client Extensions Modify Transaction
+        TradeClientExtensionsModify => "TRADE_CLIENT_EXTENSIONS_MODIFY",
+        /// Trade Client Extensions Modify Reject Transaction
+        TradeClientExtensionsModifyReject => "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
+        /// Margin Call Enter Transaction
+        MarginCallEnter => "MARGIN_CALL_ENTER",
+        /// Margin Call Extend Transaction
+        MarginCallExtend => "MARGIN_CALL_EXTEND",
+        /// Margin Call Exit Transaction
+        MarginCallExit => "MARGIN_CALL_EXIT",
+        /// Delayed Trade Closure Transaction
+        DelayedTradeClosure => "DELAYED_TRADE_CLOSURE",
+        /// Daily Financing Transaction
+        DailyFinancing => "DAILY_FINANCING",
+        /// Reset Resettable PL Transaction
+        ResetResettablePl => "RESET_RESETTABLE_PL",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for TransactionRejectReason {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "INTERNAL_SERVER_ERROR" => Self::InternalServerError,
-            "INSTRUMENT_PRICE_UNKNOWN" => Self::InstrumentPriceUnknown,
-            "ACCOUNT_NOT_ACTIVE" => Self::AccountNotActive,
-            "ACCOUNT_LOCKED" => Self::AccountLocked,
-            "ACCOUNT_ORDER_CREATION_LOCKED" => Self::AccountOrderCreationLocked,
-            "ACCOUNT_CONFIGURATION_LOCKED" => Self::AccountConfigurationLocked,
-            "ACCOUNT_DEPOSIT_LOCKED" => Self::AccountDepositLocked,
-            "ACCOUNT_WITHDRAWAL_LOCKED" => Self::AccountWithdrawalLocked,
-            "ACCOUNT_ORDER_CANCEL_LOCKED" => Self::AccountOrderCancelLocked,
-            "INSTRUMENT_NOT_TRADEABLE" => Self::InstrumentNotTradeable,
-            "PENDING_ORDERS_ALLOWED_EXCEEDED" => Self::PendingOrdersAllowedExceeded,
-            "ORDER_ID_UNSPECIFIED" => Self::OrderIdUnspecified,
-            "ORDER_DOESNT_EXIST" => Self::OrderDoesntExist,
-            "ORDER_IDENTIFIER_INCONSISTENCY" => Self::OrderIdentifierInconsistency,
-            "TRADE_ID_UNSPECIFIED" => Self::TradeIdUnspecified,
-            "TRADE_DOESNT_EXIST" => Self::TradeDoesntExist,
-            "TRADE_IDENTIFIER_INCONSISTENCY" => Self::TradeIdentifierInconsistency,
-            "INSUFFICIENT_MARGIN" => Self::InsufficientMargin,
-            "INSTRUMENT_MISSING" => Self::InstrumentMissing,
-            "INSTRUMENT_UNKNOWN" => Self::InstrumentUnknown,
-            "UNITS_MISSING" => Self::UnitsMissing,
-            "UNITS_INVALID" => Self::UnitsInvalid,
-            "UNITS_PRECISION_EXCEEDED" => Self::UnitsPrecisionExceeded,
-            "UNITS_LIMIT_EXCEEDED" => Self::UnitsLimitExceeded,
-            "UNITS_MINIMUM_NOT_MET" => Self::UnitsMinimumNotMet,
-            "PRICE_MISSING" => Self::PriceMissing,
-            "PRICE_INVALID" => Self::PriceInvalid,
-            "PRICE_PRECISION_EXCEEDED" => Self::PricePrecisionExceeded,
-            "PRICE_DISTANCE_MISSING" => Self::PriceDistanceMissing,
-            "PRICE_DISTANCE_INVALID" => Self::PriceDistanceInvalid,
-            "PRICE_DISTANCE_PRECISION_EXCEEDED" => Self::PriceDistancePrecisionExceeded,
-            "PRICE_DISTANCE_MAXIMUM_EXCEEDED" => Self::PriceDistanceMaximumExceeded,
-            "PRICE_DISTANCE_MINIMUM_NOT_MET" => Self::PriceDistanceMinimumNotMet,
-            "TIME_IN_FORCE_MISSING" => Self::TimeInForceMissing,
-            "TIME_IN_FORCE_INVALID" => Self::TimeInForceInvalid,
-            "TIME_IN_FORCE_GTD_TIMESTAMP_MISSING" => Self::TimeInForceGtdTimestampMissing,
-            "TIME_IN_FORCE_GTD_TIMESTAMP_IN_PAST" => Self::TimeInForceGtdTimestampInPast,
-            "PRICE_BOUND_INVALID" => Self::PriceBoundInvalid,
-            "PRICE_BOUND_PRECISION_EXCEEDED" => Self::PriceBoundPrecisionExceeded,
-            "ORDERS_ON_FILL_DUPLICATE_CLIENT_ORDER_IDS" => {
-                Self::OrdersOnFillDuplicateClientOrderIds
-            }
-            "TRADE_ON_FILL_CLIENT_EXTENSIONS_NOT_SUPPORTED" => {
-                Self::TradeOnFillClientExtensionsNotSupported
-            }
-            "CLIENT_ORDER_ID_INVALID" => Self::ClientOrderIdInvalid,
-            "CLIENT_ORDER_ID_ALREADY_EXISTS" => Self::ClientOrderIdAlreadyExists,
-            "CLIENT_ORDER_TAG_INVALID" => Self::ClientOrderTagInvalid,
-            "CLIENT_ORDER_COMMENT_INVALID" => Self::ClientOrderCommentInvalid,
-            "CLIENT_TRADE_ID_INVALID" => Self::ClientTradeIdInvalid,
-            "CLIENT_TRADE_ID_ALREADY_EXISTS" => Self::ClientTradeIdAlreadyExists,
-            "CLIENT_TRADE_TAG_INVALID" => Self::ClientTradeTagInvalid,
-            "CLIENT_TRADE_COMMENT_INVALID" => Self::ClientTradeCommentInvalid,
-            "ORDER_FILL_POSITION_ACTION_MISSING" => Self::OrderFillPositionActionMissing,
-            "ORDER_FILL_POSITION_ACTION_INVALID" => Self::OrderFillPositionActionInvalid,
-            "TRIGGER_CONDITION_MISSING" => Self::TriggerConditionMissing,
-            "TRIGGER_CONDITION_INVALID" => Self::TriggerConditionInvalid,
-            "ORDER_PARTIAL_FILL_OPTION_MISSING" => Self::OrderPartialFillOptionMissing,
-            "ORDER_PARTIAL_FILL_OPTION_INVALID" => Self::OrderPartialFillOptionInvalid,
-            "INVALID_REISSUE_IMMEDIATE_PARTIAL_FILL" => Self::InvalidReissueImmediatePartialFill,
-            "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION" => {
-                Self::OrdersOnFillRmoMutualExclusivityMutuallyExclusiveViolation
-            }
-            "ORDERS_ON_FILL_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION" => {
-                Self::OrdersOnFillRmoMutualExclusivityGsloExcludesOthersViolation
-            }
-            "TAKE_PROFIT_ORDER_ALREADY_EXISTS" => Self::TakeProfitOrderAlreadyExists,
-            "TAKE_PROFIT_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD" => {
-                Self::TakeProfitOrderWouldViolateFifoViolationSafeguard
-            }
-            "TAKE_PROFIT_ON_FILL_PRICE_MISSING" => Self::TakeProfitOnFillPriceMissing,
-            "TAKE_PROFIT_ON_FILL_PRICE_INVALID" => Self::TakeProfitOnFillPriceInvalid,
-            "TAKE_PROFIT_ON_FILL_PRICE_PRECISION_EXCEEDED" => {
-                Self::TakeProfitOnFillPricePrecisionExceeded
-            }
-            "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_MISSING" => Self::TakeProfitOnFillTimeInForceMissing,
-            "TAKE_PROFIT_ON_FILL_TIME_IN_FORCE_INVALID" => Self::TakeProfitOnFillTimeInForceInvalid,
-            "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_MISSING" => {
-                Self::TakeProfitOnFillGtdTimestampMissing
-            }
-            "TAKE_PROFIT_ON_FILL_GTD_TIMESTAMP_IN_PAST" => Self::TakeProfitOnFillGtdTimestampInPast,
-            "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_ID_INVALID" => {
-                Self::TakeProfitOnFillClientOrderIdInvalid
-            }
-            "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_TAG_INVALID" => {
-                Self::TakeProfitOnFillClientOrderTagInvalid
-            }
-            "TAKE_PROFIT_ON_FILL_CLIENT_ORDER_COMMENT_INVALID" => {
-                Self::TakeProfitOnFillClientOrderCommentInvalid
-            }
-            "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_MISSING" => {
-                Self::TakeProfitOnFillTriggerConditionMissing
-            }
-            "TAKE_PROFIT_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::TakeProfitOnFillTriggerConditionInvalid
-            }
-            "STOP_LOSS_ORDER_ALREADY_EXISTS" => Self::StopLossOrderAlreadyExists,
-            "STOP_LOSS_ORDER_GUARANTEED_REQUIRED" => Self::StopLossOrderGuaranteedRequired,
-            "STOP_LOSS_ORDER_GUARANTEED_PRICE_WITHIN_SPREAD" => {
-                Self::StopLossOrderGuaranteedPriceWithinSpread
-            }
-            "STOP_LOSS_ORDER_GUARANTEED_NOT_ALLOWED" => Self::StopLossOrderGuaranteedNotAllowed,
-            "STOP_LOSS_ORDER_GUARANTEED_HALTED_CREATE_VIOLATION" => {
-                Self::StopLossOrderGuaranteedHaltedCreateViolation
-            }
-            "STOP_LOSS_ORDER_GUARANTEED_HALTED_TIGHTEN_VIOLATION" => {
-                Self::StopLossOrderGuaranteedHaltedTightenViolation
-            }
-            "STOP_LOSS_ORDER_GUARANTEED_HEDGING_NOT_ALLOWED" => {
-                Self::StopLossOrderGuaranteedHedgingNotAllowed
-            }
-            "STOP_LOSS_ORDER_GUARANTEED_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::StopLossOrderGuaranteedMinimumDistanceNotMet
-            }
-            "STOP_LOSS_ORDER_NOT_CANCELABLE" => Self::StopLossOrderNotCancelable,
-            "STOP_LOSS_ORDER_NOT_REPLACEABLE" => Self::StopLossOrderNotReplaceable,
-            "STOP_LOSS_ORDER_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED" => {
-                Self::StopLossOrderGuaranteedLevelRestrictionExceeded
-            }
-            "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED" => {
-                Self::StopLossOrderPriceAndDistanceBothSpecified
-            }
-            "STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING" => {
-                Self::StopLossOrderPriceAndDistanceBothMissing
-            }
-            "STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD" => {
-                Self::StopLossOrderWouldViolateFifoViolationSafeguard
-            }
-            "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION" => {
-                Self::StopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation
-            }
-            "STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION" => {
-                Self::StopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation
-            }
-            "STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER" => {
-                Self::StopLossOnFillRequiredForPendingOrder
-            }
-            "STOP_LOSS_ON_FILL_GUARANTEED_NOT_ALLOWED" => Self::StopLossOnFillGuaranteedNotAllowed,
-            "STOP_LOSS_ON_FILL_GUARANTEED_REQUIRED" => Self::StopLossOnFillGuaranteedRequired,
-            "STOP_LOSS_ON_FILL_PRICE_MISSING" => Self::StopLossOnFillPriceMissing,
-            "STOP_LOSS_ON_FILL_PRICE_INVALID" => Self::StopLossOnFillPriceInvalid,
-            "STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED" => {
-                Self::StopLossOnFillPricePrecisionExceeded
-            }
-            "STOP_LOSS_ON_FILL_GUARANTEED_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::StopLossOnFillGuaranteedMinimumDistanceNotMet
-            }
-            "STOP_LOSS_ON_FILL_GUARANTEED_LEVEL_RESTRICTION_EXCEEDED" => {
-                Self::StopLossOnFillGuaranteedLevelRestrictionExceeded
-            }
-            "STOP_LOSS_ON_FILL_DISTANCE_INVALID" => Self::StopLossOnFillDistanceInvalid,
-            "STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::StopLossOnFillPriceDistanceMaximumExceeded
-            }
-            "STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED" => {
-                Self::StopLossOnFillDistancePrecisionExceeded
-            }
-            "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED" => {
-                Self::StopLossOnFillPriceAndDistanceBothSpecified
-            }
-            "STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING" => {
-                Self::StopLossOnFillPriceAndDistanceBothMissing
-            }
-            "STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING" => Self::StopLossOnFillTimeInForceMissing,
-            "STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID" => Self::StopLossOnFillTimeInForceInvalid,
-            "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING" => Self::StopLossOnFillGtdTimestampMissing,
-            "STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => Self::StopLossOnFillGtdTimestampInPast,
-            "STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID" => Self::StopLossOnFillClientOrderIdInvalid,
-            "STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID" => {
-                Self::StopLossOnFillClientOrderTagInvalid
-            }
-            "STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID" => {
-                Self::StopLossOnFillClientOrderCommentInvalid
-            }
-            "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING" => {
-                Self::StopLossOnFillTriggerConditionMissing
-            }
-            "STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::StopLossOnFillTriggerConditionInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_ALREADY_EXISTS" => {
-                Self::GuaranteedStopLossOrderAlreadyExists
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_REQUIRED" => Self::GuaranteedStopLossOrderRequired,
-            "GUARANTEED_STOP_LOSS_ORDER_PRICE_WITHIN_SPREAD" => {
-                Self::GuaranteedStopLossOrderPriceWithinSpread
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_NOT_ALLOWED" => Self::GuaranteedStopLossOrderNotAllowed,
-            "GUARANTEED_STOP_LOSS_ORDER_HALTED_CREATE_VIOLATION" => {
-                Self::GuaranteedStopLossOrderHaltedCreateViolation
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_CREATE_VIOLATION" => {
-                Self::GuaranteedStopLossOrderCreateViolation
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_HALTED_TIGHTEN_VIOLATION" => {
-                Self::GuaranteedStopLossOrderHaltedTightenViolation
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_TIGHTEN_VIOLATION" => {
-                Self::GuaranteedStopLossOrderTightenViolation
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_HEDGING_NOT_ALLOWED" => {
-                Self::GuaranteedStopLossOrderHedgingNotAllowed
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::GuaranteedStopLossOrderMinimumDistanceNotMet
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_NOT_CANCELABLE" => {
-                Self::GuaranteedStopLossOrderNotCancelable
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_CANCELABLE" => {
-                Self::GuaranteedStopLossOrderHaltedNotCancelable
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_NOT_REPLACEABLE" => {
-                Self::GuaranteedStopLossOrderNotReplaceable
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_HALTED_NOT_REPLACEABLE" => {
-                Self::GuaranteedStopLossOrderHaltedNotReplaceable
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_VOLUME_EXCEEDED" => {
-                Self::GuaranteedStopLossOrderLevelRestrictionVolumeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED" => {
-                Self::GuaranteedStopLossOrderLevelRestrictionPriceRangeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_SPECIFIED" => {
-                Self::GuaranteedStopLossOrderPriceAndDistanceBothSpecified
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_PRICE_AND_DISTANCE_BOTH_MISSING" => {
-                Self::GuaranteedStopLossOrderPriceAndDistanceBothMissing
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD" => {
-                Self::GuaranteedStopLossOrderWouldViolateFifoViolationSafeguard
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION" => {
-                Self::GuaranteedStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation
-            }
-            "GUARANTEED_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION" => {
-                Self::GuaranteedStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED_FOR_PENDING_ORDER" => {
-                Self::GuaranteedStopLossOnFillRequiredForPendingOrder
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_NOT_ALLOWED" => Self::GuaranteedStopLossOnFillNotAllowed,
-            "GUARANTEED_STOP_LOSS_ON_FILL_REQUIRED" => Self::GuaranteedStopLossOnFillRequired,
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_MISSING" => {
-                Self::GuaranteedStopLossOnFillPriceMissing
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_INVALID" => {
-                Self::GuaranteedStopLossOnFillPriceInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_PRECISION_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillPricePrecisionExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_MINIMUM_DISTANCE_NOT_MET" => {
-                Self::GuaranteedStopLossOnFillMinimumDistanceNotMet
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_VOLUME_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillLevelRestrictionVolumeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_LEVEL_RESTRICTION_PRICE_RANGE_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillLevelRestrictionPriceRangeExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_INVALID" => {
-                Self::GuaranteedStopLossOnFillDistanceInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillPriceDistanceMaximumExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_DISTANCE_PRECISION_EXCEEDED" => {
-                Self::GuaranteedStopLossOnFillDistancePrecisionExceeded
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_SPECIFIED" => {
-                Self::GuaranteedStopLossOnFillPriceAndDistanceBothSpecified
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_PRICE_AND_DISTANCE_BOTH_MISSING" => {
-                Self::GuaranteedStopLossOnFillPriceAndDistanceBothMissing
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING" => {
-                Self::GuaranteedStopLossOnFillTimeInForceMissing
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID" => {
-                Self::GuaranteedStopLossOnFillTimeInForceInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING" => {
-                Self::GuaranteedStopLossOnFillGtdTimestampMissing
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => {
-                Self::GuaranteedStopLossOnFillGtdTimestampInPast
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID" => {
-                Self::GuaranteedStopLossOnFillClientOrderIdInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID" => {
-                Self::GuaranteedStopLossOnFillClientOrderTagInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID" => {
-                Self::GuaranteedStopLossOnFillClientOrderCommentInvalid
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING" => {
-                Self::GuaranteedStopLossOnFillTriggerConditionMissing
-            }
-            "GUARANTEED_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::GuaranteedStopLossOnFillTriggerConditionInvalid
-            }
-            "TRAILING_STOP_LOSS_ORDER_ALREADY_EXISTS" => Self::TrailingStopLossOrderAlreadyExists,
-            "TRAILING_STOP_LOSS_ORDER_WOULD_VIOLATE_FIFO_VIOLATION_SAFEGUARD" => {
-                Self::TrailingStopLossOrderWouldViolateFifoViolationSafeguard
-            }
-            "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_MUTUALLY_EXCLUSIVE_VIOLATION" => {
-                Self::TrailingStopLossOrderRmoMutualExclusivityMutuallyExclusiveViolation
-            }
-            "TRAILING_STOP_LOSS_ORDER_RMO_MUTUAL_EXCLUSIVITY_GSLO_EXCLUDES_OTHERS_VIOLATION" => {
-                Self::TrailingStopLossOrderRmoMutualExclusivityGsloExcludesOthersViolation
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MISSING" => {
-                Self::TrailingStopLossOnFillPriceDistanceMissing
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_INVALID" => {
-                Self::TrailingStopLossOnFillPriceDistanceInvalid
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_PRECISION_EXCEEDED" => {
-                Self::TrailingStopLossOnFillPriceDistancePrecisionExceeded
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MAXIMUM_EXCEEDED" => {
-                Self::TrailingStopLossOnFillPriceDistanceMaximumExceeded
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_PRICE_DISTANCE_MINIMUM_NOT_MET" => {
-                Self::TrailingStopLossOnFillPriceDistanceMinimumNotMet
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_MISSING" => {
-                Self::TrailingStopLossOnFillTimeInForceMissing
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_TIME_IN_FORCE_INVALID" => {
-                Self::TrailingStopLossOnFillTimeInForceInvalid
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_MISSING" => {
-                Self::TrailingStopLossOnFillGtdTimestampMissing
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_GTD_TIMESTAMP_IN_PAST" => {
-                Self::TrailingStopLossOnFillGtdTimestampInPast
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_ID_INVALID" => {
-                Self::TrailingStopLossOnFillClientOrderIdInvalid
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_TAG_INVALID" => {
-                Self::TrailingStopLossOnFillClientOrderTagInvalid
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_CLIENT_ORDER_COMMENT_INVALID" => {
-                Self::TrailingStopLossOnFillClientOrderCommentInvalid
-            }
-            "TRAILING_STOP_LOSS_ORDERS_NOT_SUPPORTED" => Self::TrailingStopLossOrdersNotSupported,
-            "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_MISSING" => {
-                Self::TrailingStopLossOnFillTriggerConditionMissing
-            }
-            "TRAILING_STOP_LOSS_ON_FILL_TRIGGER_CONDITION_INVALID" => {
-                Self::TrailingStopLossOnFillTriggerConditionInvalid
-            }
-            "CLOSE_TRADE_TYPE_MISSING" => Self::CloseTradeTypeMissing,
-            "CLOSE_TRADE_PARTIAL_UNITS_MISSING" => Self::CloseTradePartialUnitsMissing,
-            "CLOSE_TRADE_UNITS_EXCEED_TRADE_SIZE" => Self::CloseTradeUnitsExceedTradeSize,
-            "CLOSEOUT_POSITION_DOESNT_EXIST" => Self::CloseoutPositionDoesntExist,
-            "CLOSEOUT_POSITION_INCOMPLETE_SPECIFICATION" => {
-                Self::CloseoutPositionIncompleteSpecification
-            }
-            "CLOSEOUT_POSITION_UNITS_EXCEED_POSITION_SIZE" => {
-                Self::CloseoutPositionUnitsExceedPositionSize
-            }
-            "CLOSEOUT_POSITION_REJECT" => Self::CloseoutPositionReject,
-            "CLOSEOUT_POSITION_PARTIAL_UNITS_MISSING" => Self::CloseoutPositionPartialUnitsMissing,
-            "MARKUP_GROUP_ID_INVALID" => Self::MarkupGroupIdInvalid,
-            "POSITION_AGGREGATION_MODE_INVALID" => Self::PositionAggregationModeInvalid,
-            "ADMIN_CONFIGURE_DATA_MISSING" => Self::AdminConfigureDataMissing,
-            "MARGIN_RATE_INVALID" => Self::MarginRateInvalid,
-            "MARGIN_RATE_WOULD_TRIGGER_CLOSEOUT" => Self::MarginRateWouldTriggerCloseout,
-            "ALIAS_INVALID" => Self::AliasInvalid,
-            "CLIENT_CONFIGURE_DATA_MISSING" => Self::ClientConfigureDataMissing,
-            "MARGIN_RATE_WOULD_TRIGGER_MARGIN_CALL" => Self::MarginRateWouldTriggerMarginCall,
-            "AMOUNT_INVALID" => Self::AmountInvalid,
-            "INSUFFICIENT_FUNDS" => Self::InsufficientFunds,
-            "AMOUNT_MISSING" => Self::AmountMissing,
-            "FUNDING_REASON_MISSING" => Self::FundingReasonMissing,
-            "OCA_ORDER_IDS_STOP_LOSS_NOT_ALLOWED" => Self::OcaOrderIdsStopLossNotAllowed,
-            "CLIENT_EXTENSIONS_DATA_MISSING" => Self::ClientExtensionsDataMissing,
-            "REPLACING_ORDER_INVALID" => Self::ReplacingOrderInvalid,
-            "REPLACING_TRADE_ID_INVALID" => Self::ReplacingTradeIdInvalid,
-            "ORDER_CANCEL_WOULD_TRIGGER_CLOSEOUT" => Self::OrderCancelWouldTriggerCloseout,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A filter that can be used when fetching Transactions
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum TransactionFilter {
-    /// Order-related Transactions. These are the Transactions that create, cancel, fill or trigger Orders
-    Order,
-    /// Funding-related Transactions
-    Funding,
-    /// Administrative Transactions
-    Admin,
-    /// Account Create Transaction
-    Create,
-    /// Account Close Transaction
-    Close,
-    /// Account Reopen Transaction
-    Reopen,
-    /// Client Configuration Transaction
-    ClientConfigure,
-    /// Client Configuration Reject Transaction
-    ClientConfigureReject,
-    /// Transfer Funds Transaction
-    TransferFunds,
-    /// Transfer Funds Reject Transaction
-    TransferFundsReject,
-    /// Market Order Transaction
-    MarketOrder,
-    /// Market Order Reject Transaction
-    MarketOrderReject,
-    /// Limit Order Transaction
-    LimitOrder,
-    /// Limit Order Reject Transaction
-    LimitOrderReject,
-    /// Stop Order Transaction
-    StopOrder,
-    /// Stop Order Reject Transaction
-    StopOrderReject,
-    /// Market if Touched Order Transaction
-    MarketIfTouchedOrder,
-    /// Market if Touched Order Reject Transaction
-    MarketIfTouchedOrderReject,
-    /// Take Profit Order Transaction
-    TakeProfitOrder,
-    /// Take Profit Order Reject Transaction
-    TakeProfitOrderReject,
-    /// Stop Loss Order Transaction
-    StopLossOrder,
-    /// Stop Loss Order Reject Transaction
-    StopLossOrderReject,
-    /// Guaranteed Stop Loss Order Transaction
-    GuaranteedStopLossOrder,
-    /// Guaranteed Stop Loss Order Reject Transaction
-    GuaranteedStopLossOrderReject,
-    /// Trailing Stop Loss Order Transaction
-    TrailingStopLossOrder,
-    /// Trailing Stop Loss Order Reject Transaction
-    TrailingStopLossOrderReject,
-    /// One Cancels All Order Transaction
-    OneCancelsAllOrder,
-    /// One Cancels All Order Reject Transaction
-    OneCancelsAllOrderReject,
-    /// One Cancels All Order Trigger Transaction
-    OneCancelsAllOrderTriggered,
-    /// Order Fill Transaction
-    OrderFill,
-    /// Order Cancel Transaction
-    OrderCancel,
-    /// Order Cancel Reject Transaction
-    OrderCancelReject,
-    /// Order Client Extensions Modify Transaction
-    OrderClientExtensionsModify,
-    /// Order Client Extensions Modify Reject Transaction
-    OrderClientExtensionsModifyReject,
-    /// Trade Client Extensions Modify Transaction
-    TradeClientExtensionsModify,
-    /// Trade Client Extensions Modify Reject Transaction
-    TradeClientExtensionsModifyReject,
-    /// Margin Call Enter Transaction
-    MarginCallEnter,
-    /// Margin Call Extend Transaction
-    MarginCallExtend,
-    /// Margin Call Exit Transaction
-    MarginCallExit,
-    /// Delayed Trade Closure Transaction
-    DelayedTradeClosure,
-    /// Daily Financing Transaction
-    DailyFinancing,
-    /// Reset Resettable PL Transaction
-    ResetResettablePl,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl TransactionFilter {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Order => "ORDER",
-            Self::Funding => "FUNDING",
-            Self::Admin => "ADMIN",
-            Self::Create => "CREATE",
-            Self::Close => "CLOSE",
-            Self::Reopen => "REOPEN",
-            Self::ClientConfigure => "CLIENT_CONFIGURE",
-            Self::ClientConfigureReject => "CLIENT_CONFIGURE_REJECT",
-            Self::TransferFunds => "TRANSFER_FUNDS",
-            Self::TransferFundsReject => "TRANSFER_FUNDS_REJECT",
-            Self::MarketOrder => "MARKET_ORDER",
-            Self::MarketOrderReject => "MARKET_ORDER_REJECT",
-            Self::LimitOrder => "LIMIT_ORDER",
-            Self::LimitOrderReject => "LIMIT_ORDER_REJECT",
-            Self::StopOrder => "STOP_ORDER",
-            Self::StopOrderReject => "STOP_ORDER_REJECT",
-            Self::MarketIfTouchedOrder => "MARKET_IF_TOUCHED_ORDER",
-            Self::MarketIfTouchedOrderReject => "MARKET_IF_TOUCHED_ORDER_REJECT",
-            Self::TakeProfitOrder => "TAKE_PROFIT_ORDER",
-            Self::TakeProfitOrderReject => "TAKE_PROFIT_ORDER_REJECT",
-            Self::StopLossOrder => "STOP_LOSS_ORDER",
-            Self::StopLossOrderReject => "STOP_LOSS_ORDER_REJECT",
-            Self::GuaranteedStopLossOrder => "GUARANTEED_STOP_LOSS_ORDER",
-            Self::GuaranteedStopLossOrderReject => "GUARANTEED_STOP_LOSS_ORDER_REJECT",
-            Self::TrailingStopLossOrder => "TRAILING_STOP_LOSS_ORDER",
-            Self::TrailingStopLossOrderReject => "TRAILING_STOP_LOSS_ORDER_REJECT",
-            Self::OneCancelsAllOrder => "ONE_CANCELS_ALL_ORDER",
-            Self::OneCancelsAllOrderReject => "ONE_CANCELS_ALL_ORDER_REJECT",
-            Self::OneCancelsAllOrderTriggered => "ONE_CANCELS_ALL_ORDER_TRIGGERED",
-            Self::OrderFill => "ORDER_FILL",
-            Self::OrderCancel => "ORDER_CANCEL",
-            Self::OrderCancelReject => "ORDER_CANCEL_REJECT",
-            Self::OrderClientExtensionsModify => "ORDER_CLIENT_EXTENSIONS_MODIFY",
-            Self::OrderClientExtensionsModifyReject => "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT",
-            Self::TradeClientExtensionsModify => "TRADE_CLIENT_EXTENSIONS_MODIFY",
-            Self::TradeClientExtensionsModifyReject => "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT",
-            Self::MarginCallEnter => "MARGIN_CALL_ENTER",
-            Self::MarginCallExtend => "MARGIN_CALL_EXTEND",
-            Self::MarginCallExit => "MARGIN_CALL_EXIT",
-            Self::DelayedTradeClosure => "DELAYED_TRADE_CLOSURE",
-            Self::DailyFinancing => "DAILY_FINANCING",
-            Self::ResetResettablePl => "RESET_RESETTABLE_PL",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for TransactionFilter {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for TransactionFilter {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "ORDER" => Self::Order,
-            "FUNDING" => Self::Funding,
-            "ADMIN" => Self::Admin,
-            "CREATE" => Self::Create,
-            "CLOSE" => Self::Close,
-            "REOPEN" => Self::Reopen,
-            "CLIENT_CONFIGURE" => Self::ClientConfigure,
-            "CLIENT_CONFIGURE_REJECT" => Self::ClientConfigureReject,
-            "TRANSFER_FUNDS" => Self::TransferFunds,
-            "TRANSFER_FUNDS_REJECT" => Self::TransferFundsReject,
-            "MARKET_ORDER" => Self::MarketOrder,
-            "MARKET_ORDER_REJECT" => Self::MarketOrderReject,
-            "LIMIT_ORDER" => Self::LimitOrder,
-            "LIMIT_ORDER_REJECT" => Self::LimitOrderReject,
-            "STOP_ORDER" => Self::StopOrder,
-            "STOP_ORDER_REJECT" => Self::StopOrderReject,
-            "MARKET_IF_TOUCHED_ORDER" => Self::MarketIfTouchedOrder,
-            "MARKET_IF_TOUCHED_ORDER_REJECT" => Self::MarketIfTouchedOrderReject,
-            "TAKE_PROFIT_ORDER" => Self::TakeProfitOrder,
-            "TAKE_PROFIT_ORDER_REJECT" => Self::TakeProfitOrderReject,
-            "STOP_LOSS_ORDER" => Self::StopLossOrder,
-            "STOP_LOSS_ORDER_REJECT" => Self::StopLossOrderReject,
-            "GUARANTEED_STOP_LOSS_ORDER" => Self::GuaranteedStopLossOrder,
-            "GUARANTEED_STOP_LOSS_ORDER_REJECT" => Self::GuaranteedStopLossOrderReject,
-            "TRAILING_STOP_LOSS_ORDER" => Self::TrailingStopLossOrder,
-            "TRAILING_STOP_LOSS_ORDER_REJECT" => Self::TrailingStopLossOrderReject,
-            "ONE_CANCELS_ALL_ORDER" => Self::OneCancelsAllOrder,
-            "ONE_CANCELS_ALL_ORDER_REJECT" => Self::OneCancelsAllOrderReject,
-            "ONE_CANCELS_ALL_ORDER_TRIGGERED" => Self::OneCancelsAllOrderTriggered,
-            "ORDER_FILL" => Self::OrderFill,
-            "ORDER_CANCEL" => Self::OrderCancel,
-            "ORDER_CANCEL_REJECT" => Self::OrderCancelReject,
-            "ORDER_CLIENT_EXTENSIONS_MODIFY" => Self::OrderClientExtensionsModify,
-            "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT" => Self::OrderClientExtensionsModifyReject,
-            "TRADE_CLIENT_EXTENSIONS_MODIFY" => Self::TradeClientExtensionsModify,
-            "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT" => Self::TradeClientExtensionsModifyReject,
-            "MARGIN_CALL_ENTER" => Self::MarginCallEnter,
-            "MARGIN_CALL_EXTEND" => Self::MarginCallExtend,
-            "MARGIN_CALL_EXIT" => Self::MarginCallExit,
-            "DELAYED_TRADE_CLOSURE" => Self::DelayedTradeClosure,
-            "DAILY_FINANCING" => Self::DailyFinancing,
-            "RESET_RESETTABLE_PL" => Self::ResetResettablePl,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A TransactionHeartbeat object is injected into the Transaction stream to ensure that the HTTP connection
+/// A `TransactionHeartbeat` object is injected into the Transaction stream to ensure that the HTTP connection
 /// remains active.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -6517,7 +4974,223 @@ pub struct TransactionHeartbeat {
         skip_serializing_if = "Option::is_none"
     )]
     pub last_transaction_id: Option<TransactionID>,
-    /// The date/time when the TransactionHeartbeat was created.
+    /// The date/time when the `TransactionHeartbeat` was created.
     #[serde(rename = "time", default, skip_serializing_if = "Option::is_none")]
     pub time: Option<Timestamp>,
+}
+
+// A concrete DTO may omit its documented default, but cannot contradict its own type.
+macro_rules! concrete_type_serializer {
+    ($name:ident, $expected:literal) => {
+        #[expect(
+            clippy::ref_option,
+            reason = "Serde serialize_with passes the optional field by reference"
+        )]
+        fn $name<S: serde::Serializer>(
+            value: &Option<TransactionType>,
+            serializer: S,
+        ) -> Result<S::Ok, S::Error> {
+            if let Some(observed) = value
+                && observed.as_str() != $expected
+            {
+                return Err(serde::ser::Error::custom(format!(
+                    "OANDA type discriminator mismatch: expected {:?}, observed {:?}",
+                    $expected,
+                    observed.as_str()
+                )));
+            }
+            value.serialize(serializer)
+        }
+    };
+}
+concrete_type_serializer!(serialize_create_transaction_type, "CREATE");
+concrete_type_serializer!(serialize_close_transaction_type, "CLOSE");
+concrete_type_serializer!(serialize_reopen_transaction_type, "REOPEN");
+concrete_type_serializer!(
+    serialize_client_configure_transaction_type,
+    "CLIENT_CONFIGURE"
+);
+concrete_type_serializer!(
+    serialize_client_configure_reject_transaction_type,
+    "CLIENT_CONFIGURE_REJECT"
+);
+concrete_type_serializer!(serialize_transfer_funds_transaction_type, "TRANSFER_FUNDS");
+concrete_type_serializer!(
+    serialize_transfer_funds_reject_transaction_type,
+    "TRANSFER_FUNDS_REJECT"
+);
+concrete_type_serializer!(serialize_market_order_transaction_type, "MARKET_ORDER");
+concrete_type_serializer!(
+    serialize_market_order_reject_transaction_type,
+    "MARKET_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_fixed_price_order_transaction_type,
+    "FIXED_PRICE_ORDER"
+);
+concrete_type_serializer!(serialize_limit_order_transaction_type, "LIMIT_ORDER");
+concrete_type_serializer!(
+    serialize_limit_order_reject_transaction_type,
+    "LIMIT_ORDER_REJECT"
+);
+concrete_type_serializer!(serialize_stop_order_transaction_type, "STOP_ORDER");
+concrete_type_serializer!(
+    serialize_stop_order_reject_transaction_type,
+    "STOP_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_market_if_touched_order_transaction_type,
+    "MARKET_IF_TOUCHED_ORDER"
+);
+concrete_type_serializer!(
+    serialize_market_if_touched_order_reject_transaction_type,
+    "MARKET_IF_TOUCHED_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_take_profit_order_transaction_type,
+    "TAKE_PROFIT_ORDER"
+);
+concrete_type_serializer!(
+    serialize_take_profit_order_reject_transaction_type,
+    "TAKE_PROFIT_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_stop_loss_order_transaction_type,
+    "STOP_LOSS_ORDER"
+);
+concrete_type_serializer!(
+    serialize_stop_loss_order_reject_transaction_type,
+    "STOP_LOSS_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_guaranteed_stop_loss_order_transaction_type,
+    "GUARANTEED_STOP_LOSS_ORDER"
+);
+concrete_type_serializer!(
+    serialize_guaranteed_stop_loss_order_reject_transaction_type,
+    "GUARANTEED_STOP_LOSS_ORDER_REJECT"
+);
+concrete_type_serializer!(
+    serialize_trailing_stop_loss_order_transaction_type,
+    "TRAILING_STOP_LOSS_ORDER"
+);
+concrete_type_serializer!(
+    serialize_trailing_stop_loss_order_reject_transaction_type,
+    "TRAILING_STOP_LOSS_ORDER_REJECT"
+);
+concrete_type_serializer!(serialize_order_fill_transaction_type, "ORDER_FILL");
+concrete_type_serializer!(serialize_order_cancel_transaction_type, "ORDER_CANCEL");
+concrete_type_serializer!(
+    serialize_order_cancel_reject_transaction_type,
+    "ORDER_CANCEL_REJECT"
+);
+concrete_type_serializer!(
+    serialize_order_client_extensions_modify_transaction_type,
+    "ORDER_CLIENT_EXTENSIONS_MODIFY"
+);
+concrete_type_serializer!(
+    serialize_order_client_extensions_modify_reject_transaction_type,
+    "ORDER_CLIENT_EXTENSIONS_MODIFY_REJECT"
+);
+concrete_type_serializer!(
+    serialize_trade_client_extensions_modify_transaction_type,
+    "TRADE_CLIENT_EXTENSIONS_MODIFY"
+);
+concrete_type_serializer!(
+    serialize_trade_client_extensions_modify_reject_transaction_type,
+    "TRADE_CLIENT_EXTENSIONS_MODIFY_REJECT"
+);
+concrete_type_serializer!(
+    serialize_margin_call_enter_transaction_type,
+    "MARGIN_CALL_ENTER"
+);
+concrete_type_serializer!(
+    serialize_margin_call_extend_transaction_type,
+    "MARGIN_CALL_EXTEND"
+);
+concrete_type_serializer!(
+    serialize_margin_call_exit_transaction_type,
+    "MARGIN_CALL_EXIT"
+);
+concrete_type_serializer!(
+    serialize_delayed_trade_closure_transaction_type,
+    "DELAYED_TRADE_CLOSURE"
+);
+concrete_type_serializer!(
+    serialize_daily_financing_transaction_type,
+    "DAILY_FINANCING"
+);
+concrete_type_serializer!(
+    serialize_dividend_adjustment_transaction_type,
+    "DIVIDEND_ADJUSTMENT"
+);
+concrete_type_serializer!(
+    serialize_reset_resettable_p_l_transaction_type,
+    "RESET_RESETTABLE_PL"
+);
+
+impl crate::validation::Validate for TakeProfitDetails {
+    fn validate(&self) -> crate::Result<()> {
+        if let Some(time_in_force) = &self.time_in_force {
+            super::order::validate_time_in_force(
+                time_in_force,
+                false,
+                self.gtd_time.as_ref(),
+                false,
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl crate::validation::Validate for StopLossDetails {
+    fn validate(&self) -> crate::Result<()> {
+        if self.price.is_some() && self.distance.is_some() {
+            return Err(crate::Error::InvalidInput(
+                "price and distance are mutually exclusive".into(),
+            ));
+        }
+        if let Some(time_in_force) = &self.time_in_force {
+            super::order::validate_time_in_force(
+                time_in_force,
+                false,
+                self.gtd_time.as_ref(),
+                false,
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl crate::validation::Validate for GuaranteedStopLossDetails {
+    fn validate(&self) -> crate::Result<()> {
+        if self.price.is_some() && self.distance.is_some() {
+            return Err(crate::Error::InvalidInput(
+                "price and distance are mutually exclusive".into(),
+            ));
+        }
+        if let Some(time_in_force) = &self.time_in_force {
+            super::order::validate_time_in_force(
+                time_in_force,
+                false,
+                self.gtd_time.as_ref(),
+                false,
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl crate::validation::Validate for TrailingStopLossDetails {
+    fn validate(&self) -> crate::Result<()> {
+        if let Some(time_in_force) = &self.time_in_force {
+            super::order::validate_time_in_force(
+                time_in_force,
+                false,
+                self.gtd_time.as_ref(),
+                false,
+            )?;
+        }
+        Ok(())
+    }
 }

@@ -65,6 +65,19 @@ pub enum OperationError<R> {
     /// Client-side, transport, decoding, or ambiguous outcome.
     #[error(transparent)]
     Client(#[from] Error),
+    /// A definitive rejection whose body could not be read within local transport limits.
+    ///
+    /// The observed status remains authoritative and the account is not fenced.
+    #[error("OANDA rejected the operation with HTTP {status}; rejection body unreadable: {source}")]
+    RejectedUnreadable {
+        /// Definitive provider rejection status.
+        status: u16,
+        /// Provider request identity observed before the body failed.
+        request_id: Supplied<crate::RequestID>,
+        /// Body transport failure or local size bound.
+        #[source]
+        source: Error,
+    },
     /// A definitive provider rejection.
     #[error(
         "OANDA rejected the operation with HTTP {status}: {}",
@@ -108,6 +121,13 @@ pub enum Error {
     /// Provider rate limited a request.
     #[error("OANDA returned HTTP 429")]
     ProviderRateLimited,
+    /// HTTP 429 proves refusal, but the shared cooldown could not be installed.
+    #[error("OANDA returned HTTP 429; cooldown invariant failed: {source}")]
+    ProviderRateLimitedInvariant {
+        /// The admission invariant failure, retained alongside the definitive status.
+        #[source]
+        source: Box<Error>,
+    },
     /// The provider rejected the request definitively.
     #[error(
         "OANDA returned HTTP {status}: {}",
@@ -125,19 +145,19 @@ pub enum Error {
     #[error("OANDA mutation outcome is ambiguous for account {account}")]
     AmbiguousMutation {
         /// Affected account identifier.
-        account: String,
+        account: crate::AccountID,
     },
     /// This account requires explicit reconciliation before another mutation.
     #[error("OANDA account {account} requires reconciliation")]
     ReconciliationRequired {
         /// Affected account identifier.
-        account: String,
+        account: crate::AccountID,
     },
     /// Another mutation for this account is still in flight.
     #[error("OANDA account {account} has a mutation in flight")]
     MutationInFlight {
         /// Affected account identifier.
-        account: String,
+        account: crate::AccountID,
     },
     /// Transport failed before a response was available.
     #[error("OANDA transport failed: {0}")]

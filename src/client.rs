@@ -3,20 +3,22 @@
 
 //! Client construction and shared HTTP execution policy.
 
+use crate::validation::Validate;
 use crate::{
     AccountID, Admission, ClientRequestID, Environment, Error, GenericRejection, OperationError,
-    Result, Supplied, admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
+    RequestID, Result, Supplied, admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
 };
 use futures_util::StreamExt;
 use reqwest::{Method, StatusCode, Url};
 use serde::{Serialize, de::DeserializeOwned};
+use serde_json::Value;
 use std::{
     collections::HashSet,
     fmt,
-    ops::Deref,
     sync::{Arc, Mutex},
     time::Duration,
 };
+use zeroize::Zeroizing;
 
 const DEFAULT_MAX_BODY: usize = 8 * 1024 * 1024;
 const DEFAULT_COOLDOWN: Duration = Duration::from_secs(1);
@@ -30,20 +32,14 @@ pub struct ApiResponse<T> {
     /// OANDA's `RequestID` response header as supplied evidence: `Absent` when
     /// OANDA sent none, `Decoded` when this client read it, `Undecoded` when it
     /// sent one this client cannot read as text.
-    pub request_id: Supplied<String>,
+    pub request_id: Supplied<RequestID>,
     /// The Link header's next-page URL as supplied evidence: `Absent` when no
     /// next page was offered, `Decoded` when validated, `Undecoded` when OANDA
     /// offered one this client could not read. A readable link that leaves this
-    /// client's API origin is refused with an error instead: it decoded fine
-    /// and was rejected, not lost.
+    /// client's API origin is refused with an error on reads. On a decoded mutation
+    /// success, an unusable link is `Undecoded` so its failure cannot erase the accepted
+    /// body or incorrectly fence the account.
     pub next_page: Supplied<Url>,
-}
-
-impl<T> Deref for ApiResponse<T> {
-    type Target = T;
-    fn deref(&self) -> &Self::Target {
-        &self.body
-    }
 }
 
 /// Shareable OANDA v20 client.
@@ -66,12 +62,12 @@ pub(crate) struct Inner {
     pub stream: Url,
     pub http: reqwest::Client,
     pub stream_http: reqwest::Client,
-    pub token: String,
+    pub token: Zeroizing<String>,
     pub max_body: usize,
     pub datetime_format: AcceptDatetimeFormat,
     pub(crate) admission: Admission,
-    fenced: Mutex<HashSet<String>>,
-    in_flight: Mutex<HashSet<String>>,
+    fenced: Mutex<HashSet<AccountID>>,
+    in_flight: Mutex<HashSet<AccountID>>,
 }
 
 #[derive(Clone, Copy)]
@@ -88,10 +84,55 @@ impl<'a> MutationAdmission<'a> {
     }
 }
 
+/// A prepared request with named admission and evidence parameters.
+pub(crate) struct RequestParts<'a> {
+    method: Method,
+    path: &'a str,
+    query: Option<Value>,
+    body: Option<Value>,
+    mutation: Option<MutationAdmission<'a>>,
+    client_request_id: Option<&'a ClientRequestID>,
+}
+
+impl<'a> RequestParts<'a> {
+    pub(crate) fn new(method: Method, path: &'a str) -> Self {
+        Self {
+            method,
+            path,
+            query: None,
+            body: None,
+            mutation: None,
+            client_request_id: None,
+        }
+    }
+    pub(crate) fn query<Q: Validate + Serialize>(mut self, query: &Q) -> Result<Self> {
+        query.validate()?;
+        self.query = Some(
+            serde_json::to_value(query).map_err(|error| Error::InvalidInput(error.to_string()))?,
+        );
+        Ok(self)
+    }
+    pub(crate) fn body<B: Validate + Serialize>(mut self, body: &B) -> Result<Self> {
+        body.validate()?;
+        self.body = Some(
+            serde_json::to_value(body).map_err(|error| Error::InvalidInput(error.to_string()))?,
+        );
+        Ok(self)
+    }
+    pub(crate) fn mutation(mut self, mutation: MutationAdmission<'a>) -> Self {
+        self.mutation = Some(mutation);
+        self
+    }
+    pub(crate) fn client_request_id(mut self, id: Option<&'a ClientRequestID>) -> Self {
+        self.client_request_id = id;
+        self
+    }
+}
+
 /// Validated client configuration.
 pub struct ClientBuilder {
     environment: Environment,
-    token: String,
+    token: Zeroizing<String>,
     rest_override: Option<Url>,
     stream_override: Option<Url>,
     max_body: usize,
@@ -120,8 +161,8 @@ impl Client {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] when `requests` is at least 120 or the rate
-    /// lock is poisoned. Invalid changes preserve the policy and admission state.
+    /// Returns [`Error::InvalidInput`] when `requests` is at least 120, or
+    /// [`Error::Invariant`] when the rate lock is poisoned. Invalid changes preserve the policy and admission state.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
         self.inner.admission.set_exit_reserve(requests)
     }
@@ -130,7 +171,7 @@ impl Client {
     pub fn builder(environment: Environment, bearer_token: impl Into<String>) -> ClientBuilder {
         ClientBuilder {
             environment,
-            token: bearer_token.into(),
+            token: Zeroizing::new(bearer_token.into()),
             rest_override: None,
             stream_override: None,
             max_body: DEFAULT_MAX_BODY,
@@ -154,99 +195,99 @@ impl Client {
             .inner
             .fenced
             .lock()
-            .map_err(|_| Error::InvalidInput("reconciliation lock poisoned".into()))?;
-        fenced.remove(account.as_str());
+            .map_err(|_| Error::Invariant("reconciliation lock poisoned"))?;
+        fenced.remove(account);
         Ok(())
     }
 
     // Transport success, rejection, and ambiguity handling stay together for auditability.
     #[allow(clippy::too_many_lines)]
-    pub(crate) async fn execute<
-        T: DeserializeOwned,
-        R: DeserializeOwned,
-        Q: Serialize,
-        B: Serialize,
-    >(
+    pub(crate) async fn execute<T: DeserializeOwned, R: DeserializeOwned>(
         &self,
-        method: Method,
-        path: &str,
-        query: Option<&Q>,
-        body: Option<&B>,
-        mutation: Option<MutationAdmission<'_>>,
-        client_request_id: Option<&ClientRequestID>,
+        parts: RequestParts<'_>,
     ) -> std::result::Result<ApiResponse<T>, OperationError<R>> {
-        let mutation_account = mutation.map(MutationAdmission::account);
-        let exit = matches!(mutation, Some(MutationAdmission::Exit(_)));
-        let query_value = query
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(|e| Error::InvalidInput(e.to_string()))?;
-        let body_value = body
-            .map(serde_json::to_value)
-            .transpose()
-            .map_err(|e| Error::InvalidInput(e.to_string()))?;
-        crate::validation::validate(path, query_value.as_ref(), body_value.as_ref())?;
-        self.admit(mutation_account.is_some(), exit).await?;
-        let url = Self::build_url(&self.inner.rest, path, query)?;
+        let mutation_account = parts.mutation.map(MutationAdmission::account);
+        let exit = matches!(parts.mutation, Some(MutationAdmission::Exit(_)));
+        let url = Self::build_url(&self.inner.rest, parts.path, parts.query.as_ref())?;
         let mut request = self
             .inner
             .http
-            .request(method, url)
-            .bearer_auth(&self.inner.token)
+            .request(parts.method, url)
+            .bearer_auth(self.inner.token.as_str())
             .header(
                 "Accept-Datetime-Format",
                 self.inner.datetime_format.as_str(),
             );
-        if let Some(id) = client_request_id {
+        if let Some(id) = parts.client_request_id {
             request = request.header("ClientRequestID", id.as_str());
         }
-        if let Some(body) = body {
-            request = request.json(body);
+        if let Some(body) = parts.body {
+            request = request.json(&body);
         }
+        // Finish fallible request construction before account reservation or admission.
+        let request = request
+            .build()
+            .map_err(|error| Error::InvalidInput(error.to_string()))?;
+        self.admit(mutation_account.is_some(), exit).await?;
         // Reserve the account before the first network await. This prevents two
         // concurrent clones from sending mutations whose outcomes cannot be ordered.
         let mut guard = mutation_account
             .map(|account| MutationGuard::new(self.inner.clone(), account))
             .transpose()?;
-        let response = request.send().await.map_err(|e| match mutation_account {
-            Some(account) => Error::AmbiguousMutation {
-                account: account.to_string(),
-            },
-            None => Error::Transport(e.to_string()),
-        })?;
+        let response =
+            self.inner
+                .http
+                .execute(request)
+                .await
+                .map_err(|e| match mutation_account {
+                    Some(account) => Error::AmbiguousMutation {
+                        account: account.clone(),
+                    },
+                    None => Error::Transport(e.to_string()),
+                })?;
         let status = response.status();
         let request_id = supplied_header(response.headers(), "RequestID");
         let next_page = if status.is_success() {
-            parse_next_page(&self.inner.rest, response.headers()).map_err(|error| {
-                match mutation_account {
-                    Some(account) => Error::AmbiguousMutation {
-                        account: account.to_string(),
-                    },
-                    None => error,
-                }
-            })?
+            parse_next_page(&self.inner.rest, response.headers())
         } else {
-            Supplied::Absent
+            Ok(Supplied::Absent)
         };
         if status == StatusCode::TOO_MANY_REQUESTS {
-            self.install_cooldown(response.headers().get(reqwest::header::RETRY_AFTER));
+            // The status proves refusal even if local cooldown state is inconsistent.
             if let Some(ref mut guard) = guard {
                 guard.disarm();
             }
+            self.install_cooldown(response.headers().get(reqwest::header::RETRY_AFTER))
+                .map_err(|source| Error::ProviderRateLimitedInvariant {
+                    source: Box::new(source),
+                })?;
             return Err(Error::ProviderRateLimited.into());
+        }
+        let definitive_rejection = matches!(status.as_u16(), 400 | 401 | 403 | 404 | 405);
+        if definitive_rejection && let Some(ref mut guard) = guard {
+            guard.disarm();
         }
         let bytes = read_bounded(response, self.inner.max_body)
             .await
-            .map_err(|e| match mutation_account {
-                Some(account) => Error::AmbiguousMutation {
-                    account: account.to_string(),
-                },
-                None => e,
+            .map_err(|error| {
+                if definitive_rejection {
+                    OperationError::RejectedUnreadable {
+                        status: status.as_u16(),
+                        request_id: request_id.clone(),
+                        source: error,
+                    }
+                } else if let Some(account) = mutation_account {
+                    OperationError::Client(Error::AmbiguousMutation {
+                        account: account.clone(),
+                    })
+                } else {
+                    OperationError::Client(error)
+                }
             })?;
         if status.is_success() {
             let value = serde_json::from_slice(&bytes).map_err(|e| match mutation_account {
                 Some(account) => Error::AmbiguousMutation {
-                    account: account.to_string(),
+                    account: account.clone(),
                 },
                 None => Error::Decode(e.to_string()),
             })?;
@@ -256,16 +297,20 @@ impl Client {
             return Ok(ApiResponse {
                 body: value,
                 request_id,
-                next_page,
+                // Pagination does not determine a successfully decoded mutation outcome.
+                // Refuse to expose an unsafe link while preserving the accepted result.
+                next_page: if mutation_account.is_some() {
+                    next_page.unwrap_or(Supplied::Undecoded)
+                } else {
+                    next_page?
+                },
             });
         }
-        if mutation_account.is_some()
-            && (status.is_server_error()
-                || status == StatusCode::REQUEST_TIMEOUT
-                || !matches!(status.as_u16(), 400 | 401 | 403 | 404 | 405))
+        if let Some(account) = mutation_account
+            && !definitive_rejection
         {
             return Err(Error::AmbiguousMutation {
-                account: mutation_account.map_or(String::new(), ToString::to_string),
+                account: account.clone(),
             }
             .into());
         }
@@ -323,19 +368,14 @@ impl Client {
         } else {
             next_page.path().to_owned()
         };
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 
     pub(crate) async fn admit(&self, mutation: bool, exit: bool) -> Result<()> {
         self.inner.admission.admit(mutation, exit).await
     }
 
-    pub(crate) fn build_url<Q: Serialize>(
-        base: &Url,
-        path: &str,
-        query: Option<&Q>,
-    ) -> Result<Url> {
+    pub(crate) fn build_url(base: &Url, path: &str, query: Option<&Value>) -> Result<Url> {
         if !path.starts_with("/v3/") {
             return Err(Error::InvalidInput("path must start with /v3/".into()));
         }
@@ -343,9 +383,7 @@ impl Client {
             .join(path)
             .map_err(|e| Error::InvalidInput(e.to_string()))?;
         if let Some(query) = query {
-            let value =
-                serde_json::to_value(query).map_err(|e| Error::InvalidInput(e.to_string()))?;
-            let object = value
+            let object = query
                 .as_object()
                 .ok_or_else(|| Error::InvalidInput("query must be an object".into()))?;
             let mut pairs = url.query_pairs_mut();
@@ -374,12 +412,12 @@ impl Client {
     /// documented local default applies. A header that is present but unreadable
     /// is an instruction this client failed to read: it takes the maximum local
     /// cooldown, which is local policy and is never attributed to OANDA.
-    fn install_cooldown(&self, retry_after: Option<&reqwest::header::HeaderValue>) {
+    fn install_cooldown(&self, retry_after: Option<&reqwest::header::HeaderValue>) -> Result<()> {
         let cooldown = match retry_after {
             None => DEFAULT_COOLDOWN,
             Some(value) => parse_retry_after(value).unwrap_or(MAX_COOLDOWN),
         };
-        self.inner.admission.install_cooldown(cooldown);
+        self.inner.admission.install_cooldown(cooldown)
     }
 }
 
@@ -573,11 +611,14 @@ fn query_atom(value: &serde_json::Value) -> Result<String> {
 /// A header OANDA did not send, and one it sent with bytes this client cannot
 /// read as text, are different facts; the second must not collapse into the
 /// first.
-fn supplied_header(headers: &reqwest::header::HeaderMap, name: &str) -> Supplied<String> {
+fn supplied_header(headers: &reqwest::header::HeaderMap, name: &str) -> Supplied<RequestID> {
     match headers.get(name) {
         None => Supplied::Absent,
         Some(value) => match value.to_str() {
-            Ok(text) => Supplied::Decoded(text.to_owned()),
+            Ok(text) => match RequestID::new(text) {
+                Ok(id) => Supplied::Decoded(id),
+                Err(_) => Supplied::Undecoded,
+            },
             Err(_) => Supplied::Undecoded,
         },
     }
@@ -691,47 +732,36 @@ impl ProviderError {
 
 struct MutationGuard {
     inner: Arc<Inner>,
-    account: String,
+    account: AccountID,
     armed: bool,
 }
 impl MutationGuard {
     fn new(inner: Arc<Inner>, account: &AccountID) -> Result<Self> {
-        if inner
-            .fenced
-            .lock()
-            .map_err(|_| Error::InvalidInput("reconciliation lock poisoned".into()))?
-            .contains(account.as_str())
-        {
-            return Err(Error::ReconciliationRequired {
-                account: account.to_string(),
-            });
-        }
+        // Check every fallible prerequisite while holding the reservation lock, then insert.
+        // A poisoned fence lock cannot leave a reservation without an owning guard.
         let mut in_flight = inner
             .in_flight
             .lock()
-            .map_err(|_| Error::InvalidInput("mutation lock poisoned".into()))?;
-        if !in_flight.insert(account.to_string()) {
-            return Err(Error::MutationInFlight {
-                account: account.to_string(),
-            });
-        }
-        // The previous guard may have fenced the account between the first
-        // check and this reservation. Recheck while holding the reservation.
+            .map_err(|_| Error::Invariant("mutation lock poisoned"))?;
         if inner
             .fenced
             .lock()
-            .map_err(|_| Error::InvalidInput("reconciliation lock poisoned".into()))?
-            .contains(account.as_str())
+            .map_err(|_| Error::Invariant("reconciliation lock poisoned"))?
+            .contains(account)
         {
-            in_flight.remove(account.as_str());
             return Err(Error::ReconciliationRequired {
-                account: account.to_string(),
+                account: account.clone(),
+            });
+        }
+        if !in_flight.insert(account.clone()) {
+            return Err(Error::MutationInFlight {
+                account: account.clone(),
             });
         }
         drop(in_flight);
         Ok(Self {
             inner,
-            account: account.to_string(),
+            account: account.clone(),
             armed: true,
         })
     }
@@ -918,7 +948,7 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         assert!(
-            fenced.contains(account.as_str()),
+            fenced.contains(&account),
             "the ambiguity must be fenced, not dropped"
         );
         let in_flight = client
@@ -926,7 +956,7 @@ mod tests {
             .in_flight
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        assert!(!in_flight.contains(account.as_str()));
+        assert!(!in_flight.contains(&account));
     }
 
     #[test]
@@ -943,30 +973,31 @@ mod tests {
                 .fenced
                 .lock()
                 .unwrap_or_else(std::sync::PoisonError::into_inner);
-            fenced.insert(account.to_string());
+            fenced.insert(account.clone());
         }
         poison(&client.inner.fenced);
         assert!(matches!(
             client.acknowledge_reconciliation(&account),
-            Err(Error::InvalidInput(_))
+            Err(Error::Invariant(_))
         ));
         let fenced = client
             .inner
             .fenced
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        assert!(fenced.contains(account.as_str()));
+        assert!(fenced.contains(&account));
     }
 
     fn assert_cooldown(header: Option<&str>, expected: Duration) {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());
         let Ok(client) = client else { return };
-        poison(&client.inner.admission.inner.rate);
         let header =
             header.map(|text| reqwest::header::HeaderValue::from_str(text).expect("header"));
         let start = RateInstant::now();
-        client.install_cooldown(header.as_ref());
+        client
+            .install_cooldown(header.as_ref())
+            .expect("install cooldown");
         let rate = client
             .inner
             .admission
@@ -1112,7 +1143,9 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn provider_cooldown_blocks_both_classes_until_exact_expiry() {
         let client = reserved_client();
-        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")));
+        client
+            .install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")))
+            .expect("install cooldown");
         assert!(matches!(
             client.clone().admit(true, false).await,
             Err(Error::RateLimited)
@@ -1138,9 +1171,13 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn a_shorter_provider_cooldown_cannot_release_an_existing_deadline_early() {
         let client = reserved_client();
-        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("5")));
+        client
+            .install_cooldown(Some(&reqwest::header::HeaderValue::from_static("5")))
+            .expect("install cooldown");
         tokio::time::advance(Duration::from_secs(1)).await;
-        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("1")));
+        client
+            .install_cooldown(Some(&reqwest::header::HeaderValue::from_static("1")))
+            .expect("install cooldown");
         tokio::time::advance(Duration::from_secs(1)).await;
         assert!(matches!(
             client.admit(true, true).await,
@@ -1231,7 +1268,9 @@ mod tests {
         for _ in 0..118 {
             client.admit(false, false).await.expect("ordinary slot");
         }
-        client.install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")));
+        client
+            .install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")))
+            .expect("install cooldown");
         for reserve in [119, 0, 2] {
             client.set_exit_reserve(reserve).expect("replace reserve");
             assert!(matches!(
@@ -1319,7 +1358,7 @@ mod tests {
         poison(&client.inner.admission.inner.rate);
         assert!(matches!(
             client.set_exit_reserve(0),
-            Err(Error::InvalidInput(_))
+            Err(Error::Invariant(_))
         ));
         let rate = client
             .inner
@@ -1352,5 +1391,86 @@ mod tests {
             client.admit(true, false).await,
             Err(Error::RateLimited)
         ));
+    }
+    #[test]
+    fn an_unreadable_fence_never_leaves_a_partial_reservation() {
+        let client = Client::builder(Environment::Practice, "fixture")
+            .build()
+            .expect("client");
+        let account = AccountID::new("fixture-account").expect("account");
+        poison(&client.inner.fenced);
+        assert!(matches!(
+            MutationGuard::new(client.inner.clone(), &account),
+            Err(Error::Invariant(_))
+        ));
+        assert!(
+            client
+                .inner
+                .in_flight
+                .lock()
+                .expect("reservation lock")
+                .is_empty()
+        );
+    }
+
+    #[tokio::test]
+    async fn cooldown_failure_preserves_429_without_fencing_or_partial_policy_changes() {
+        use tokio::io::AsyncWriteExt;
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
+            .await
+            .expect("bind");
+        let url = Url::parse(&format!(
+            "http://{}/",
+            listener.local_addr().expect("address")
+        ))
+        .expect("URL");
+        let client = Client::builder(Environment::Practice, "fixture")
+            .endpoints(url.clone(), url)
+            .build()
+            .expect("client");
+        let admission = client.inner.admission.clone();
+        let server = tokio::spawn(async move {
+            let (mut socket, _) = listener.accept().await.expect("accept");
+            crate::test_support::read_request(&mut socket, &mut Vec::new())
+                .await
+                .expect("request");
+            poison(&admission.inner.rate);
+            socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.expect("429");
+        });
+        let account = AccountID::new("fixture-account").expect("account");
+        let result = client
+            .configure_account(
+                &account,
+                &crate::accounts::ConfigureAccountBody {
+                    alias: Some("fixture".into()),
+                    margin_rate: None,
+                },
+            )
+            .await;
+        assert!(
+            matches!(result, Err(OperationError::Client(Error::ProviderRateLimitedInvariant { source })) if matches!(*source, Error::Invariant(_)))
+        );
+        server.await.expect("server");
+        assert!(client.inner.fenced.lock().expect("fence lock").is_empty());
+        assert!(
+            client
+                .inner
+                .in_flight
+                .lock()
+                .expect("reservation lock")
+                .is_empty()
+        );
+        let rate = client
+            .inner
+            .admission
+            .inner
+            .rate
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        assert_eq!(rate.admitted.len(), 1);
+        assert!(
+            rate.cooldown_until.is_none(),
+            "failed installation must preserve policy"
+        );
     }
 }

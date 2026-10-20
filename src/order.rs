@@ -1,18 +1,17 @@
 //! OANDA order endpoint contracts.
-// Shared imports vary by capability; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use crate::Timestamp;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::models::*;
-#[allow(unused_imports)]
-use crate::{Client, Result};
-#[allow(unused_imports)]
+
+use crate::client::RequestParts;
+use crate::ids::{
+    AccountID, ClientRequestID, InstrumentName, OrderID, OrderSpecifier, TransactionID,
+};
+use crate::models::{
+    ClientExtensions, Order, OrderCancelRejectTransaction, OrderCancelTransaction,
+    OrderClientExtensionsModifyRejectTransaction, OrderClientExtensionsModifyTransaction,
+    OrderFillTransaction, OrderRequest, OrderStateFilter, Transaction,
+};
+use crate::validation::Validate;
+use crate::{Client, Error, Result};
 use reqwest::Method;
-#[allow(unused_imports)]
-use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// Request body for `create_order`.
@@ -22,6 +21,15 @@ pub struct CreateOrderBody {
     /// Specification of the Order to create
     #[serde(rename = "order", default, skip_serializing_if = "Option::is_none")]
     pub order: Option<OrderRequest>,
+}
+
+impl Validate for CreateOrderBody {
+    fn validate(&self) -> Result<()> {
+        self.order
+            .as_ref()
+            .ok_or_else(|| Error::InvalidInput("order request is required".into()))?
+            .validate()
+    }
 }
 
 /// Successful response for `create_order`.
@@ -83,7 +91,7 @@ pub struct CreateOrderResponse {
 }
 
 /// Documented rejection fields for `create_order`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CreateOrderRejection {
     /// The Transaction that rejected the creation of the Order as requested
@@ -111,16 +119,19 @@ pub struct CreateOrderRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Create order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn create_order(
         &self,
         account_id: &AccountID,
@@ -132,12 +143,9 @@ impl Client {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/orders");
         self.execute(
-            Method::POST,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Ordinary(account_id)),
-            None,
+            RequestParts::new(Method::POST, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Ordinary(account_id)),
         )
         .await
     }
@@ -168,6 +176,15 @@ pub struct ListOrdersQuery {
     pub before_id: Option<OrderID>,
 }
 
+impl Validate for ListOrdersQuery {
+    fn validate(&self) -> Result<()> {
+        if let Some(ids) = &self.ids {
+            crate::validation::nonempty(ids, "ids")?;
+        }
+        crate::validation::count(self.count, 500)
+    }
+}
+
 /// Successful response for `list_orders`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -186,6 +203,12 @@ pub struct ListOrdersResponse {
 
 impl Client {
     /// List orders.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_orders(
         &self,
         account_id: &AccountID,
@@ -196,8 +219,12 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/orders");
-        self.execute(Method::GET, &path, query, None::<&()>, None, None)
-            .await
+        let request = RequestParts::new(Method::GET, &path);
+        let request = match query {
+            Some(query) => request.query(query)?,
+            None => request,
+        };
+        self.execute(request).await
     }
 }
 
@@ -219,6 +246,12 @@ pub struct ListPendingOrdersResponse {
 
 impl Client {
     /// List pending orders.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn list_pending_orders(
         &self,
         account_id: &AccountID,
@@ -228,8 +261,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/pendingOrders");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -251,6 +283,12 @@ pub struct OrderDetailsResponse {
 
 impl Client {
     /// Order details.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn order_details(
         &self,
         account_id: &AccountID,
@@ -262,8 +300,7 @@ impl Client {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let order_specifier_encoded = crate::client::segment(order_specifier.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/orders/{order_specifier_encoded}");
-        self.execute(Method::GET, &path, None::<&()>, None::<&()>, None, None)
-            .await
+        self.execute(RequestParts::new(Method::GET, &path)).await
     }
 }
 
@@ -274,6 +311,15 @@ pub struct ReplaceOrderBody {
     /// Specification of the replacing Order
     #[serde(rename = "order", default, skip_serializing_if = "Option::is_none")]
     pub order: Option<OrderRequest>,
+}
+
+impl Validate for ReplaceOrderBody {
+    fn validate(&self) -> Result<()> {
+        self.order
+            .as_ref()
+            .ok_or_else(|| Error::InvalidInput("order request is required".into()))?
+            .validate()
+    }
 }
 
 /// Successful response for `replace_order`.
@@ -343,7 +389,7 @@ pub struct ReplaceOrderResponse {
 }
 
 /// Documented rejection fields for `replace_order`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReplaceOrderRejection {
     /// The Transaction that rejected the creation of the replacing Order
@@ -371,12 +417,8 @@ pub struct ReplaceOrderRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
     /// The Transaction that rejected the cancellation of the Order to be replaced. Only present if the Account
     /// exists.
     #[serde(
@@ -389,6 +431,13 @@ pub struct ReplaceOrderRejection {
 
 impl Client {
     /// Replace order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn replace_order(
         &self,
         account_id: &AccountID,
@@ -403,12 +452,10 @@ impl Client {
         let order_specifier_encoded = crate::client::segment(order_specifier.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/orders/{order_specifier_encoded}");
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Ordinary(account_id)),
-            client_request_id,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Ordinary(account_id))
+                .client_request_id(client_request_id),
         )
         .await
     }
@@ -442,7 +489,7 @@ pub struct CancelOrderResponse {
 }
 
 /// Documented rejection fields for `cancel_order`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CancelOrderRejection {
     /// The Transaction that rejected the cancellation of the Order. Only present if the Account exists.
@@ -471,16 +518,19 @@ pub struct CancelOrderRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Cancel order.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn cancel_order(
         &self,
         account_id: &AccountID,
@@ -495,12 +545,9 @@ impl Client {
         let path =
             format!("/v3/accounts/{account_id_encoded}/orders/{order_specifier_encoded}/cancel");
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            None::<&()>,
-            Some(crate::client::MutationAdmission::Exit(account_id)),
-            client_request_id,
+            RequestParts::new(Method::PUT, &path)
+                .mutation(crate::client::MutationAdmission::Exit(account_id))
+                .client_request_id(client_request_id),
         )
         .await
     }
@@ -526,6 +573,17 @@ pub struct UpdateOrderClientExtensionsBody {
         skip_serializing_if = "Option::is_none"
     )]
     pub trade_client_extensions: Option<ClientExtensions>,
+}
+
+impl Validate for UpdateOrderClientExtensionsBody {
+    fn validate(&self) -> Result<()> {
+        if self.client_extensions.is_none() && self.trade_client_extensions.is_none() {
+            return Err(Error::InvalidInput(
+                "mutation body must not be empty".into(),
+            ));
+        }
+        Ok(())
+    }
 }
 
 /// Successful response for `update_order_client_extensions`.
@@ -556,7 +614,7 @@ pub struct UpdateOrderClientExtensionsResponse {
 }
 
 /// Documented rejection fields for `update_order_client_extensions`.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateOrderClientExtensionsRejection {
     /// The Transaction that rejected the modification of the Client Extensions for the Order
@@ -585,16 +643,19 @@ pub struct UpdateOrderClientExtensionsRejection {
     #[serde(rename = "errorCode", default, skip_serializing_if = "Option::is_none")]
     pub error_code: Option<String>,
     /// The human-readable description of the error that has occurred.
-    #[serde(
-        rename = "errorMessage",
-        default,
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub error_message: Option<String>,
+    #[serde(rename = "errorMessage")]
+    pub error_message: String,
 }
 
 impl Client {
     /// Update order client extensions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
+    /// An uncertain sent mutation fences this account until caller-acknowledged reconciliation.
     pub async fn update_order_client_extensions(
         &self,
         account_id: &AccountID,
@@ -610,12 +671,9 @@ impl Client {
             "/v3/accounts/{account_id_encoded}/orders/{order_specifier_encoded}/clientExtensions"
         );
         self.execute(
-            Method::PUT,
-            &path,
-            None::<&()>,
-            Some(body),
-            Some(crate::client::MutationAdmission::Ordinary(account_id)),
-            None,
+            RequestParts::new(Method::PUT, &path)
+                .body(body)?
+                .mutation(crate::client::MutationAdmission::Ordinary(account_id)),
         )
         .await
     }

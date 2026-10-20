@@ -1,14 +1,11 @@
 //! OANDA v20 account definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
+use super::{
+    CalculatedPositionState, CalculatedTradeState, DynamicOrderState, Order, Position,
+    TradeSummary, Transaction,
+};
+use crate::ids::{AccountID, Currency, TransactionID};
 use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// The full details of a client’s Account. This includes full open Trade, open Position and pending Order
@@ -186,7 +183,7 @@ pub struct Account {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
-    /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
+    /// The current `WithdrawalLimit` for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
     #[serde(
         rename = "withdrawalLimit",
@@ -282,7 +279,7 @@ pub struct Account {
     pub last_margin_call_extension_time: Option<Timestamp>,
     /// The date/time of the last order that was filled for this account.
     ///
-    /// Not on the website's definition page; documented by the pinned OpenAPI spec and read by
+    /// Not on the website's definition page; documented by the pinned `OpenAPI` spec and read by
     /// OANDA's own v20 clients. `None` when OANDA does not send it.
     #[serde(
         rename = "lastOrderFillTimestamp",
@@ -308,7 +305,7 @@ pub struct Account {
     pub orders: Option<Vec<Order>>,
 }
 
-/// An AccountState Object is used to represent an Account’s current price-dependent state. Price-dependent
+/// An `AccountState` Object is used to represent an Account’s current price-dependent state. Price-dependent
 /// Account state is dependent on OANDA’s current Prices, and includes things like unrealized PL, NAV and
 /// Trailing Stop Loss Order state. Fields will be omitted if their value has not changed since the
 /// specified transaction ID.
@@ -393,7 +390,7 @@ pub struct AccountChangesState {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
-    /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
+    /// The current `WithdrawalLimit` for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
     #[serde(
         rename = "withdrawalLimit",
@@ -538,101 +535,45 @@ pub struct GuaranteedStopLossOrderParameters {
     pub mutability_market_halted: Option<GuaranteedStopLossOrderMutability>,
 }
 
-/// The overall behaviour of the Account regarding guaranteed Stop Loss Orders.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum GuaranteedStopLossOrderMode {
-    /// The Account is not permitted to create guaranteed Stop Loss Orders.
-    Disabled,
-    /// The Account is able, but not required to have guaranteed Stop Loss Orders for open Trades.
-    Allowed,
-    /// The Account is required to have guaranteed Stop Loss Orders for all open Trades.
-    Required,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl GuaranteedStopLossOrderMode {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Disabled => "DISABLED",
-            Self::Allowed => "ALLOWED",
-            Self::Required => "REQUIRED",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The overall behaviour of the Account regarding guaranteed Stop Loss Orders.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum GuaranteedStopLossOrderMode {
+        /// The Account is not permitted to create guaranteed Stop Loss Orders.
+        Disabled => "DISABLED",
+        /// The Account is able, but not required to have guaranteed Stop Loss Orders for open Trades.
+        Allowed => "ALLOWED",
+        /// The Account is required to have guaranteed Stop Loss Orders for all open Trades.
+        Required => "REQUIRED",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for GuaranteedStopLossOrderMode {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
+provider_enum! {
+    /// For Accounts that support guaranteed Stop Loss Orders, describes the actions that can be performed on
+    /// guaranteed Stop Loss Orders.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum GuaranteedStopLossOrderMutability {
+        /// Once a guaranteed Stop Loss Order has been created it cannot be replaced or cancelled.
+        Fixed => "FIXED",
+        /// An existing guaranteed Stop Loss Order can only be replaced, not cancelled.
+        Replaceable => "REPLACEABLE",
+        /// Once a guaranteed Stop Loss Order has been created it can be either replaced or cancelled.
+        Cancelable => "CANCELABLE",
+        /// An existing guaranteed Stop Loss Order can only be replaced to widen the gap from the current price, not
+        /// cancelled.
+        PriceWidenOnly => "PRICE_WIDEN_ONLY",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl<'de> Deserialize<'de> for GuaranteedStopLossOrderMode {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "DISABLED" => Self::Disabled,
-            "ALLOWED" => Self::Allowed,
-            "REQUIRED" => Self::Required,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// For Accounts that support guaranteed Stop Loss Orders, describes the actions that can be performed on
-/// guaranteed Stop Loss Orders.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum GuaranteedStopLossOrderMutability {
-    /// Once a guaranteed Stop Loss Order has been created it cannot be replaced or cancelled.
-    Fixed,
-    /// An existing guaranteed Stop Loss Order can only be replaced, not cancelled.
-    Replaceable,
-    /// Once a guaranteed Stop Loss Order has been created it can be either replaced or cancelled.
-    Cancelable,
-    /// An existing guaranteed Stop Loss Order can only be replaced to widen the gap from the current price, not
-    /// cancelled.
-    PriceWidenOnly,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl GuaranteedStopLossOrderMutability {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Fixed => "FIXED",
-            Self::Replaceable => "REPLACEABLE",
-            Self::Cancelable => "CANCELABLE",
-            Self::PriceWidenOnly => "PRICE_WIDEN_ONLY",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for GuaranteedStopLossOrderMutability {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for GuaranteedStopLossOrderMutability {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "FIXED" => Self::Fixed,
-            "REPLACEABLE" => Self::Replaceable,
-            "CANCELABLE" => Self::Cancelable,
-            "PRICE_WIDEN_ONLY" => Self::PriceWidenOnly,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// A summary representation of a client’s Account. The AccountSummary does not provide a full specification
+/// A summary representation of a client’s Account. The `AccountSummary` does not provide a full specification
 /// of pending Orders, open Trades and Positions.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -807,7 +748,7 @@ pub struct AccountSummary {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
-    /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
+    /// The current `WithdrawalLimit` for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
     #[serde(
         rename = "withdrawalLimit",
@@ -903,7 +844,7 @@ pub struct AccountSummary {
     pub last_margin_call_extension_time: Option<Timestamp>,
     /// The date/time of the last order that was filled for this account.
     ///
-    /// Not on the website's definition page; documented by the pinned OpenAPI spec and read by
+    /// Not on the website's definition page; documented by the pinned `OpenAPI` spec and read by
     /// OANDA's own v20 clients. `None` when OANDA does not send it.
     #[serde(
         rename = "lastOrderFillTimestamp",
@@ -1076,7 +1017,7 @@ pub struct CalculatedAccountState {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub margin_closeout_position_value: Option<Decimal>,
-    /// The current WithdrawalLimit for the account which will be zero or a positive value indicating how much
+    /// The current `WithdrawalLimit` for the account which will be zero or a positive value indicating how much
     /// can be withdrawn from the account.
     #[serde(
         rename = "withdrawalLimit",
@@ -1104,8 +1045,8 @@ pub struct CalculatedAccountState {
     pub margin_call_percent: Option<Decimal>,
 }
 
-/// An AccountChanges Object is used to represent the changes to an Account’s Orders, Trades and Positions
-/// since a specified Account TransactionID in the past.
+/// An `AccountChanges` Object is used to represent the changes to an Account’s Orders, Trades and Positions
+/// since a specified Account `TransactionID` in the past.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AccountChanges {
@@ -1170,48 +1111,21 @@ pub struct AccountChanges {
     pub transactions: Option<Vec<Transaction>>,
 }
 
-/// The financing mode of an Account
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum AccountFinancingMode {
-    /// No financing is paid/charged for open Trades in the Account
-    NoFinancing,
-    /// Second-by-second financing is paid/charged for open Trades in the Account, both daily and when the the
-    /// Trade is closed
-    SecondBySecond,
-    /// A full day’s worth of financing is paid/charged for open Trades in the Account daily at 5pm New York time
-    Daily,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl AccountFinancingMode {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::NoFinancing => "NO_FINANCING",
-            Self::SecondBySecond => "SECOND_BY_SECOND",
-            Self::Daily => "DAILY",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for AccountFinancingMode {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for AccountFinancingMode {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "NO_FINANCING" => Self::NoFinancing,
-            "SECOND_BY_SECOND" => Self::SecondBySecond,
-            "DAILY" => Self::Daily,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The financing mode of an Account
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum AccountFinancingMode {
+        /// No financing is paid/charged for open Trades in the Account
+        NoFinancing => "NO_FINANCING",
+        /// Second-by-second financing is paid/charged for open Trades in the Account, both daily and when the the
+        /// Trade is closed
+        SecondBySecond => "SECOND_BY_SECOND",
+        /// A full day’s worth of financing is paid/charged for open Trades in the Account daily at 5pm New York time
+        Daily => "DAILY",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
@@ -1257,49 +1171,22 @@ pub struct UserAttributes {
     pub home_currency: Option<Currency>,
 }
 
-/// The way that position values for an Account are calculated and aggregated.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum PositionAggregationMode {
-    /// The Position value or margin for each side (long and short) of the Position are computed independently
-    /// and added together.
-    AbsoluteSum,
-    /// The Position value or margin for each side (long and short) of the Position are computed independently.
-    /// The Position value or margin chosen is the maximal absolute value of the two.
-    MaximalSide,
-    /// The units for each side (long and short) of the Position are netted together and the resulting value
-    /// (long or short) is used to compute the Position value or margin.
-    NetSum,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl PositionAggregationMode {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::AbsoluteSum => "ABSOLUTE_SUM",
-            Self::MaximalSide => "MAXIMAL_SIDE",
-            Self::NetSum => "NET_SUM",
-            Self::Unknown(value) => value,
-        }
-    }
-}
-
-impl Serialize for PositionAggregationMode {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for PositionAggregationMode {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "ABSOLUTE_SUM" => Self::AbsoluteSum,
-            "MAXIMAL_SIDE" => Self::MaximalSide,
-            "NET_SUM" => Self::NetSum,
-            _ => Self::Unknown(value),
-        })
+provider_enum! {
+    /// The way that position values for an Account are calculated and aggregated.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum PositionAggregationMode {
+        /// The Position value or margin for each side (long and short) of the Position are computed independently
+        /// and added together.
+        AbsoluteSum => "ABSOLUTE_SUM",
+        /// The Position value or margin for each side (long and short) of the Position are computed independently.
+        /// The Position value or margin chosen is the maximal absolute value of the two.
+        MaximalSide => "MAXIMAL_SIDE",
+        /// The units for each side (long and short) of the Position are netted together and the resulting value
+        /// (long or short) is used to compute the Position value or margin.
+        NetSum => "NET_SUM",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }

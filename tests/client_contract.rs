@@ -3,7 +3,12 @@
 
 //! Deterministic public-client and loopback transport tests.
 // Assertions and fixture setup intentionally fail fast in tests; production paths return errors.
-#![allow(clippy::expect_used, clippy::unwrap_used, clippy::panic)]
+#![allow(
+    clippy::expect_used,
+    clippy::unwrap_used,
+    clippy::panic,
+    reason = "test setup and assertions fail immediately with fixture context"
+)]
 
 use oanda_client::pricing::{PricingQuery, StreamPricingQuery};
 use oanda_client::trade::SetTradeDependentOrdersBody;
@@ -21,99 +26,7 @@ use tokio::{
 use url::Url;
 
 mod support;
-use support::{fixture_client, http, server};
-
-/// Serve one canned response per connection, returning every request received.
-async fn servers(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<String>>) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("loopback bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let task = tokio::spawn(async move {
-        let mut requests = Vec::new();
-        for response in responses {
-            let (mut socket, _) = listener.accept().await.expect("accept");
-            let mut bytes = Vec::new();
-            let mut buf = [0_u8; 4096];
-            loop {
-                let read = socket.read(&mut buf).await.expect("read");
-                if read == 0 {
-                    break;
-                }
-                bytes.extend_from_slice(&buf[..read]);
-                if let Some(header_end) = bytes.windows(4).position(|w| w == b"\r\n\r\n") {
-                    let header_end = header_end + 4;
-                    let header = String::from_utf8_lossy(&bytes[..header_end]);
-                    let length = header
-                        .lines()
-                        .find_map(|l| {
-                            l.strip_prefix("content-length: ")
-                                .or_else(|| l.strip_prefix("Content-Length: "))
-                        })
-                        .and_then(|v| v.trim().parse::<usize>().ok())
-                        .unwrap_or(0);
-                    if bytes.len() >= header_end + length {
-                        break;
-                    }
-                }
-            }
-            socket.write_all(&response).await.expect("write");
-            socket.flush().await.expect("flush");
-            requests.push(String::from_utf8_lossy(&bytes).into_owned());
-        }
-        requests
-    });
-    (url, task)
-}
-
-async fn keepalive_server(responses: Vec<Vec<u8>>) -> (Url, tokio::task::JoinHandle<Vec<String>>) {
-    let listener = TcpListener::bind("127.0.0.1:0")
-        .await
-        .expect("loopback bind");
-    let url = Url::parse(&format!(
-        "http://{}/",
-        listener.local_addr().expect("address")
-    ))
-    .expect("URL");
-    let task = tokio::spawn(async move {
-        let (mut socket, _) = listener.accept().await.expect("accept");
-        let mut requests = Vec::new();
-        let mut pending = Vec::new();
-        for response in responses {
-            let end = loop {
-                if let Some(end) = pending.windows(4).position(|w| w == b"\r\n\r\n") {
-                    let header_end = end + 4;
-                    let header = String::from_utf8_lossy(&pending[..header_end]);
-                    let length = header
-                        .lines()
-                        .find_map(|line| {
-                            line.strip_prefix("content-length: ")
-                                .or_else(|| line.strip_prefix("Content-Length: "))
-                        })
-                        .and_then(|value| value.trim().parse::<usize>().ok())
-                        .unwrap_or(0);
-                    if pending.len() >= header_end + length {
-                        break header_end + length;
-                    }
-                }
-                let mut buffer = [0_u8; 4096];
-                let read = socket.read(&mut buffer).await.expect("read");
-                assert!(read > 0, "request closed before response");
-                pending.extend_from_slice(&buffer[..read]);
-            };
-            requests.push(String::from_utf8_lossy(&pending[..end]).into_owned());
-            pending.drain(..end);
-            socket.write_all(&response).await.expect("write");
-            socket.flush().await.expect("flush");
-        }
-        requests
-    });
-    (url, task)
-}
+use support::{fixture_client, http, keepalive_server, server, servers};
 
 fn http_json(status: &str, value: &str) -> Vec<u8> {
     http(status, "application/json", value)
@@ -152,15 +65,15 @@ async fn pricing_query_uses_csv_and_exact_decimal() {
     };
     let response = client.pricing(&account, &query).await.expect("pricing");
     assert_eq!(
-        response.prices[0].closeout_bid,
+        response.body.prices[0].closeout_bid,
         Some(Decimal::from_str("1.000000000000000001").expect("decimal"))
     );
     assert_eq!(
-        response.prices[0].bids.as_ref().expect("bids")[0].liquidity,
+        response.body.prices[0].bids.as_ref().expect("bids")[0].liquidity,
         Some(Decimal::from(500_000))
     );
     assert_eq!(
-        response.prices[0].asks.as_ref().expect("asks")[0].liquidity,
+        response.body.prices[0].asks.as_ref().expect("asks")[0].liquidity,
         Some(Decimal::from_str("0.1234567890123456789012345678").expect("decimal"))
     );
     let request = task.await.expect("server");
@@ -347,10 +260,11 @@ async fn pagination_link_follows_only_same_origin() {
         let mut paths = Vec::new();
         for index in 0..2 {
             let (mut socket, _) = listener.accept().await.expect("accept");
-            let mut bytes = [0_u8; 4096];
-            let read = socket.read(&mut bytes).await.expect("read");
+            let bytes = support::read_request(&mut socket, &mut Vec::new())
+                .await
+                .expect("request");
             paths.push(
-                String::from_utf8_lossy(&bytes[..read])
+                String::from_utf8_lossy(&bytes)
                     .lines()
                     .next()
                     .expect("line")
@@ -481,7 +395,10 @@ async fn a_link_header_offering_no_next_page_is_absent() {
     let (url, task) = server(response).await;
     let client = fixture_client(url);
     let page = client.list_accounts().await.expect("request succeeds");
-    assert_eq!(page.request_id, Supplied::Decoded("42".to_owned()));
+    assert_eq!(
+        page.request_id,
+        Supplied::Decoded(oanda_client::RequestID::new("42").expect("request id"))
+    );
     assert!(page.next_page.is_absent());
     task.await.expect("server");
 }
@@ -801,11 +718,7 @@ async fn an_unreadable_stream_rejection_reports_no_reason() {
 #[tokio::test(start_paused = true)]
 async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_available() {
     // Keep paused time stationary while loopback I/O completes.
-    let stationary = tokio::spawn(async {
-        loop {
-            tokio::task::yield_now().await;
-        }
-    });
+    let stationary = support::keep_clock_frozen();
 
     let mut responses = vec![http_json_keepalive("200 OK", r#"{"accounts":[]}"#); 3];
     responses.extend(vec![
@@ -841,11 +754,11 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
         let trade = oanda_client::TradeSpecifier::new("fixture-trade").expect("trade");
         let instrument = InstrumentName::new("EUR_USD").expect("instrument");
         let trade_body = oanda_client::trades::CloseTradeBody {
-            units: Some("ALL".into()),
+            units: Some(oanda_client::TradeCloseoutUnits::All),
         };
         let position_body = oanda_client::positions::ClosePositionBody {
-            long_units: Some("ALL".into()),
-            short_units: Some("ALL".into()),
+            long_units: Some(oanda_client::PositionCloseoutUnits::All),
+            short_units: Some(oanda_client::PositionCloseoutUnits::All),
             long_client_extensions: None,
             short_client_extensions: None,
         };
@@ -893,11 +806,7 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
 #[tokio::test(start_paused = true)]
 async fn reserved_cancel_429_installs_shared_cooldown_without_a_second_send() {
     // Keep paused time stationary while loopback I/O completes.
-    let stationary = tokio::spawn(async {
-        loop {
-            tokio::task::yield_now().await;
-        }
-    });
+    let stationary = support::keep_clock_frozen();
 
     let (url, server) = server(http_json(
         "429 Too Many Requests",
@@ -1013,11 +922,7 @@ async fn reserved_cancel_timeout_is_ambiguous_and_fences_further_exit_attempts()
 
 #[tokio::test(start_paused = true)]
 async fn stream_starts_without_rest_capacity_and_runtime_release_wakes_a_read() {
-    let stationary = tokio::spawn(async {
-        loop {
-            tokio::task::yield_now().await;
-        }
-    });
+    let stationary = support::keep_clock_frozen();
     let (rest, rest_server) =
         keepalive_server(vec![http_json_keepalive("200 OK", r#"{"accounts":[]}"#); 2]).await;
     let (stream, stream_server) = servers(vec![http_json("200 OK", "")]).await;
@@ -1044,6 +949,7 @@ async fn stream_starts_without_rest_capacity_and_runtime_release_wakes_a_read() 
     let read = read.await;
     assert!(
         read.expect("read after release")
+            .body
             .accounts
             .as_ref()
             .expect("accounts evidence")

@@ -1,14 +1,8 @@
 //! OANDA v20 pricing definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
+use super::{PriceBucket, UnitsAvailable};
+use crate::ids::{Currency, InstrumentName};
 use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// The specification of an Account-specific Price.
@@ -16,6 +10,8 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "camelCase")]
 pub struct ClientPrice {
     /// The string “PRICE”. Used to identify the a Price object when found in a stream.
+    /// This optional wire field preserves provider evidence. Stream consumers use
+    /// [`crate::PriceStreamEvent`] for typed event dispatch.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     /// The Price’s Instrument.
@@ -80,51 +76,24 @@ pub struct ClientPrice {
     pub units_available: Option<UnitsAvailable>,
 }
 
-/// The status of the Price.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[non_exhaustive]
-pub enum PriceStatus {
-    /// The Instrument’s price is tradeable.
-    Tradeable,
-    /// The Instrument’s price is not tradeable.
-    NonTradeable,
-    /// The Instrument of the price is invalid or there is no valid Price for the Instrument.
-    Invalid,
-    /// An unrecognized provider value, preserved for forward compatibility.
-    Unknown(String),
-}
-
-impl PriceStatus {
-    /// Return the exact provider spelling.
-    pub fn as_str(&self) -> &str {
-        match self {
-            Self::Tradeable => "tradeable",
-            Self::NonTradeable => "non-tradeable",
-            Self::Invalid => "invalid",
-            Self::Unknown(value) => value,
-        }
+provider_enum! {
+    /// The status of the Price.
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    #[non_exhaustive]
+    pub enum PriceStatus {
+        /// The Instrument’s price is tradeable.
+        Tradeable => "tradeable",
+        /// The Instrument’s price is not tradeable.
+        NonTradeable => "non-tradeable",
+        /// The Instrument of the price is invalid or there is no valid Price for the Instrument.
+        Invalid => "invalid",
+        ;
+        /// An unrecognized provider value, preserved for forward compatibility.
+        Unknown(String),
     }
 }
 
-impl Serialize for PriceStatus {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serializer.serialize_str(self.as_str())
-    }
-}
-
-impl<'de> Deserialize<'de> for PriceStatus {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        let value = String::deserialize(deserializer)?;
-        Ok(match value.as_str() {
-            "tradeable" => Self::Tradeable,
-            "non-tradeable" => Self::NonTradeable,
-            "invalid" => Self::Invalid,
-            _ => Self::Unknown(value),
-        })
-    }
-}
-
-/// QuoteHomeConversionFactors represents the factors that can be used to convert quantities of a Price’s
+/// `QuoteHomeConversionFactors` represents the factors that can be used to convert quantities of a Price’s
 /// Instrument’s quote currency into the Account’s home currency.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -151,7 +120,7 @@ pub struct QuoteHomeConversionFactors {
     pub negative_units: Option<Decimal>,
 }
 
-/// HomeConversions represents the factors to use to convert quantities of a given currency into the
+/// `HomeConversions` represents the factors to use to convert quantities of a given currency into the
 /// Account’s home currency. The conversion factor depends on the scenario the conversion is required for.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -190,12 +159,14 @@ pub struct HomeConversions {
     pub position_value: Option<Decimal>,
 }
 
-/// A PricingHeartbeat object is injected into the Pricing stream to ensure that the HTTP connection remains
+/// A `PricingHeartbeat` object is injected into the Pricing stream to ensure that the HTTP connection remains
 /// active.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PricingHeartbeat {
     /// The string “HEARTBEAT”
+    /// This optional wire field preserves provider evidence; use
+    /// [`crate::PriceStreamEvent`] for typed stream dispatch.
     #[serde(rename = "type", default, skip_serializing_if = "Option::is_none")]
     pub r#type: Option<String>,
     /// The date/time when the Heartbeat was created.

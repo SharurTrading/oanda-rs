@@ -1,14 +1,6 @@
 //! OANDA v20 position definitions.
-// Shared imports vary by definition family; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use super::*;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::timestamp::Timestamp;
-#[allow(unused_imports)]
+use crate::ids::{InstrumentName, TradeID};
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// The specification of a Position within an Account.
@@ -107,11 +99,11 @@ pub struct PositionSide {
     /// List of the open Trade IDs which contribute to the open Position.
     #[serde(rename = "tradeIDs", default, skip_serializing_if = "Option::is_none")]
     pub trade_ids: Option<Vec<TradeID>>,
-    /// Profit/loss realized by the PositionSide over the lifetime of the Account.
+    /// Profit/loss realized by the `PositionSide` over the lifetime of the Account.
     #[serde(rename = "pl", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub pl: Option<Decimal>,
-    /// The unrealized profit/loss of all open Trades that contribute to this PositionSide.
+    /// The unrealized profit/loss of all open Trades that contribute to this `PositionSide`.
     #[serde(
         rename = "unrealizedPL",
         default,
@@ -119,7 +111,7 @@ pub struct PositionSide {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub unrealized_pl: Option<Decimal>,
-    /// Profit/loss realized by the PositionSide since the Account’s resettablePL was last reset by the client.
+    /// Profit/loss realized by the `PositionSide` since the Account’s resettablePL was last reset by the client.
     #[serde(
         rename = "resettablePL",
         default,
@@ -127,11 +119,11 @@ pub struct PositionSide {
     )]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub resettable_pl: Option<Decimal>,
-    /// The total amount of financing paid/collected for this PositionSide over the lifetime of the Account.
+    /// The total amount of financing paid/collected for this `PositionSide` over the lifetime of the Account.
     #[serde(rename = "financing", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub financing: Option<Decimal>,
-    /// The total amount of dividend adjustment paid for the PositionSide over the lifetime of the Account.
+    /// The total amount of dividend adjustment paid for the `PositionSide` over the lifetime of the Account.
     #[serde(
         rename = "dividendAdjustment",
         default,
@@ -140,7 +132,7 @@ pub struct PositionSide {
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub dividend_adjustment: Option<Decimal>,
     /// The total amount of fees charged over the lifetime of the Account for the execution of guaranteed Stop
-    /// Loss Orders attached to Trades for this PositionSide.
+    /// Loss Orders attached to Trades for this `PositionSide`.
     #[serde(
         rename = "guaranteedExecutionFees",
         default,

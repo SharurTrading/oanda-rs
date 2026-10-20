@@ -1,18 +1,15 @@
 //! OANDA pricing endpoint contracts.
-// Shared imports vary by capability; unused ones are deliberately allowed.
-#[allow(unused_imports)]
-use crate::Timestamp;
-#[allow(unused_imports)]
-use crate::ids::*;
-#[allow(unused_imports)]
-use crate::models::*;
-#[allow(unused_imports)]
-use crate::{Client, Result};
-#[allow(unused_imports)]
+
+use crate::client::RequestParts;
+use crate::ids::{AccountID, CandleSpecification, InstrumentName, PricingComponent};
+use crate::models::{
+    Candlestick, CandlestickGranularity, CandlestickResponse, ClientPrice, HomeConversions,
+    WeeklyAlignment,
+};
+use crate::validation::Validate;
+use crate::{Client, Error, Result, Timestamp};
 use reqwest::Method;
-#[allow(unused_imports)]
 use rust_decimal::Decimal;
-#[allow(unused_imports)]
 use serde::{Deserialize, Serialize};
 
 /// Query parameters for `latest_candles`.
@@ -42,7 +39,7 @@ pub struct LatestCandlesQuery {
     pub daily_alignment: Option<i64>,
     /// The timezone to use for the dailyAlignment parameter. Candlesticks with daily alignment will be aligned
     /// to the dailyAlignment hour within the alignmentTimezone. Note that the returned times will still be
-    /// represented in UTC. \[default=America/New_York\]
+    /// represented in UTC. \[`default=America/New_York`\]
     #[serde(
         rename = "alignmentTimezone",
         default,
@@ -56,6 +53,27 @@ pub struct LatestCandlesQuery {
         skip_serializing_if = "Option::is_none"
     )]
     pub weekly_alignment: Option<WeeklyAlignment>,
+}
+
+impl Validate for LatestCandlesQuery {
+    fn validate(&self) -> Result<()> {
+        crate::validation::nonempty(&self.candle_specifications, "candleSpecifications")?;
+        for specification in &self.candle_specifications {
+            let mut parts = specification.as_str().split(':');
+            let valid = match (parts.next(), parts.next(), parts.next(), parts.next()) {
+                (Some(instrument), Some(granularity), Some(components), None) => {
+                    valid_instrument(instrument)
+                        && !granularity.is_empty()
+                        && valid_components(components)
+                }
+                _ => false,
+            };
+            if !valid {
+                return Err(Error::InvalidInput("invalid candle specification".into()));
+            }
+        }
+        crate::validation::daily_alignment(self.daily_alignment)
+    }
 }
 
 /// Successful response for `latest_candles`.
@@ -73,6 +91,12 @@ pub struct LatestCandlesResponse {
 
 impl Client {
     /// Latest candles.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn latest_candles(
         &self,
         account_id: &AccountID,
@@ -83,7 +107,7 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/candles/latest");
-        self.execute(Method::GET, &path, Some(query), None::<&()>, None, None)
+        self.execute(RequestParts::new(Method::GET, &path).query(query)?)
             .await
     }
 }
@@ -119,6 +143,12 @@ pub struct PricingQuery {
     pub include_home_conversions: Option<bool>,
 }
 
+impl Validate for PricingQuery {
+    fn validate(&self) -> Result<()> {
+        crate::validation::nonempty(&self.instruments, "instruments")
+    }
+}
+
 /// Successful response for `pricing`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -134,13 +164,19 @@ pub struct PricingResponse {
         skip_serializing_if = "Option::is_none"
     )]
     pub home_conversions: Option<Vec<HomeConversions>>,
-    /// The DateTime value to use for the “since” parameter in the next poll request.
+    /// The `DateTime` value to use for the “since” parameter in the next poll request.
     #[serde(rename = "time", default, skip_serializing_if = "Option::is_none")]
     pub time: Option<Timestamp>,
 }
 
 impl Client {
     /// Pricing.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn pricing(
         &self,
         account_id: &AccountID,
@@ -151,12 +187,12 @@ impl Client {
     > {
         let account_id_encoded = crate::client::segment(account_id.as_str());
         let path = format!("/v3/accounts/{account_id_encoded}/pricing");
-        self.execute(Method::GET, &path, Some(query), None::<&()>, None, None)
+        self.execute(RequestParts::new(Method::GET, &path).query(query)?)
             .await
     }
 }
 
-/// stream_pricing stream query parameters.
+/// `stream_pricing` stream query parameters.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StreamPricingQuery {
@@ -178,7 +214,15 @@ pub struct StreamPricingQuery {
     pub include_home_conversions: Option<bool>,
 }
 
+impl Validate for StreamPricingQuery {
+    fn validate(&self) -> Result<()> {
+        crate::validation::nonempty(&self.instruments, "instruments")
+    }
+}
+
 /// Query parameters for `instrument_candles`.
+///
+/// The default uses the provider’s candle range, granularity, and alignment.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct InstrumentCandlesQuery {
@@ -227,7 +271,7 @@ pub struct InstrumentCandlesQuery {
     pub daily_alignment: Option<i64>,
     /// The timezone to use for the dailyAlignment parameter. Candlesticks with daily alignment will be aligned
     /// to the dailyAlignment hour within the alignmentTimezone. Note that the returned times will still be
-    /// represented in UTC. \[default=America/New_York\]
+    /// represented in UTC. \[`default=America/New_York`\]
     #[serde(
         rename = "alignmentTimezone",
         default,
@@ -246,6 +290,20 @@ pub struct InstrumentCandlesQuery {
     #[serde(rename = "units", default, skip_serializing_if = "Option::is_none")]
     #[serde(deserialize_with = "crate::decimal_wire::optional_number_or_string")]
     pub units: Option<Decimal>,
+}
+
+impl Validate for InstrumentCandlesQuery {
+    fn validate(&self) -> Result<()> {
+        if self
+            .price
+            .as_ref()
+            .is_some_and(|price| !valid_components(price.as_str()))
+        {
+            return Err(Error::InvalidInput("invalid pricing component".into()));
+        }
+        crate::validation::count(self.count, 5000)?;
+        crate::validation::daily_alignment(self.daily_alignment)
+    }
 }
 
 /// Successful response for `instrument_candles`.
@@ -273,6 +331,12 @@ pub struct InstrumentCandlesResponse {
 
 impl Client {
     /// Instrument candles.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::OperationError::Client`] for invalid input, admission, transport, or
+    /// malformed response failures. Provider refusals return [`crate::OperationError::Rejected`]
+    /// or [`crate::OperationError::RejectedUnreadable`] when the rejection body cannot be read.
     pub async fn instrument_candles(
         &self,
         account_id: &AccountID,
@@ -286,7 +350,34 @@ impl Client {
         let instrument_encoded = crate::client::segment(instrument.as_str());
         let path =
             format!("/v3/accounts/{account_id_encoded}/instruments/{instrument_encoded}/candles");
-        self.execute(Method::GET, &path, query, None::<&()>, None, None)
-            .await
+        let request = RequestParts::new(Method::GET, &path);
+        let request = match query {
+            Some(query) => request.query(query)?,
+            None => request,
+        };
+        self.execute(request).await
     }
+}
+
+fn valid_instrument(text: &str) -> bool {
+    let Some((base, quote)) = text.split_once('_') else {
+        return false;
+    };
+    !base.is_empty()
+        && !quote.is_empty()
+        && base
+            .bytes()
+            .chain(quote.bytes())
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit())
+}
+
+fn valid_components(text: &str) -> bool {
+    !text.is_empty()
+        && text.len() <= 3
+        && text.bytes().all(|byte| matches!(byte, b'B' | b'A' | b'M'))
+        && text
+            .as_bytes()
+            .iter()
+            .enumerate()
+            .all(|(index, byte)| !text.as_bytes()[..index].contains(byte))
 }

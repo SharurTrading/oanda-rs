@@ -1,6 +1,6 @@
 # Security
 
-Inject OANDA bearer tokens from the calling application. This library does not load environment files or persist credentials. `Client` and `ClientBuilder` redact tokens in `Debug`; do not log request headers, complete URLs with sensitive query data, or account payloads.
+Inject OANDA bearer tokens from the calling application. This library does not load environment files or persist credentials. `Client` and `ClientBuilder` redact tokens in `Debug` and zeroize their owned token string on drop. Caller and HTTP transport copies have their own lifetimes; this is not a process-wide erasure guarantee. do not log request headers, complete URLs with sensitive query data, or account payloads.
 
 Practice and Live use their paired OANDA HTTPS hosts. Endpoint overrides are limited to loopback fixtures. Keep practice credentials separate from live credentials.
 

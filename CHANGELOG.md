@@ -8,10 +8,11 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
-## Unreleased — next major
+## [3.0.0] - 2026-10-20
 
-The changes below require a major release. The package version remains 2.0.0 until a
-separate reviewed release change runs the release gate; this section is not a release.
+This major release contains source-breaking API corrections from the Rust idioms audit.
+See the [2.x upgrade guide](https://github.com/SharurTrading/oanda-rs#upgrading-from-2x)
+for downstream changes.
 
 - Breaking: the nine endpoint rejection DTOs require `error_message: String` and no longer
   implement `Default`. A nonempty rejection body missing that documented required field is
@@ -114,3 +115,5 @@ separate reviewed release change runs the release gate; this section is not a re
   ServerHello key-share prediction can downgrade later resumed connections to classical key
   exchange). Lockfile-only: the published crate never pins transitive versions, so consumers
   resolve the fixed rustls through their own lockfiles.
+
+[3.0.0]: https://github.com/SharurTrading/oanda-rs/compare/v2.0.0...v3.0.0

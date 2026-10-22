@@ -39,6 +39,13 @@ This repository contains the standalone `oanda-client` library. Rules have stabl
 
 ## Development
 
+- **STYLE-MOD-DECLS** — `mod.rs` contains only the copyright header, module
+  documentation and attributes, out-of-line module declarations, and re-exports.
+  Type definitions, functions, `impl` blocks, constants, statics, macro definitions
+  and test bodies belong in focused sibling files. Enforce this for new modules
+  and `mod.rs` files changed by the task; do not launch an unrelated repository-wide
+  cleanup. If you touch a mod that has not enforced this yet, it is your duty to
+  enforce it at the time of implementation.
 - **OA-TEST-01:** Normal CI is deterministic and credential-free. Optional live tests are ignored, explicitly armed, Practice-only, and read-only.
 - **OA-DOC-01:** Document public APIs and non-obvious venue behavior. Keep the coverage ledger, changelog, README, and code in sync.
 - **OA-IDIOMS-01:** New and changed Rust code follows the

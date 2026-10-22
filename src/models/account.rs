@@ -1,4 +1,5 @@
 //! OANDA v20 account definitions.
+use super::provider_enum::provider_enum;
 use super::{
     CalculatedPositionState, CalculatedTradeState, DynamicOrderState, Order, Position,
     TradeSummary, Transaction,

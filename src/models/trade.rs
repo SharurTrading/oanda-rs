@@ -1,4 +1,5 @@
 //! OANDA v20 trade definitions.
+use super::provider_enum::provider_enum;
 use super::{ClientExtensions, StopLossOrder, TakeProfitOrder, TrailingStopLossOrder};
 use crate::ids::{InstrumentName, OrderID, TradeID, TransactionID};
 use crate::timestamp::Timestamp;

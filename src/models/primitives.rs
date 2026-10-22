@@ -1,7 +1,15 @@
 //! OANDA v20 primitives definitions.
+use super::provider_enum::provider_enum;
 use crate::ids::InstrumentName;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+
+/// Exact OANDA decimal number.
+pub type DecimalNumber = Decimal;
+/// Exact account-currency units.
+pub type AccountUnits = Decimal;
+/// Exact provider price.
+pub type PriceValue = Decimal;
 
 /// A tag associated with an entity.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

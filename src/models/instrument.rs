@@ -1,4 +1,5 @@
 //! OANDA v20 instrument definitions.
+use super::provider_enum::provider_enum;
 use crate::ids::InstrumentName;
 use crate::timestamp::Timestamp;
 use rust_decimal::Decimal;

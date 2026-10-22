@@ -1,4 +1,5 @@
 //! OANDA v20 order definitions.
+use super::provider_enum::provider_enum;
 use super::{
     ClientExtensions, GuaranteedStopLossDetails, GuaranteedStopLossOrderLevelRestriction,
     MarketOrderDelayedTradeClose, MarketOrderMarginCloseout, MarketOrderPositionCloseout,

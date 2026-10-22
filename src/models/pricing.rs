@@ -1,4 +1,5 @@
 //! OANDA v20 pricing definitions.
+use super::provider_enum::provider_enum;
 use super::{PriceBucket, UnitsAvailable};
 use crate::ids::{Currency, InstrumentName};
 use crate::timestamp::Timestamp;

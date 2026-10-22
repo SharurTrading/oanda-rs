@@ -1,4 +1,5 @@
 //! OANDA v20 transaction definitions.
+use super::provider_enum::provider_enum;
 use super::{
     AccountFinancingMode, ClientPrice, HomeConversionFactors, OrderPositionFill,
     OrderTriggerCondition, TimeInForce, TradeState,

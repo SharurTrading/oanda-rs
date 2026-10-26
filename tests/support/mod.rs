@@ -32,4 +32,4 @@ pub use loopback::{
     counting_rest_loopback, loopback, rate_limit_loopback, serve_socket, stall_first_loopback,
 };
 pub use server::{http, keepalive_server, read_request, server, servers};
-pub use stream::{HeldStream, held_stream};
+pub use stream::{HeldStream, ParkedOpen, held_stream, parked_open};

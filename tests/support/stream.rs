@@ -47,3 +47,42 @@ pub async fn held_stream(prefix: &[u8]) -> HeldStream {
     });
     HeldStream { url, closed }
 }
+
+/// A server that reads one request, never answers it, and reports when the client closes.
+pub struct ParkedOpen {
+    /// Its loopback endpoint.
+    pub url: Url,
+    /// Resolves once the complete request has arrived.
+    pub received: tokio::sync::oneshot::Receiver<()>,
+    /// Resolves once the client closes the parked connection.
+    pub closed: tokio::task::JoinHandle<()>,
+}
+
+/// Accept one request and hold it unanswered until the client closes the connection.
+pub async fn parked_open() -> ParkedOpen {
+    let listener = TcpListener::bind("127.0.0.1:0").await.expect("parked bind");
+    let url = Url::parse(&format!(
+        "http://{}/",
+        listener.local_addr().expect("address")
+    ))
+    .expect("URL");
+    let (arrived, received) = tokio::sync::oneshot::channel();
+    let closed = tokio::spawn(async move {
+        let (mut socket, _) = listener.accept().await.expect("parked accept");
+        read_request(&mut socket, &mut Vec::new())
+            .await
+            .expect("parked request");
+        arrived.send(()).expect("request observer");
+        let mut chunk = [0_u8; 64];
+        let read = socket.read(&mut chunk).await;
+        assert!(
+            matches!(read, Ok(0)) || read.is_err(),
+            "client sent more bytes on an unanswered open"
+        );
+    });
+    ParkedOpen {
+        url,
+        received,
+        closed,
+    }
+}

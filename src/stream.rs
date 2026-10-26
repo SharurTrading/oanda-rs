@@ -782,6 +782,81 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn dropping_an_unanswered_open_closes_its_connection_and_frees_its_slot() {
+        let crate::test_support::ParkedOpen {
+            url,
+            received,
+            closed,
+        } = crate::test_support::parked_open().await;
+        let client = crate::test_support::fixture_client(url);
+        let account = AccountID::new("101-001-1-001").expect("fixture account");
+        let mut open = Box::pin(client.stream_transactions(&account));
+        tokio::select! {
+            result = &mut open => panic!("the parked open resolved: {:?}", result.err()),
+            arrived = received => arrived.expect("request observer"),
+        }
+        drop(open);
+        assert_eq!(
+            client
+                .inner
+                .admission
+                .inner
+                .stream_slots
+                .lock()
+                .expect("slots")
+                .active,
+            0
+        );
+        tokio::time::timeout(Duration::from_secs(5), closed)
+            .await
+            .expect("the dropped open left its connection open")
+            .expect("parked server task");
+    }
+
+    #[tokio::test]
+    async fn a_pricing_open_abandoned_at_its_deadline_closes_its_connection_and_frees_its_slot() {
+        let crate::test_support::ParkedOpen {
+            url,
+            received,
+            closed,
+        } = crate::test_support::parked_open().await;
+        let client = crate::test_support::fixture_client(url);
+        let account = AccountID::new("101-001-1-001").expect("fixture account");
+        let query = crate::pricing::StreamPricingQuery {
+            instruments: vec![crate::InstrumentName::new("EUR_USD").expect("instrument")],
+            snapshot: None,
+            include_home_conversions: None,
+        };
+        let mut open = Box::pin(tokio::time::timeout(
+            Duration::from_secs(4),
+            client.stream_pricing(&account, &query),
+        ));
+        tokio::select! {
+            result = &mut open => panic!("the parked open resolved: {:?}", result.map(Result::err)),
+            arrived = received => arrived.expect("request observer"),
+        }
+        // The paused clock expires the caller's deadline without a wall-clock wait.
+        tokio::time::pause();
+        assert!(open.await.is_err(), "the caller's deadline elapsed");
+        tokio::time::resume();
+        assert_eq!(
+            client
+                .inner
+                .admission
+                .inner
+                .stream_slots
+                .lock()
+                .expect("slots")
+                .active,
+            0
+        );
+        tokio::time::timeout(Duration::from_secs(5), closed)
+            .await
+            .expect("the dropped open left its connection open")
+            .expect("parked server task");
+    }
+
+    #[tokio::test]
     async fn cancelled_stream_owner_releases_its_connection_slot() {
         let client = Client::builder(Environment::Practice, "fixture").build();
         assert!(client.is_ok());

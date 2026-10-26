@@ -8,11 +8,12 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
-## Unreleased — next major
+## [4.0.0] - 2026-10-26
 
-The changes below require a major release because existing error variants gain a field.
-The package version remains 3.0.0 until a separate reviewed release change runs the
-release gate; this section is not a release.
+This major release types HTTP redirects and attaches edge-network response diagnostics to
+every HTTP answer reported as an error, which adds a field to existing error variants. See the
+[3.x upgrade guide](https://github.com/SharurTrading/oanda-rs#upgrading-from-3x) for downstream
+changes.
 
 - Breaking: an HTTP 3xx answer is the new `Error::Redirected { status, location,
   request_id, diagnostics }` on REST calls (as `OperationError::Client`) and stream opens,
@@ -41,6 +42,10 @@ release gate; this section is not a release.
   of the answer that left the outcome uncertain, or `None` when no response arrived (its
   diagnostics are then all `Absent`). Its ambiguity is unchanged: the account is still
   fenced until the caller acknowledges reconciliation.
+- Update the pinned lockfile to rustls-webpki 0.103.16 and webpki-root-certs 1.0.10 for
+  RUSTSEC-2026-0382 and RUSTSEC-2026-0383 (distrusted emSign intermediates and root).
+  Lockfile-only: the published crate never pins transitive versions, so consumers resolve the
+  fixed versions through their own lockfiles.
 
 ## [3.0.0] - 2026-10-20
 
@@ -150,4 +155,5 @@ for downstream changes.
   exchange). Lockfile-only: the published crate never pins transitive versions, so consumers
   resolve the fixed rustls through their own lockfiles.
 
+[4.0.0]: https://github.com/SharurTrading/oanda-rs/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/SharurTrading/oanda-rs/compare/v2.0.0...v3.0.0

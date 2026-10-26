@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](https://github.com/SharurTrading/oanda-rs/blob/main/rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/docs/coverage.json)
-[![Offline tests: 124 passed locally](https://img.shields.io/badge/offline%20tests-124%20passed%20locally-brightgreen.svg)](#testing-status)
+[![Offline tests: 147 passed locally](https://img.shields.io/badge/offline%20tests-147%20passed%20locally-brightgreen.svg)](#testing-status)
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 [![Practice observations: recorded October 2026](https://img.shields.io/badge/Practice%20observations-recorded%20October%202026-blue.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/docs/behaviour-guide.md)
 
@@ -29,8 +29,9 @@ adapter is outside this repository.
 The project is licensed under [MIT No Attribution (MIT-0)](https://github.com/SharurTrading/oanda-rs/blob/main/LICENSE). The minimum supported Rust
 version is **1.95.0**.
 
-Version **3.0.0** follows Semantic Versioning and contains source-breaking API corrections
-from the Rust idioms audit; see [Upgrading from 2.x](#upgrading-from-2x). Public API changes
+Version **4.0.0** follows Semantic Versioning. It types HTTP redirects and attaches response
+diagnostics to every HTTP answer reported as an error, which adds fields to existing error
+variants; see [Upgrading from 3.x](#upgrading-from-3x). Public API changes
 that require downstream source changes use a new major version; additive APIs and fixes use
 minor and patch releases.
 Provider contract changes can still require callers to update operational behavior, so review the
@@ -61,20 +62,38 @@ fallbacks and swallowed failures, with a disposition for every candidate.
 ## Installation
 
 ```sh
-cargo add oanda-client@3
+cargo add oanda-client@4
 ```
 
 Or add the current major release directly:
 
 ```toml
 [dependencies]
-oanda-client = "3"
+oanda-client = "4"
 ```
 
 The complete public API is available on [docs.rs](https://docs.rs/oanda-client).
 
 The crate uses Rust edition 2024 and exposes capability modules for accounts, orders, trades,
 positions, transactions, pricing, instruments, transport, and primitives.
+
+## Upgrading from 3.x
+
+Version 4 changes only the error surface. Review the full
+[4.0.0 changelog](https://github.com/SharurTrading/oanda-rs/blob/main/CHANGELOG.md#400---2026-10-26)
+before upgrading. Code that constructs or exhaustively destructures the affected variants needs
+source changes; code that matches them with `..` or only reads their `Display` output compiles
+unchanged. Every public path is unchanged.
+
+| 3.x usage | 4.0.0 migration |
+| --- | --- |
+| List every field of `OperationError::Rejected`, `OperationError::RejectedUnreadable`, `Error::Provider` or `Error::ProviderRateLimitedInvariant` | Bind the new `diagnostics: Box<ResponseDiagnostics>` or end the pattern with `..`. It carries the `Server`, `CF-RAY` and `cf-mitigated` response headers as `Supplied<String>` so an edge network's answer can be told from OANDA's |
+| Match `Error::ProviderRateLimited` as a unit variant | Match `Error::ProviderRateLimited { .. }`; it now carries `diagnostics` |
+| Match `Error::AmbiguousMutation { account }` | It also carries `status: Option<u16>` and `diagnostics`; the reconciliation fence and `acknowledge_reconciliation` are unchanged |
+| Treat an HTTP 3xx answer as `Rejected`, `Error::Provider` or `Error::AmbiguousMutation` | Handle `Error::Redirected { status, location, request_id, diagnostics }`, reported as `OperationError::Client` on REST calls. `location` is a `Supplied<RedirectTarget>` reduced to scheme, host, non-default port and path. A redirected mutation was not executed and does not fence the account |
+| Treat a refused stream open with an unreadable body as `Error::Transport` or `Error::ResponseTooLarge` | Handle the additive `Error::ProviderUnreadable { status, request_id, diagnostics, source }`, which keeps the refusal's status and request ID |
+
+A 2.x caller applies the 3.0.0 migration below first.
 
 ## Upgrading from 2.x
 
@@ -302,16 +321,16 @@ and traffic on the same egress address.
 ## Testing status
 
 The badges distinguish deterministic test results, documented API coverage, and dated
-Practice observations. The [successful CI run on 2026-10-18](https://github.com/SharurTrading/oanda-rs/actions/runs/39095523070)
-at [commit `0f8c1e2`](https://github.com/SharurTrading/oanda-rs/commit/0f8c1e2990b5f5750a69a6c227b6d6b2cdd0613b)
-passed 102 Rust tests and left 3 live probes ignored. The current
-local suite passes **124 credential-free Rust tests, including three README doctests** with **3 live probes ignored**. The static
+Practice observations. The [successful CI run on 2026-10-26](https://github.com/SharurTrading/oanda-rs/actions/runs/40288779530)
+at [commit `dc95504`](https://github.com/SharurTrading/oanda-rs/commit/dc95504f3b544643ba644b8b2726d68ca83a61c7)
+passed 147 Rust tests and left 3 live probes ignored. The current
+local suite passes the same **147 credential-free Rust tests, including three README doctests** with **3 live probes ignored**. The static
 test-count badge records the local suite; it is not a count of operations or authenticated venue
 tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 121 unit/integration tests and 3 README doctests passed locally on 2026-10-20; 3 live probes ignored. The linked historical 2026-10-18 CI run passed 102 tests. |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 144 unit/integration tests and 3 README doctests passed locally on 2026-10-26 and in the linked CI run of the same day; 3 live probes ignored |
 | Coverage ledger | 30 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](https://github.com/SharurTrading/oanda-rs/blob/main/docs/coverage.md#authenticated-probes) |
 | Practice observations while building an integration | Order fills in both account modes, stream open behaviour and timing, transaction-stream fill and replace events, P/L precision | Recorded October 2026 with per-fact source tags in the [behaviour guide](https://github.com/SharurTrading/oanda-rs/blob/main/docs/behaviour-guide.md); small-sample observations, untested on Live |

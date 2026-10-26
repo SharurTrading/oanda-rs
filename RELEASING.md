@@ -5,8 +5,8 @@
 Releases are cut from a pull request and published manually. The crate has no
 credentialed release workflow; CI remains read-only. The release gate in
 `AGENTS.md` governs the sequence — this guide is the operator checklist that
-executes it. Track the 3.0.0 release in
-[#80](https://github.com/SharurTrading/oanda-rs/issues/80) and leave that issue
+executes it. Track the 4.0.0 release in
+[#88](https://github.com/SharurTrading/oanda-rs/issues/88) and leave that issue
 open until publication and consumer verification are complete.
 
 ## Coverage gate

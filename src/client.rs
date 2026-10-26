@@ -162,7 +162,7 @@ impl Client {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] when `requests` is at least 120, or
+    /// Returns [`Error::InvalidInput`] when `requests` is at least 100, or
     /// [`Error::Invariant`] when the rate lock is poisoned. Invalid changes preserve the policy and admission state.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
         self.inner.admission.set_exit_reserve(requests)
@@ -469,12 +469,12 @@ impl ClientBuilder {
         self
     }
 
-    /// Reserve requests in the shared local 120-request, rolling one-second REST window for exits.
+    /// Reserve requests in the shared local 100-request, rolling one-second REST window for exits.
     ///
     /// A new private owner defaults to zero; an injected owner keeps its policy when
     /// this method is omitted. Only `cancel_order`, `close_trade`, and `close_position`
     /// can use the reserve. All requests still count toward the same aggregate limit
-    /// and provider cooldown. The value must be less than 120; `build` validates it.
+    /// and provider cooldown. The value must be less than 100; `build` validates it.
     #[must_use]
     pub fn exit_reserve(mut self, requests: u32) -> Self {
         self.exit_reserve = Some(requests);
@@ -529,9 +529,7 @@ impl ClientBuilder {
             .exit_reserve
             .is_some_and(|reserve| reserve >= REQUESTS_PER_SECOND)
         {
-            return Err(Error::InvalidInput(
-                "exit reserve must be less than 120 requests".into(),
-            ));
+            return Err(crate::admission::exit_reserve_too_large());
         }
         let admission = match self.admission {
             Some(owner) => {
@@ -1091,7 +1089,7 @@ mod tests {
 
     #[test]
     fn exit_reserve_rejects_the_full_window_and_larger_values() {
-        for reserve in [120, 121, u32::MAX] {
+        for reserve in [100, 101, u32::MAX] {
             assert!(matches!(
                 Client::builder(Environment::Practice, "fixture")
                     .exit_reserve(reserve)
@@ -1104,7 +1102,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn ordinary_admission_leaves_two_exits_and_preserves_the_aggregate_limit() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         assert!(matches!(
@@ -1130,7 +1128,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn concurrent_clones_cannot_exceed_the_two_remaining_exit_slots() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         let mut tasks = Vec::new();
@@ -1154,7 +1152,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn cancelled_ordinary_waiters_do_not_charge_the_next_window() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         {
@@ -1163,7 +1161,7 @@ mod tests {
             assert!(futures_util::poll!(read.as_mut()).is_pending());
         }
         tokio::time::advance(Duration::from_secs(1)).await;
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(true, false).await.expect("new ordinary slot");
         }
         assert!(matches!(
@@ -1231,7 +1229,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn runtime_release_wakes_all_registered_waiters_without_advancing_time() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         let first = client.admit(false, false);
@@ -1259,7 +1257,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn runtime_growth_rechecks_waiters_and_preserves_spent_capacity() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         let read = client.admit(false, false);
@@ -1268,7 +1266,7 @@ mod tests {
         client.set_exit_reserve(0).expect("release reserve");
         client
             .clone()
-            .set_exit_reserve(119)
+            .set_exit_reserve(99)
             .expect("replace reserve");
         assert!(futures_util::poll!(read.as_mut()).is_pending());
         client.admit(true, true).await.expect("first exit");
@@ -1281,7 +1279,7 @@ mod tests {
             .set_exit_reserve(0)
             .expect("release exhausted reserve");
         client
-            .set_exit_reserve(119)
+            .set_exit_reserve(99)
             .expect("raise exhausted reserve");
         assert!(matches!(
             client.admit(true, true).await,
@@ -1299,27 +1297,27 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn runtime_changes_preserve_cooldown_window_and_invalid_policy_state() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         client
             .install_cooldown(Some(&reqwest::header::HeaderValue::from_static("2")))
             .expect("install cooldown");
-        for reserve in [119, 0, 2] {
+        for reserve in [99, 0, 2] {
             client.set_exit_reserve(reserve).expect("replace reserve");
             assert!(matches!(
                 client.admit(true, true).await,
                 Err(Error::RateLimited)
             ));
         }
-        for reserve in [120, u32::MAX] {
+        for reserve in [100, u32::MAX] {
             assert!(matches!(
                 client.set_exit_reserve(reserve),
                 Err(Error::InvalidInput(_))
             ));
             let rate = client.inner.admission.inner.rate.lock().expect("rate lock");
             assert_eq!(rate.exit_reserve, 2);
-            assert_eq!(rate.admitted.len(), 118);
+            assert_eq!(rate.admitted.len(), 98);
         }
         client.set_exit_reserve(0).expect("release reserve");
         let read = client.admit(false, false);
@@ -1332,7 +1330,7 @@ mod tests {
             futures_util::poll!(read.as_mut()),
             std::task::Poll::Ready(Ok(()))
         ));
-        for _ in 0..119 {
+        for _ in 0..99 {
             client
                 .admit(true, true)
                 .await
@@ -1347,7 +1345,7 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn runtime_replacement_keeps_each_admission_deadline_and_independent_client() {
         let client = reserved_client();
-        for _ in 0..118 {
+        for _ in 0..98 {
             client.admit(false, false).await.expect("ordinary slot");
         }
         tokio::time::advance(Duration::from_millis(900)).await;
@@ -1364,7 +1362,7 @@ mod tests {
         client.admit(true, true).await.expect("first exit");
         client.admit(true, true).await.expect("second exit");
         tokio::time::advance(Duration::from_millis(100)).await;
-        for _ in 0..115 {
+        for _ in 0..95 {
             client
                 .admit(true, false)
                 .await
@@ -1408,15 +1406,15 @@ mod tests {
     #[tokio::test(start_paused = true)]
     async fn runtime_waiter_rechecks_each_replacement_including_release_then_growth() {
         let client = reserved_client();
-        client.set_exit_reserve(119).expect("raise reserve");
+        client.set_exit_reserve(99).expect("raise reserve");
         client.admit(false, false).await.expect("one ordinary slot");
         let read = client.admit(false, false);
         tokio::pin!(read);
         assert!(futures_util::poll!(read.as_mut()).is_pending());
         client.set_exit_reserve(0).expect("release reserve");
-        client.set_exit_reserve(119).expect("raise reserve");
+        client.set_exit_reserve(99).expect("raise reserve");
         assert!(futures_util::poll!(read.as_mut()).is_pending());
-        client.set_exit_reserve(118).expect("replace reserve");
+        client.set_exit_reserve(98).expect("replace reserve");
         assert!(matches!(
             futures_util::poll!(read.as_mut()),
             std::task::Poll::Ready(Ok(()))

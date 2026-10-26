@@ -17,7 +17,14 @@ use tokio::{sync::Notify, time::Instant};
 use tower_layer::Layer;
 use tower_service::Service;
 
-pub(crate) const REQUESTS_PER_SECOND: u32 = 120;
+/// REST requests one owner admits in any rolling second.
+///
+/// OANDA's Best Practices recommend at most 100 requests per second on one
+/// established connection, and its Development Guide limits each requesting IP
+/// address to 120. Requests sharing an owner can all travel over one kept-alive
+/// connection, so the owner admits the per-connection figure, which also keeps
+/// the owner under the per-IP limit.
+pub(crate) const REQUESTS_PER_SECOND: u32 = 100;
 const STREAM_LIMIT: usize = 20;
 const ADMISSION_WINDOW: Duration = Duration::from_secs(1);
 
@@ -70,12 +77,10 @@ impl Admission {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] when `requests` is at least 120.
+    /// Returns [`Error::InvalidInput`] when `requests` is at least 100.
     pub fn with_exit_reserve(requests: u32) -> Result<Self> {
         if requests >= REQUESTS_PER_SECOND {
-            return Err(Error::InvalidInput(
-                "exit reserve must be less than 120 requests".into(),
-            ));
+            return Err(exit_reserve_too_large());
         }
         Ok(Self::create(requests))
     }
@@ -103,13 +108,11 @@ impl Admission {
     ///
     /// # Errors
     ///
-    /// Returns [`Error::InvalidInput`] for a reserve of at least 120, or
+    /// Returns [`Error::InvalidInput`] for a reserve of at least 100, or
     /// [`Error::Invariant`] for a poisoned lock.
     pub fn set_exit_reserve(&self, requests: u32) -> Result<()> {
         if requests >= REQUESTS_PER_SECOND {
-            return Err(Error::InvalidInput(
-                "exit reserve must be less than 120 requests".into(),
-            ));
+            return Err(exit_reserve_too_large());
         }
         let mut rate = self
             .inner
@@ -217,6 +220,13 @@ impl Admission {
             gate: Arc::clone(&self.inner.connection_gate),
         }
     }
+}
+
+/// The refusal for a reserve that would leave ordinary requests no capacity.
+pub(crate) fn exit_reserve_too_large() -> Error {
+    Error::InvalidInput(format!(
+        "exit reserve must be less than {REQUESTS_PER_SECOND} requests"
+    ))
 }
 
 pub(crate) struct StreamLease {
@@ -653,7 +663,7 @@ mod tests {
 
     #[tokio::test(start_paused = true)]
     async fn shared_rate_and_cooldown_keep_exit_reserve_spent_across_clones() {
-        let owner = Admission::with_exit_reserve(119).expect("reserve");
+        let owner = Admission::with_exit_reserve(99).expect("reserve");
         owner.admit(true, false).await.expect("ordinary capacity");
         assert!(matches!(
             owner.clone().admit(true, false).await,
@@ -663,7 +673,7 @@ mod tests {
             .admit(true, true)
             .await
             .expect("reserved exit capacity");
-        for _ in 0..118 {
+        for _ in 0..98 {
             owner
                 .admit(true, true)
                 .await
@@ -690,9 +700,9 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn shared_owner_admits_one_hundred_twenty_rest_requests_and_refuses_the_next_mutation() {
+    async fn shared_owner_admits_one_hundred_rest_requests_and_refuses_the_next_mutation() {
         let owner = Admission::new();
-        for _ in 0..120 {
+        for _ in 0..100 {
             owner
                 .clone()
                 .admit(true, false)
@@ -710,7 +720,7 @@ mod tests {
         let owner = Admission::new();
         owner.admit(true, false).await.expect("first request");
         tokio::time::advance(Duration::from_millis(999)).await;
-        for _ in 0..119 {
+        for _ in 0..99 {
             owner.admit(true, false).await.expect("late burst");
         }
         tokio::time::advance(Duration::from_millis(1)).await;
@@ -729,14 +739,14 @@ mod tests {
     }
 
     #[tokio::test(start_paused = true)]
-    async fn reserve_of_one_hundred_nineteen_leaves_one_ordinary_request_and_all_exits() {
-        let owner = Admission::with_exit_reserve(119).expect("largest valid reserve");
+    async fn reserve_of_ninety_nine_leaves_one_ordinary_request_and_all_exits() {
+        let owner = Admission::with_exit_reserve(99).expect("largest valid reserve");
         owner.admit(true, false).await.expect("ordinary request");
         assert!(matches!(
             owner.admit(true, false).await,
             Err(Error::RateLimited)
         ));
-        for _ in 0..119 {
+        for _ in 0..99 {
             owner.admit(true, true).await.expect("reserved exit");
         }
         assert!(matches!(
@@ -744,7 +754,7 @@ mod tests {
             Err(Error::RateLimited)
         ));
         assert!(matches!(
-            Admission::with_exit_reserve(120),
+            Admission::with_exit_reserve(100),
             Err(Error::InvalidInput(_))
         ));
     }

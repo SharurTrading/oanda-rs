@@ -131,7 +131,7 @@ async fn conflicting_stop_loss_price_and_distance_fail_before_network_and_preser
         "invalid request was sent"
     );
     // The local failure must not fence or consume the only ordinary mutation slot.
-    client.set_exit_reserve(119).expect("one ordinary slot");
+    client.set_exit_reserve(99).expect("one ordinary slot");
     let task = tokio::spawn(async move {
         use tokio::io::AsyncWriteExt;
         let (mut socket, _) = listener.accept().await.expect("valid request");

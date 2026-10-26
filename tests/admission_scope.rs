@@ -32,7 +32,7 @@ async fn advance_gap() {
 }
 
 #[tokio::test(start_paused = true)]
-async fn warmed_rest_connection_sends_one_hundred_twenty_requests_then_refuses_mutation() {
+async fn warmed_rest_connection_sends_one_hundred_requests_then_refuses_mutation() {
     let clock_guard = keep_clock_frozen();
     let (rest, mut requests, rest_server) = counting_rest_loopback().await;
     let (stream, _accepts, stream_server) = loopback().await;
@@ -41,7 +41,7 @@ async fn warmed_rest_connection_sends_one_hundred_twenty_requests_then_refuses_m
         .build()
         .expect("client");
     let start = Instant::now();
-    for _ in 0..120 {
+    for _ in 0..100 {
         client.list_accounts().await.expect("REST response");
         assert!(
             requests
@@ -86,7 +86,7 @@ async fn stream_start_does_not_consume_exhausted_rest_capacity() {
         .endpoints(rest, stream)
         .build()
         .expect("client");
-    for _ in 0..120 {
+    for _ in 0..100 {
         client.list_accounts().await.expect("REST response");
         requests.recv().await.expect("wire request");
     }
@@ -243,29 +243,29 @@ fn explicit_builder_reserve_must_agree_with_shared_owner_without_resetting_it() 
 
 #[test]
 fn largest_exit_reserve_is_accepted_by_owner_builder_and_runtime_setter() {
-    let owner = Admission::with_exit_reserve(119).expect("owner reserve");
-    owner.set_exit_reserve(119).expect("owner setter");
+    let owner = Admission::with_exit_reserve(99).expect("owner reserve");
+    owner.set_exit_reserve(99).expect("owner setter");
     assert!(matches!(
-        owner.set_exit_reserve(120),
+        owner.set_exit_reserve(100),
         Err(Error::InvalidInput(_))
     ));
     let client = Client::builder(Environment::Practice, "token-a")
         .admission(owner)
-        .exit_reserve(119)
+        .exit_reserve(99)
         .build()
         .expect("builder reserve");
-    client.set_exit_reserve(119).expect("client setter");
+    client.set_exit_reserve(99).expect("client setter");
     assert!(matches!(
-        Admission::with_exit_reserve(120),
+        Admission::with_exit_reserve(100),
         Err(Error::InvalidInput(_))
     ));
     assert!(matches!(
-        client.set_exit_reserve(120),
+        client.set_exit_reserve(100),
         Err(Error::InvalidInput(_))
     ));
     assert!(matches!(
         Client::builder(Environment::Practice, "token-b")
-            .exit_reserve(120)
+            .exit_reserve(100)
             .build(),
         Err(Error::InvalidInput(_))
     ));

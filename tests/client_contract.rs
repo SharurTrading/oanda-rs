@@ -737,7 +737,7 @@ async fn queued_reads_and_ordinary_mutations_leave_native_cancel_and_closes_avai
     let (url, server) = keepalive_server(responses).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(url.clone(), url)
-        .exit_reserve(117)
+        .exit_reserve(97)
         .build()
         .expect("client");
     let account = AccountID::new("fixture-account").expect("account");
@@ -934,7 +934,7 @@ async fn stream_starts_without_rest_capacity_and_runtime_release_wakes_a_read() 
     let (stream, stream_server) = servers(vec![http_json("200 OK", "")]).await;
     let client = Client::builder(Environment::Practice, "fixture")
         .endpoints(rest, stream)
-        .exit_reserve(119)
+        .exit_reserve(99)
         .build()
         .expect("client");
     let account = AccountID::new("fixture-account").expect("account");

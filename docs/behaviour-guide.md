@@ -59,13 +59,17 @@ it is missing. Do not guess the mode from the account's positions.
 | Active streams | 20; more are rejected | Requesting IP address | Docs |
 | New connections | 2 per second; more are rejected | Client | Docs |
 | Recommended request rate on one connection | 100 per second | A recommendation, not a limit | [Docs](https://developer.oanda.com/rest-live-v20/best-practices/) |
+| Recommended new connections | 2 per second | A recommendation; the Development Guide enforces the same figure | [Docs](https://developer.oanda.com/rest-live-v20/best-practices/) |
+| "Rate limit (polling)" | 30, with no unit, period or scope stated | Unstated | [Docs](https://developer.oanda.com/rest-live-v20/api-comparison/) |
 | Pricing stream rate | At most 4 prices per second per instrument | Per instrument | [Docs](https://developer.oanda.com/rest-live-v20/pricing-ep/) |
 
 How the SDK enforces them (SDK):
 
 - Every client built with the same `Admission` owner, and every clone, shares one rolling
-  120-per-second REST window, one 20-stream count, one 2-per-second connection-start
-  budget and one 429 cooldown. Separately built owners and separate processes share
+  100-per-second REST window, one 20-stream count, one 2-per-second connection-start
+  budget and one 429 cooldown. The window is the per-connection recommendation, because
+  every request sharing an owner can travel over one kept-alive connection; it also keeps
+  the owner below the 120-per-IP limit. Separately built owners and separate processes share
   nothing. If several processes use one IP address, you must coordinate them.
 - A read waits for capacity. A mutation that cannot be admitted at once fails with
   `Error::RateLimited` and is never sent. A 21st stream also fails with `RateLimited`.
@@ -74,10 +78,16 @@ How the SDK enforces them (SDK):
   no delay, only the response `diagnostics`. Nothing is retried.
 - Streams do not use REST capacity. Reusing an open connection does not count as a new
   connection; a started connection attempt that fails or is cancelled is still counted.
+- The polling figure of 30 on the API comparison page has no unit, period or scope there,
+  and no other OANDA page states one. The SDK does not pace to it; ask OANDA before
+  relying on it either way.
+- Dropping a stream open that OANDA has not answered closes its connection at once and
+  frees its stream lease, so a caller's timeout and retry never stack unanswered
+  connections (SDK).
 
 ### Keeping room for exits
 
-The optional exit reserve keeps part of the 120-request window for `cancel_order`,
+The optional exit reserve keeps part of the 100-request window for `cancel_order`,
 `close_trade` and `close_position`. It is off by default. See the
 [README section](../README.md#optional-exit-reserve) for the API.
 
@@ -85,7 +95,7 @@ A policy that worked (Advice): count the exits you might need (one per cancellab
 plus one close per account and instrument), cap the reserve at 20, hold the full 20
 whenever any account's state is unknown, and release it only when every account sharing
 the owner is known flat with no working orders. At 20 reserved, ordinary traffic still has
-100 requests per second. The reserve is finite: it cannot recover requests already spent,
+80 requests per second. The reserve is finite: it cannot recover requests already spent,
 and it does not bypass a 429 cooldown or a
 [reconciliation fence](#after-an-ambiguous-mutation).
 
@@ -434,7 +444,7 @@ The SDK then fences the account (SDK):
   executed at its URL; it returns `Error::Redirected` and the account is not fenced.
 - A mutation refused by the fence still spends one admitted request from the window,
   because admission runs before the fence check. For an exit, that request comes from
-  the full 120, reserve included.
+  the full 100, reserve included.
 
 To release it (Advice):
 

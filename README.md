@@ -216,11 +216,16 @@ The outer wrapper opts in and sizes the reserve for its workload. The default is
 `ClientBuilder::exit_reserve(R)` sets the initial policy for a private owner;
 `Client::set_exit_reserve(R)` or `Admission::set_exit_reserve(R)`
 replaces it at runtime, and zero releases the reserve. It keeps `R` requests inside the local
-120-request rolling one-second REST window: ordinary requests enter below `120 - R`, and eligible exits
-enter below 120. `R` must be less than 120. OANDA's [Development Guide](https://developer.oanda.com/rest-live-v20/development-guide/)
-states a hard 120 REST requests/s limit per requesting IP; its [Best Practices](https://developer.oanda.com/rest-live-v20/best-practices/)
-separately recommend 100 requests/s on an established connection. The owner admits the full
-documented limit; a caller can choose additional pacing when following that recommendation.
+100-request rolling one-second REST window: ordinary requests enter below `100 - R`, and eligible exits
+enter below 100. `R` must be less than 100. OANDA's [Best Practices](https://developer.oanda.com/rest-live-v20/best-practices/)
+recommend at most 100 requests/s on an established connection, and its
+[Development Guide](https://developer.oanda.com/rest-live-v20/development-guide/) limits each requesting
+IP to 120 REST requests/s. Every request sharing an owner can travel over one kept-alive
+connection, so the owner admits 100 per rolling second, which keeps any one connection within the
+recommendation and the owner below the per-IP limit. OANDA's
+[API comparison](https://developer.oanda.com/rest-live-v20/api-comparison/) also lists
+"Rate limit (polling): 30" for the v20 REST API without a unit, period or scope; no other OANDA
+page states it, so the client does not pace to it.
 
 | Operation | Admission |
 | --- | --- |
@@ -249,7 +254,7 @@ fn update_reserve(client: &Client) -> Result<()> {
 # fn main() -> Result<()> {
 # let client = configured_client("fixture-token".into(), 20)?;
 # update_reserve(&client)?;
-# assert!(client.set_exit_reserve(120).is_err());
+# assert!(client.set_exit_reserve(100).is_err());
 # Ok(())
 # }
 ```
@@ -278,7 +283,7 @@ fn two_clients(first_token: String, second_token: String) -> Result<(Client, Cli
 # owner.set_exit_reserve(20)?;
 # first.set_exit_reserve(0)?;
 # second.set_exit_reserve(40)?;
-# assert!(owner.set_exit_reserve(120).is_err());
+# assert!(owner.set_exit_reserve(100).is_err());
 # Ok(())
 # }
 ```
@@ -294,7 +299,8 @@ spent creates no new exit capacity; releasing it restores ordinary access only t
 Each owner also shares 20 active or opening stream leases, following the Development Guide's
 per-IP stream limit. There is no extra stream-start gap and streams do not consume REST request
 capacity.
-Dropping or canceling a stream releases its lease. Independently constructed owners and separate
+Dropping or canceling a stream releases its lease, and dropping an open OANDA has not answered
+also closes its connection at once. Independently constructed owners and separate
 processes do not share these counters; the caller chooses which traffic shares an egress scope.
 
 Both REST and stream transports use one owner-scoped connector-start budget: at most two connector

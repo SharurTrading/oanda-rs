@@ -8,6 +8,24 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
+## Unreleased — next major
+
+The narrower request window refuses exit reserves of 100 to 119 that 4.0.0 accepted, so these
+changes require a major release. The package version remains 4.0.0 until a separate reviewed
+release change runs the release gate; this section is not a release.
+
+- Breaking: one `Admission` owner now admits 100 REST requests per rolling second instead of
+  120. OANDA's Best Practices recommend at most 100 requests per second on an established
+  connection, and every request sharing an owner can travel over one kept-alive connection;
+  100 also stays below the Development Guide's 120 per requesting IP. The exit reserve must
+  now be less than 100 (`ClientBuilder::exit_reserve`, `Client::set_exit_reserve`,
+  `Admission::with_exit_reserve` and `Admission::set_exit_reserve` refuse 100 or more with
+  `Error::InvalidInput`), and ordinary requests enter below `100 - R`. The API comparison
+  page's "Rate limit (polling): 30" states no unit, period or scope, so it is documented and
+  not paced.
+- Dropping an unanswered stream open closes its connection immediately and frees its stream
+  lease; regression tests pin both for a direct drop and for a caller deadline.
+
 ## [4.0.0] - 2026-10-26
 
 This major release types HTTP redirects and attaches edge-network response diagnostics to

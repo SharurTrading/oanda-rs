@@ -6,7 +6,8 @@
 use crate::validation::Validate;
 use crate::{
     AccountID, Admission, ClientRequestID, Environment, Error, GenericRejection, OperationError,
-    RequestID, Result, Supplied, admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
+    RedirectTarget, RequestID, ResponseDiagnostics, Result, Supplied,
+    admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
 };
 use futures_util::StreamExt;
 use reqwest::{Method, StatusCode, Url};
@@ -247,6 +248,14 @@ impl Client {
                 })?;
         let status = response.status();
         let request_id = supplied_header(response.headers(), "RequestID");
+        if status.is_redirection() {
+            // The redirect is never followed, so the request was not executed at its URL.
+            if let Some(ref mut guard) = guard {
+                guard.disarm();
+            }
+            return Err(redirected(&response, request_id).into());
+        }
+        let diagnostics = Box::new(ResponseDiagnostics::from_headers(response.headers()));
         let next_page = if status.is_success() {
             parse_next_page(&self.inner.rest, response.headers())
         } else {
@@ -274,6 +283,7 @@ impl Client {
                     OperationError::RejectedUnreadable {
                         status: status.as_u16(),
                         request_id: request_id.clone(),
+                        diagnostics: diagnostics.clone(),
                         source: error,
                     }
                 } else if let Some(account) = mutation_account {
@@ -336,6 +346,7 @@ impl Client {
             code: reason.error_code,
             message: reason.error_message,
             body,
+            diagnostics,
         })
     }
 
@@ -606,12 +617,25 @@ fn query_atom(value: &serde_json::Value) -> Result<String> {
     }
 }
 
+/// The typed outcome of an HTTP 3xx answer, which this client never follows.
+pub(crate) fn redirected(response: &reqwest::Response, request_id: Supplied<RequestID>) -> Error {
+    Error::Redirected {
+        status: response.status().as_u16(),
+        location: RedirectTarget::from_headers(response.url(), response.headers()),
+        request_id,
+        diagnostics: Box::new(ResponseDiagnostics::from_headers(response.headers())),
+    }
+}
+
 /// Read a provider header as supplied evidence.
 ///
 /// A header OANDA did not send, and one it sent with bytes this client cannot
 /// read as text, are different facts; the second must not collapse into the
 /// first.
-fn supplied_header(headers: &reqwest::header::HeaderMap, name: &str) -> Supplied<RequestID> {
+pub(crate) fn supplied_header(
+    headers: &reqwest::header::HeaderMap,
+    name: &str,
+) -> Supplied<RequestID> {
     match headers.get(name) {
         None => Supplied::Absent,
         Some(value) => match value.to_str() {

@@ -85,6 +85,11 @@ unreadable body retains its status, request ID, and typed read error. A decoded 
 mutation with unusable pagination metadata retains the body and marks the link
 `Undecoded`; reads still reject malformed or off-origin pagination links.
 
+A 3xx answer is never followed. It returns `Error::Redirected` with its status, request ID and
+`Location` reduced to scheme, host, port and path, and disarms the mutation guard, because a
+redirected request was not executed at its URL. Non-success answers also carry
+`ResponseDiagnostics` (`Server`, `CF-RAY`, `cf-mitigated`) as supplied evidence.
+
 ## Spec fields the website omits
 
 Where the pinned OpenAPI spec documents a field the website does not, the website wins and the

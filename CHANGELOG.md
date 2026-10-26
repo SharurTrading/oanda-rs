@@ -8,6 +8,29 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
+## Unreleased — next major
+
+The changes below require a major release because existing error variants gain a field.
+The package version remains 3.0.0 until a separate reviewed release change runs the
+release gate; this section is not a release.
+
+- Breaking: an HTTP 3xx answer is the new `Error::Redirected { status, location,
+  request_id, diagnostics }` on REST calls (as `OperationError::Client`) and stream opens,
+  instead of `OperationError::Rejected`, `Error::AmbiguousMutation` or `Error::Provider`.
+  Redirects are still never followed, so the bearer token is never sent to the target.
+  `location` is a `Supplied<RedirectTarget>` holding only the scheme, host, non-default
+  port and path of the `Location` header, resolved against the request URL when relative;
+  its userinfo, query and fragment are discarded and never rendered. A 3xx answer to a
+  mutation means the request was not executed at its URL, so it no longer fences the
+  account.
+- Breaking: `OperationError::Rejected`, `OperationError::RejectedUnreadable`,
+  `Error::Provider` and `Error::Redirected` carry `diagnostics: Box<ResponseDiagnostics>`,
+  the `Server`, `CF-RAY` and `cf-mitigated` response headers as `Supplied<String>`. They
+  let a caller tell an answer from an edge network, such as a bot-management challenge,
+  from one by OANDA's servers. The client only reports them; it reads no cookies and does
+  not act on a challenge. Patterns that list every field of these variants need `..` or
+  the new field.
+
 ## [3.0.0] - 2026-10-20
 
 This major release contains source-breaking API corrections from the Rust idioms audit.

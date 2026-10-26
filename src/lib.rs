@@ -10,6 +10,7 @@ pub use accounts as account;
 mod admission;
 mod client;
 mod decimal_wire;
+mod diagnostics;
 mod environment;
 mod error;
 mod ids;
@@ -24,6 +25,7 @@ pub mod positions;
 /// Singular compatibility alias for position endpoint contracts.
 pub use positions as position;
 pub mod pricing;
+mod redirect;
 pub mod stream;
 mod timestamp;
 #[path = "trade.rs"]
@@ -39,10 +41,12 @@ mod validation;
 
 pub use admission::Admission;
 pub use client::{ApiResponse, Client, ClientBuilder};
+pub use diagnostics::ResponseDiagnostics;
 pub use environment::Environment;
 pub use error::{Error, GenericRejection, OperationError, Result, Supplied};
 pub use ids::*;
 pub use patch::Patch;
+pub use redirect::RedirectTarget;
 pub use stream::{BufferedEvents, HttpStream, PriceStreamEvent, TransactionStreamEvent};
 pub use timestamp::{InvalidTimestamp, Timestamp};
 pub use units::{PositionCloseoutUnits, TradeCloseoutUnits};
@@ -58,8 +62,8 @@ pub mod instruments {
 pub mod transport {
     pub use crate::{
         Admission, ApiResponse, BufferedEvents, Client, ClientBuilder, Environment, Error,
-        GenericRejection, HttpStream, OperationError, PriceStreamEvent, Supplied,
-        TransactionStreamEvent,
+        GenericRejection, HttpStream, OperationError, PriceStreamEvent, RedirectTarget,
+        ResponseDiagnostics, Supplied, TransactionStreamEvent,
     };
 }
 

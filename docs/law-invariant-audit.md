@@ -41,7 +41,7 @@ price is a decode error rather than a float round trip. Those files needed no re
 | `Timestamp::from_str`'s `split_once('.')` and the `and_then(Value::as_str)` guards in `validation::validate` and `Client::admit`. | Both values arrive from typed query structs, so the type boundary already makes the mismatched shape unrepresentable; nothing is defaulted, and the value is forwarded unchanged for OANDA to judge. |
 | `ids.rs`'s `id_type!` validation. | An empty or control-character identifier returns `InvalidId` on construction and on deserialization; no path guesses an identity. |
 | `decimal_wire::optional_number_or_string`. | A JSON number is converted through its exact `arbitrary_precision` literal and then parsed as `Decimal`; a boolean, array, or object is a typed error rather than a default. |
-| Definitive-rejection statuses that disarm the mutation guard, and the statuses that instead report `AmbiguousMutation`. | A 400/401/403/404/405 is OANDA's own refusal, and everything else after a send is reported as ambiguous and fenced. The fence is never released on a path that did not observe a definite outcome. |
+| Definitive-rejection statuses that disarm the mutation guard, and the statuses that instead report `AmbiguousMutation`. | A 400/401/403/404/405 is OANDA's own refusal, a 3xx is a redirect the client never follows and therefore a request that was not executed (`Error::Redirected`), and everything else after a send is reported as ambiguous and fenced. The fence is never released on a path that did not observe a definite outcome. |
 
 ## Repaired in follow-up changes
 

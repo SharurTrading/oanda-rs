@@ -58,6 +58,15 @@ fn describe_reason(code: Option<&str>, message: Option<&str>) -> String {
     }
 }
 
+/// Render a redirect target without ever guessing one.
+fn describe_target(location: &Supplied<crate::RedirectTarget>) -> String {
+    match location {
+        Supplied::Decoded(target) => format!("to {target}"),
+        Supplied::Absent => "without a Location".to_owned(),
+        Supplied::Undecoded => "with an unreadable Location".to_owned(),
+    }
+}
+
 /// An endpoint error with its documented rejection body when available.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -74,6 +83,8 @@ pub enum OperationError<R> {
         status: u16,
         /// Provider request identity observed before the body failed.
         request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
         /// Body transport failure or local size bound.
         #[source]
         source: Error,
@@ -92,6 +103,8 @@ pub enum OperationError<R> {
         message: Option<String>,
         /// The endpoint's documented rejection fields, or what OANDA actually sent for them.
         body: Supplied<R>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
 }
 
@@ -140,6 +153,26 @@ pub enum Error {
         code: Option<String>,
         /// OANDA's `errorMessage`, when it supplied a readable one.
         message: Option<String>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+    },
+    /// The answer was an HTTP redirect (300-399), which this client never follows.
+    ///
+    /// No request is sent to the target, so the bearer token never leaves the
+    /// selected environment's hosts. A redirected mutation was not executed at the
+    /// requested URL, so it does not fence the account.
+    #[error("OANDA answered with HTTP {status} redirect {}; it was not followed", describe_target(.location))]
+    Redirected {
+        /// HTTP response status.
+        status: u16,
+        /// The `Location` target without userinfo, query or fragment: `Absent`
+        /// when no `Location` was sent, `Undecoded` when one was sent that does
+        /// not resolve to a URL with a host.
+        location: Supplied<crate::RedirectTarget>,
+        /// OANDA's `RequestID` response header as supplied evidence.
+        request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// An I/O or decode outcome leaves a mutation uncertain.
     #[error("OANDA mutation outcome is ambiguous for account {account}")]

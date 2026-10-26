@@ -372,6 +372,7 @@ async fn close_position_rejection_decodes_the_flat_side_reject() {
             code,
             message,
             body,
+            ..
         } = error
         else {
             panic!("{status}: expected a definitive rejection, got {error:?}");

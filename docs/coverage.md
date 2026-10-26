@@ -126,7 +126,9 @@ A definitive provider rejection reports only what OANDA sent. `OperationError::R
 `::message` are `Option<String>` and are `None` when OANDA supplied no readable reason, and
 `::body` is a `Supplied<R>` that separates a body OANDA did not send (`Absent`), one this client
 decoded (`Decoded`), and one that arrived but did not match the documented shape (`Undecoded`).
-`Error::Provider` uses the same `Option` fields for a refused stream. Neither path substitutes a
+`Error::Provider` uses the same `Option` fields for a refused stream, and a refused stream whose
+body cannot be read is `Error::ProviderUnreadable` with its status, request ID, diagnostics and
+typed read error. Neither path substitutes a
 message OANDA did not write, and a caller reconciling a refused mutation can tell a reject
 transaction it has already accounted for from one it is missing. `ApiResponse::request_id` and
 `::next_page` carry the same three-state evidence: `Undecoded` reports a header OANDA sent that

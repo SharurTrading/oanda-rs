@@ -31,6 +31,10 @@ release gate; this section is not a release.
   from one by OANDA's servers. The client only reports them; it reads no cookies and does
   not act on a challenge. Patterns that list every field of these variants need `..` or
   the new field.
+- Add `Error::ProviderUnreadable { status, request_id, diagnostics, source }`. A refused
+  stream open whose body cannot be read within local limits keeps its status, `RequestID`
+  and diagnostics, with the read failure as `source`, instead of collapsing to
+  `Error::Transport` or `Error::ResponseTooLarge`.
 - Breaking: `Error::ProviderRateLimited` is now a struct variant,
   `ProviderRateLimited { diagnostics }`; match it as `ProviderRateLimited { .. }`.
 - Breaking: `Error::AmbiguousMutation` also carries `status: Option<u16>`, the HTTP status

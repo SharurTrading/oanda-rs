@@ -473,3 +473,70 @@ async fn a_rate_limited_answer_without_edge_headers_has_absent_diagnostics() {
     assert_eq!(**diagnostics, ResponseDiagnostics::default());
     task.await.expect("server");
 }
+
+#[tokio::test]
+async fn a_refused_stream_open_with_a_truncated_body_keeps_its_status_and_diagnostics() {
+    let (url, task) = server(
+        b"HTTP/1.1 503 Service Unavailable\r\nServer: cloudflare\r\nCF-RAY: 8f00000000000004-SYD\r\nRequestID: 11\r\nContent-Length: 64\r\nConnection: close\r\n\r\nshort"
+            .to_vec(),
+    )
+    .await;
+    let client = fixture_client(url);
+    let Err(error) = client.stream_transactions(&account()).await else {
+        panic!("expected a refusal")
+    };
+    let Error::ProviderUnreadable {
+        status,
+        ref request_id,
+        ref diagnostics,
+        ref source,
+    } = error
+    else {
+        panic!("expected an unreadable provider refusal: {error:?}")
+    };
+    assert_eq!(status, 503);
+    assert_eq!(
+        *request_id,
+        Supplied::Decoded(RequestID::new("11").expect("id"))
+    );
+    assert_eq!(diagnostics.server, decoded("cloudflare"));
+    assert_eq!(diagnostics.ray_id, decoded("8f00000000000004-SYD"));
+    assert_eq!(diagnostics.mitigated, Supplied::Absent);
+    assert!(matches!(**source, Error::Transport(_)), "{source:?}");
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_refused_stream_open_with_an_oversized_body_keeps_its_status_and_diagnostics() {
+    let body = "x".repeat(64);
+    let (url, task) = server(
+        format!(
+            "HTTP/1.1 403 Forbidden\r\nServer: cloudflare\r\ncf-mitigated: challenge\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        )
+        .into_bytes(),
+    )
+    .await;
+    let client = oanda_client::Client::builder(oanda_client::Environment::Practice, TOKEN)
+        .endpoints(url.clone(), url)
+        .max_response_bytes(16)
+        .build()
+        .expect("client");
+    let Err(error) = client.stream_transactions(&account()).await else {
+        panic!("expected a refusal")
+    };
+    let Error::ProviderUnreadable {
+        status: 403,
+        request_id: Supplied::Absent,
+        ref diagnostics,
+        ref source,
+    } = error
+    else {
+        panic!("expected an unreadable provider refusal: {error:?}")
+    };
+    assert_eq!(diagnostics.server, decoded("cloudflare"));
+    assert_eq!(diagnostics.mitigated, decoded("challenge"));
+    assert_eq!(diagnostics.ray_id, Supplied::Absent);
+    assert!(matches!(**source, Error::ResponseTooLarge), "{source:?}");
+    task.await.expect("server");
+}

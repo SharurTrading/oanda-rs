@@ -161,6 +161,21 @@ pub enum Error {
         /// Diagnostic headers that say which network layer answered.
         diagnostics: Box<crate::ResponseDiagnostics>,
     },
+    /// A refused stream open whose body could not be read within local transport limits.
+    ///
+    /// The observed status remains authoritative; only OANDA's reason is missing.
+    #[error("OANDA returned HTTP {status}; refusal body unreadable: {source}")]
+    ProviderUnreadable {
+        /// HTTP response status.
+        status: u16,
+        /// OANDA's `RequestID` response header as supplied evidence.
+        request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+        /// Body transport failure or local size bound.
+        #[source]
+        source: Box<Error>,
+    },
     /// The answer was an HTTP redirect (300-399), which this client never follows.
     ///
     /// No request is sent to the target, so the bearer token never leaves the

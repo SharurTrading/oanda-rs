@@ -289,7 +289,15 @@ impl Client {
             let status = response.status().as_u16();
             let diagnostics =
                 Box::new(crate::ResponseDiagnostics::from_headers(response.headers()));
-            let body = crate::client::read_bounded(response, self.inner.max_body).await?;
+            let request_id = crate::client::supplied_header(response.headers(), "RequestID");
+            let body = crate::client::read_bounded(response, self.inner.max_body)
+                .await
+                .map_err(|source| Error::ProviderUnreadable {
+                    status,
+                    request_id,
+                    diagnostics: diagnostics.clone(),
+                    source: Box::new(source),
+                })?;
             // A rejection body this client cannot read is not a rejection without a
             // reason. Report the observed status and no reason; never a message or
             // error code OANDA did not send. `Value::get` yields nothing for a

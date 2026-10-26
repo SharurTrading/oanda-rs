@@ -85,6 +85,11 @@ unreadable body retains its status, request ID, and typed read error. A decoded 
 mutation with unusable pagination metadata retains the body and marks the link
 `Undecoded`; reads still reject malformed or off-origin pagination links.
 
+A 3xx answer is never followed. It returns `Error::Redirected` with its status, request ID and
+`Location` reduced to scheme, host, port and path, and disarms the mutation guard, because a
+redirected request was not executed at its URL. Non-success answers also carry
+`ResponseDiagnostics` (`Server`, `CF-RAY`, `cf-mitigated`) as supplied evidence.
+
 ## Spec fields the website omits
 
 Where the pinned OpenAPI spec documents a field the website does not, the website wins and the
@@ -121,7 +126,9 @@ A definitive provider rejection reports only what OANDA sent. `OperationError::R
 `::message` are `Option<String>` and are `None` when OANDA supplied no readable reason, and
 `::body` is a `Supplied<R>` that separates a body OANDA did not send (`Absent`), one this client
 decoded (`Decoded`), and one that arrived but did not match the documented shape (`Undecoded`).
-`Error::Provider` uses the same `Option` fields for a refused stream. Neither path substitutes a
+`Error::Provider` uses the same `Option` fields for a refused stream, and a refused stream whose
+body cannot be read is `Error::ProviderUnreadable` with its status, request ID, diagnostics and
+typed read error. Neither path substitutes a
 message OANDA did not write, and a caller reconciling a refused mutation can tell a reject
 transaction it has already accounted for from one it is missing. `ApiResponse::request_id` and
 `::next_page` carry the same three-state evidence: `Undecoded` reports a header OANDA sent that

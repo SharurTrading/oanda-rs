@@ -206,6 +206,7 @@ async fn typed_rejection_retains_provider_transaction() {
             code,
             message,
             body,
+            ..
         } => {
             assert_eq!(status, 400);
             assert_eq!(code.as_deref(), Some("INVALID_VALUE"));
@@ -598,6 +599,7 @@ async fn an_unreadable_rejection_body_is_reported_as_evidence_not_as_a_reason() 
             code,
             message,
             body,
+            ..
         } => {
             assert_eq!(status, 400);
             // No code, no message, and above all no reason this client did not
@@ -620,6 +622,7 @@ async fn an_unreadable_rejection_body_is_reported_as_evidence_not_as_a_reason() 
             code: Some(code),
             message: Some(message),
             body,
+            ..
         } => {
             assert_eq!(code, "FIXTURE");
             assert_eq!(message, "second");
@@ -652,6 +655,7 @@ async fn a_rejection_with_no_body_is_absent_rather_than_guessed() {
             code,
             message,
             body,
+            ..
         } => {
             assert!(code.is_none());
             assert!(message.is_none());
@@ -676,6 +680,7 @@ async fn a_readable_stream_rejection_keeps_its_reason() {
             status,
             code,
             message,
+            ..
         } => {
             assert_eq!(status, 401);
             assert_eq!(code.as_deref(), Some("AUTH"));
@@ -702,6 +707,7 @@ async fn an_unreadable_stream_rejection_reports_no_reason() {
             status,
             code,
             message,
+            ..
         } => {
             assert_eq!(status, 401);
             assert!(code.is_none(), "no code was readable: {code:?}");
@@ -822,7 +828,7 @@ async fn reserved_cancel_429_installs_shared_cooldown_without_a_second_send() {
     let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
     assert!(matches!(
         client.cancel_order(&account, &order, None).await,
-        Err(OperationError::Client(Error::ProviderRateLimited))
+        Err(OperationError::Client(Error::ProviderRateLimited { .. }))
     ));
     assert!(matches!(
         client.clone().cancel_order(&account, &order, None).await,

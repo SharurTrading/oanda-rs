@@ -6,7 +6,8 @@
 use crate::validation::Validate;
 use crate::{
     AccountID, Admission, ClientRequestID, Environment, Error, GenericRejection, OperationError,
-    RequestID, Result, Supplied, admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
+    RedirectTarget, RequestID, ResponseDiagnostics, Result, Supplied,
+    admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
 };
 use futures_util::StreamExt;
 use reqwest::{Method, StatusCode, Url};
@@ -240,13 +241,24 @@ impl Client {
                 .execute(request)
                 .await
                 .map_err(|e| match mutation_account {
+                    // No response arrived, so there is no status and no header to report.
                     Some(account) => Error::AmbiguousMutation {
                         account: account.clone(),
+                        status: None,
+                        diagnostics: Box::default(),
                     },
                     None => Error::Transport(e.to_string()),
                 })?;
         let status = response.status();
         let request_id = supplied_header(response.headers(), "RequestID");
+        if status.is_redirection() {
+            // The redirect is never followed, so the request was not executed at its URL.
+            if let Some(ref mut guard) = guard {
+                guard.disarm();
+            }
+            return Err(redirected(&response, request_id).into());
+        }
+        let diagnostics = Box::new(ResponseDiagnostics::from_headers(response.headers()));
         let next_page = if status.is_success() {
             parse_next_page(&self.inner.rest, response.headers())
         } else {
@@ -260,8 +272,9 @@ impl Client {
             self.install_cooldown(response.headers().get(reqwest::header::RETRY_AFTER))
                 .map_err(|source| Error::ProviderRateLimitedInvariant {
                     source: Box::new(source),
+                    diagnostics: diagnostics.clone(),
                 })?;
-            return Err(Error::ProviderRateLimited.into());
+            return Err(Error::ProviderRateLimited { diagnostics }.into());
         }
         let definitive_rejection = matches!(status.as_u16(), 400 | 401 | 403 | 404 | 405);
         if definitive_rejection && let Some(ref mut guard) = guard {
@@ -274,11 +287,14 @@ impl Client {
                     OperationError::RejectedUnreadable {
                         status: status.as_u16(),
                         request_id: request_id.clone(),
+                        diagnostics: diagnostics.clone(),
                         source: error,
                     }
                 } else if let Some(account) = mutation_account {
                     OperationError::Client(Error::AmbiguousMutation {
                         account: account.clone(),
+                        status: Some(status.as_u16()),
+                        diagnostics: diagnostics.clone(),
                     })
                 } else {
                     OperationError::Client(error)
@@ -288,6 +304,8 @@ impl Client {
             let value = serde_json::from_slice(&bytes).map_err(|e| match mutation_account {
                 Some(account) => Error::AmbiguousMutation {
                     account: account.clone(),
+                    status: Some(status.as_u16()),
+                    diagnostics: diagnostics.clone(),
                 },
                 None => Error::Decode(e.to_string()),
             })?;
@@ -311,6 +329,8 @@ impl Client {
         {
             return Err(Error::AmbiguousMutation {
                 account: account.clone(),
+                status: Some(status.as_u16()),
+                diagnostics,
             }
             .into());
         }
@@ -336,6 +356,7 @@ impl Client {
             code: reason.error_code,
             message: reason.error_message,
             body,
+            diagnostics,
         })
     }
 
@@ -606,12 +627,25 @@ fn query_atom(value: &serde_json::Value) -> Result<String> {
     }
 }
 
+/// The typed outcome of an HTTP 3xx answer, which this client never follows.
+pub(crate) fn redirected(response: &reqwest::Response, request_id: Supplied<RequestID>) -> Error {
+    Error::Redirected {
+        status: response.status().as_u16(),
+        location: RedirectTarget::from_headers(response.url(), response.headers()),
+        request_id,
+        diagnostics: Box::new(ResponseDiagnostics::from_headers(response.headers())),
+    }
+}
+
 /// Read a provider header as supplied evidence.
 ///
 /// A header OANDA did not send, and one it sent with bytes this client cannot
 /// read as text, are different facts; the second must not collapse into the
 /// first.
-fn supplied_header(headers: &reqwest::header::HeaderMap, name: &str) -> Supplied<RequestID> {
+pub(crate) fn supplied_header(
+    headers: &reqwest::header::HeaderMap,
+    name: &str,
+) -> Supplied<RequestID> {
     match headers.get(name) {
         None => Supplied::Absent,
         Some(value) => match value.to_str() {
@@ -1435,7 +1469,7 @@ mod tests {
                 .await
                 .expect("request");
             poison(&admission.inner.rate);
-            socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.expect("429");
+            socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nServer: cloudflare\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.expect("429");
         });
         let account = AccountID::new("fixture-account").expect("account");
         let result = client
@@ -1447,8 +1481,17 @@ mod tests {
                 },
             )
             .await;
-        assert!(
-            matches!(result, Err(OperationError::Client(Error::ProviderRateLimitedInvariant { source })) if matches!(*source, Error::Invariant(_)))
+        let Err(OperationError::Client(Error::ProviderRateLimitedInvariant {
+            source,
+            diagnostics,
+        })) = result
+        else {
+            panic!("expected a retained 429 with a cooldown invariant failure: {result:?}")
+        };
+        assert!(matches!(*source, Error::Invariant(_)));
+        assert_eq!(
+            diagnostics.server,
+            Supplied::Decoded("cloudflare".to_owned())
         );
         server.await.expect("server");
         assert!(client.inner.fenced.lock().expect("fence lock").is_empty());

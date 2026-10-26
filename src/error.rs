@@ -58,6 +58,15 @@ fn describe_reason(code: Option<&str>, message: Option<&str>) -> String {
     }
 }
 
+/// Render a redirect target without ever guessing one.
+fn describe_target(location: &Supplied<crate::RedirectTarget>) -> String {
+    match location {
+        Supplied::Decoded(target) => format!("to {target}"),
+        Supplied::Absent => "without a Location".to_owned(),
+        Supplied::Undecoded => "with an unreadable Location".to_owned(),
+    }
+}
+
 /// An endpoint error with its documented rejection body when available.
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
@@ -74,6 +83,8 @@ pub enum OperationError<R> {
         status: u16,
         /// Provider request identity observed before the body failed.
         request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
         /// Body transport failure or local size bound.
         #[source]
         source: Error,
@@ -92,6 +103,8 @@ pub enum OperationError<R> {
         message: Option<String>,
         /// The endpoint's documented rejection fields, or what OANDA actually sent for them.
         body: Supplied<R>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
 }
 
@@ -118,15 +131,20 @@ pub enum Error {
     /// Local query or stream capacity was exhausted.
     #[error("OANDA request rate capacity exhausted")]
     RateLimited,
-    /// Provider rate limited a request.
+    /// Provider rate limited a request with HTTP 429.
     #[error("OANDA returned HTTP 429")]
-    ProviderRateLimited,
+    ProviderRateLimited {
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+    },
     /// HTTP 429 proves refusal, but the shared cooldown could not be installed.
     #[error("OANDA returned HTTP 429; cooldown invariant failed: {source}")]
     ProviderRateLimitedInvariant {
         /// The admission invariant failure, retained alongside the definitive status.
         #[source]
         source: Box<Error>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// The provider rejected the request definitively.
     #[error(
@@ -140,12 +158,52 @@ pub enum Error {
         code: Option<String>,
         /// OANDA's `errorMessage`, when it supplied a readable one.
         message: Option<String>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+    },
+    /// A refused stream open whose body could not be read within local transport limits.
+    ///
+    /// The observed status remains authoritative; only OANDA's reason is missing.
+    #[error("OANDA returned HTTP {status}; refusal body unreadable: {source}")]
+    ProviderUnreadable {
+        /// HTTP response status.
+        status: u16,
+        /// OANDA's `RequestID` response header as supplied evidence.
+        request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+        /// Body transport failure or local size bound.
+        #[source]
+        source: Box<Error>,
+    },
+    /// The answer was an HTTP redirect (300-399), which this client never follows.
+    ///
+    /// No request is sent to the target, so the bearer token never leaves the
+    /// selected environment's hosts. A redirected mutation was not executed at the
+    /// requested URL, so it does not fence the account.
+    #[error("OANDA answered with HTTP {status} redirect {}; it was not followed", describe_target(.location))]
+    Redirected {
+        /// HTTP response status.
+        status: u16,
+        /// The `Location` target without userinfo, query or fragment: `Absent`
+        /// when no `Location` was sent, `Undecoded` when one was sent that does
+        /// not resolve to a URL with a host.
+        location: Supplied<crate::RedirectTarget>,
+        /// OANDA's `RequestID` response header as supplied evidence.
+        request_id: Supplied<crate::RequestID>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// An I/O or decode outcome leaves a mutation uncertain.
     #[error("OANDA mutation outcome is ambiguous for account {account}")]
     AmbiguousMutation {
         /// Affected account identifier.
         account: crate::AccountID,
+        /// HTTP response status, or `None` when no response arrived.
+        status: Option<u16>,
+        /// Diagnostic headers that say which network layer answered. Every
+        /// field is `Absent` when no response arrived.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// This account requires explicit reconciliation before another mutation.
     #[error("OANDA account {account} requires reconciliation")]

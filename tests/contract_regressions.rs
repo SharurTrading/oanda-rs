@@ -242,6 +242,7 @@ async fn truncated_definitive_rejection_does_not_fence_the_next_mutation() {
             status: 400,
             source: Error::Transport(_),
             request_id,
+            ..
         } => {
             assert_eq!(
                 request_id,

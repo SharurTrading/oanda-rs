@@ -71,7 +71,7 @@ How the SDK enforces them (SDK):
   `Error::RateLimited` and is never sent. A 21st stream also fails with `RateLimited`.
 - After a 429 the SDK pauses every request sharing the owner for `Retry-After` (1 second
   when absent, 60 seconds at most) and returns `Error::ProviderRateLimited`, which carries
-  no delay. Nothing is retried.
+  no delay, only the response `diagnostics`. Nothing is retried.
 - Streams do not use REST capacity. Reusing an open connection does not count as a new
   connection; a started connection attempt that fails or is cancelled is still counted.
 
@@ -408,7 +408,10 @@ A mutation is ambiguous when the SDK cannot tell whether OANDA acted on it. The 
 treats every send error as ambiguous, including a DNS or connect failure before anything
 was written, and also a 5xx, a 408, any status other than 400, 401, 403, 404 and 405
 or a redirect, and a reply it could not read, whatever its status. It reports each as
-`AmbiguousMutation` and never retries it (SDK). The order may have been placed, filled, or never arrived. OANDA refuses
+`AmbiguousMutation` and never retries it (SDK). The error carries the HTTP `status` that left
+the outcome uncertain (`None` when no response arrived) and the response `diagnostics`; a 520
+with `Server: cloudflare` and a `CF-RAY` came from an edge network, not OANDA's servers, but
+is still ambiguous (SDK). The order may have been placed, filled, or never arrived. OANDA refuses
 a new order whose `clientExtensions.id` is already assigned to another *pending* order
 (`CLIENT_ORDER_ID_ALREADY_EXISTS`, [Docs](https://developer.oanda.com/rest-live-v20/transaction-df/)),
 but nothing stops a duplicate of one that already filled or was cancelled, so a blind
@@ -459,7 +462,7 @@ To release it (Advice):
 | Treat `AmbiguousMutation` as "unknown", not "failed" | The order may have reached OANDA. The account is fenced, exits included, until you read its transactions and call `acknowledge_reconciliation`; see [After an ambiguous mutation](#after-an-ambiguous-mutation) (SDK) |
 | Never retry a mutation automatically | The SDK never does; a blind retry can double an order (SDK) |
 | Treat HTTP 5xx, 408, timeouts and unexpected statuses on a mutation as ambiguous | The SDK reports them as `AmbiguousMutation`. A 429 or a 3xx redirect does not fence the account (SDK) |
-| Read `diagnostics` on a refusal before blaming OANDA | `Server`, `CF-RAY` and `cf-mitigated` show when an edge network, not OANDA's servers, answered (SDK) |
+| Read `diagnostics` on a refusal, 429 or ambiguous mutation before blaming OANDA | `Server`, `CF-RAY` and `cf-mitigated` show when an edge network, not OANDA's servers, answered (SDK) |
 | Own reconnection | The SDK opens one stream per call and never reconnects (SDK) |
 | Bound every stream open yourself, and retry only 5xx and transport failures | See [Streams](#streams) |
 | Wait for a tradeable price, not an open stream | See [Pricing stream and readiness](#pricing-stream-and-readiness) |

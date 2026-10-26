@@ -24,12 +24,19 @@ release gate; this section is not a release.
   mutation means the request was not executed at its URL, so it no longer fences the
   account.
 - Breaking: `OperationError::Rejected`, `OperationError::RejectedUnreadable`,
-  `Error::Provider` and `Error::Redirected` carry `diagnostics: Box<ResponseDiagnostics>`,
+  `Error::Provider`, `Error::Redirected`, `Error::AmbiguousMutation` and
+  `Error::ProviderRateLimitedInvariant` carry `diagnostics: Box<ResponseDiagnostics>`,
   the `Server`, `CF-RAY` and `cf-mitigated` response headers as `Supplied<String>`. They
   let a caller tell an answer from an edge network, such as a bot-management challenge,
   from one by OANDA's servers. The client only reports them; it reads no cookies and does
   not act on a challenge. Patterns that list every field of these variants need `..` or
   the new field.
+- Breaking: `Error::ProviderRateLimited` is now a struct variant,
+  `ProviderRateLimited { diagnostics }`; match it as `ProviderRateLimited { .. }`.
+- Breaking: `Error::AmbiguousMutation` also carries `status: Option<u16>`, the HTTP status
+  of the answer that left the outcome uncertain, or `None` when no response arrived (its
+  diagnostics are then all `Absent`). Its ambiguity is unchanged: the account is still
+  fenced until the caller acknowledges reconciliation.
 
 ## [3.0.0] - 2026-10-20
 

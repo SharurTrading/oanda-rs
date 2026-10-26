@@ -241,8 +241,11 @@ impl Client {
                 .execute(request)
                 .await
                 .map_err(|e| match mutation_account {
+                    // No response arrived, so there is no status and no header to report.
                     Some(account) => Error::AmbiguousMutation {
                         account: account.clone(),
+                        status: None,
+                        diagnostics: Box::default(),
                     },
                     None => Error::Transport(e.to_string()),
                 })?;
@@ -269,8 +272,9 @@ impl Client {
             self.install_cooldown(response.headers().get(reqwest::header::RETRY_AFTER))
                 .map_err(|source| Error::ProviderRateLimitedInvariant {
                     source: Box::new(source),
+                    diagnostics: diagnostics.clone(),
                 })?;
-            return Err(Error::ProviderRateLimited.into());
+            return Err(Error::ProviderRateLimited { diagnostics }.into());
         }
         let definitive_rejection = matches!(status.as_u16(), 400 | 401 | 403 | 404 | 405);
         if definitive_rejection && let Some(ref mut guard) = guard {
@@ -289,6 +293,8 @@ impl Client {
                 } else if let Some(account) = mutation_account {
                     OperationError::Client(Error::AmbiguousMutation {
                         account: account.clone(),
+                        status: Some(status.as_u16()),
+                        diagnostics: diagnostics.clone(),
                     })
                 } else {
                     OperationError::Client(error)
@@ -298,6 +304,8 @@ impl Client {
             let value = serde_json::from_slice(&bytes).map_err(|e| match mutation_account {
                 Some(account) => Error::AmbiguousMutation {
                     account: account.clone(),
+                    status: Some(status.as_u16()),
+                    diagnostics: diagnostics.clone(),
                 },
                 None => Error::Decode(e.to_string()),
             })?;
@@ -321,6 +329,8 @@ impl Client {
         {
             return Err(Error::AmbiguousMutation {
                 account: account.clone(),
+                status: Some(status.as_u16()),
+                diagnostics,
             }
             .into());
         }
@@ -1459,7 +1469,7 @@ mod tests {
                 .await
                 .expect("request");
             poison(&admission.inner.rate);
-            socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.expect("429");
+            socket.write_all(b"HTTP/1.1 429 Too Many Requests\r\nServer: cloudflare\r\nRetry-After: 2\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").await.expect("429");
         });
         let account = AccountID::new("fixture-account").expect("account");
         let result = client
@@ -1471,8 +1481,17 @@ mod tests {
                 },
             )
             .await;
-        assert!(
-            matches!(result, Err(OperationError::Client(Error::ProviderRateLimitedInvariant { source })) if matches!(*source, Error::Invariant(_)))
+        let Err(OperationError::Client(Error::ProviderRateLimitedInvariant {
+            source,
+            diagnostics,
+        })) = result
+        else {
+            panic!("expected a retained 429 with a cooldown invariant failure: {result:?}")
+        };
+        assert!(matches!(*source, Error::Invariant(_)));
+        assert_eq!(
+            diagnostics.server,
+            Supplied::Decoded("cloudflare".to_owned())
         );
         server.await.expect("server");
         assert!(client.inner.fenced.lock().expect("fence lock").is_empty());

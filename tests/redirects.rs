@@ -350,3 +350,126 @@ async fn a_refused_stream_open_without_edge_headers_has_absent_diagnostics() {
     assert_eq!(**diagnostics, ResponseDiagnostics::default());
     task.await.expect("server");
 }
+
+#[tokio::test]
+async fn a_mutation_answered_by_the_edge_stays_ambiguous_and_carries_its_diagnostics() {
+    let (url, task) = server(answer(
+        "520 Unknown Error",
+        &["Server: cloudflare", "CF-RAY: 8f00000000000002-SYD"],
+    ))
+    .await;
+    let client = fixture_client(url);
+    let first = client
+        .configure_account(&account(), &rename())
+        .await
+        .expect_err("ambiguous");
+    let OperationError::Client(Error::AmbiguousMutation {
+        ref account,
+        status,
+        ref diagnostics,
+    }) = first
+    else {
+        panic!("expected an ambiguous mutation: {first:?}")
+    };
+    assert_eq!(account.as_str(), "101-001-1-001");
+    assert_eq!(status, Some(520));
+    assert_eq!(diagnostics.server, decoded("cloudflare"));
+    assert_eq!(diagnostics.ray_id, decoded("8f00000000000002-SYD"));
+    assert_eq!(diagnostics.mitigated, Supplied::Absent);
+    let second = client
+        .configure_account(&self::account(), &rename())
+        .await
+        .expect_err("fenced");
+    assert!(
+        matches!(
+            second,
+            OperationError::Client(Error::ReconciliationRequired { .. })
+        ),
+        "an ambiguous mutation still fences the account: {second:?}"
+    );
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn an_undecodable_mutation_success_keeps_its_status_and_diagnostics() {
+    let (url, task) = server(
+        b"HTTP/1.1 200 OK\r\nServer: cloudflare\r\nContent-Length: 9\r\nConnection: close\r\n\r\nnot json!"
+            .to_vec(),
+    )
+    .await;
+    let client = fixture_client(url);
+    let error = client
+        .configure_account(&account(), &rename())
+        .await
+        .expect_err("ambiguous");
+    let OperationError::Client(Error::AmbiguousMutation {
+        status: Some(200),
+        ref diagnostics,
+        ..
+    }) = error
+    else {
+        panic!("expected an ambiguous mutation with its status: {error:?}")
+    };
+    assert_eq!(diagnostics.server, decoded("cloudflare"));
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_mutation_without_a_response_is_ambiguous_without_a_status() {
+    let (url, task) = server(Vec::new()).await;
+    let client = fixture_client(url);
+    let error = client
+        .configure_account(&account(), &rename())
+        .await
+        .expect_err("ambiguous");
+    let OperationError::Client(Error::AmbiguousMutation {
+        status: None,
+        ref diagnostics,
+        ..
+    }) = error
+    else {
+        panic!("expected an ambiguous mutation without a status: {error:?}")
+    };
+    assert_eq!(**diagnostics, ResponseDiagnostics::default());
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_rate_limited_answer_carries_the_edge_diagnostics() {
+    let (url, task) = server(answer(
+        "429 Too Many Requests",
+        &[
+            "Server: cloudflare",
+            "CF-RAY: 8f00000000000003-SYD",
+            "Retry-After: 1",
+        ],
+    ))
+    .await;
+    let client = fixture_client(url);
+    let error = client
+        .account_summary(&account())
+        .await
+        .expect_err("rate limited");
+    let OperationError::Client(Error::ProviderRateLimited { ref diagnostics }) = error else {
+        panic!("expected a provider rate limit: {error:?}")
+    };
+    assert_eq!(diagnostics.server, decoded("cloudflare"));
+    assert_eq!(diagnostics.ray_id, decoded("8f00000000000003-SYD"));
+    assert_eq!(diagnostics.mitigated, Supplied::Absent);
+    task.await.expect("server");
+}
+
+#[tokio::test]
+async fn a_rate_limited_answer_without_edge_headers_has_absent_diagnostics() {
+    let (url, task) = server(answer("429 Too Many Requests", &[])).await;
+    let client = fixture_client(url);
+    let error = client
+        .account_summary(&account())
+        .await
+        .expect_err("rate limited");
+    let OperationError::Client(Error::ProviderRateLimited { ref diagnostics }) = error else {
+        panic!("expected a provider rate limit: {error:?}")
+    };
+    assert_eq!(**diagnostics, ResponseDiagnostics::default());
+    task.await.expect("server");
+}

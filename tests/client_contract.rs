@@ -828,7 +828,7 @@ async fn reserved_cancel_429_installs_shared_cooldown_without_a_second_send() {
     let order = oanda_client::OrderSpecifier::new("fixture-order").expect("order");
     assert!(matches!(
         client.cancel_order(&account, &order, None).await,
-        Err(OperationError::Client(Error::ProviderRateLimited))
+        Err(OperationError::Client(Error::ProviderRateLimited { .. }))
     ));
     assert!(matches!(
         client.clone().cancel_order(&account, &order, None).await,

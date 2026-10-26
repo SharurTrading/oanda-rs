@@ -131,15 +131,20 @@ pub enum Error {
     /// Local query or stream capacity was exhausted.
     #[error("OANDA request rate capacity exhausted")]
     RateLimited,
-    /// Provider rate limited a request.
+    /// Provider rate limited a request with HTTP 429.
     #[error("OANDA returned HTTP 429")]
-    ProviderRateLimited,
+    ProviderRateLimited {
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
+    },
     /// HTTP 429 proves refusal, but the shared cooldown could not be installed.
     #[error("OANDA returned HTTP 429; cooldown invariant failed: {source}")]
     ProviderRateLimitedInvariant {
         /// The admission invariant failure, retained alongside the definitive status.
         #[source]
         source: Box<Error>,
+        /// Diagnostic headers that say which network layer answered.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// The provider rejected the request definitively.
     #[error(
@@ -179,6 +184,11 @@ pub enum Error {
     AmbiguousMutation {
         /// Affected account identifier.
         account: crate::AccountID,
+        /// HTTP response status, or `None` when no response arrived.
+        status: Option<u16>,
+        /// Diagnostic headers that say which network layer answered. Every
+        /// field is `Absent` when no response arrived.
+        diagnostics: Box<crate::ResponseDiagnostics>,
     },
     /// This account requires explicit reconciliation before another mutation.
     #[error("OANDA account {account} requires reconciliation")]

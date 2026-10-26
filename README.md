@@ -149,10 +149,13 @@ environment variables set, run `cargo run --example practice_account`. Select
   status, `RequestID` and a `RedirectTarget` reduced to the `Location` scheme, host, port and
   path; userinfo, query and fragment are discarded. A redirected mutation was not executed, so it
   does not fence the account.
-- Non-success answers (`Rejected`, `RejectedUnreadable`, `Error::Provider`, `Error::Redirected`)
-  carry `ResponseDiagnostics`: the `Server`, `CF-RAY` and `cf-mitigated` headers as received, so a
-  caller can tell an edge network's answer, such as a bot-management challenge, from OANDA's own.
-  The client only reports them; it reads no cookies and never acts on a challenge.
+- Every HTTP answer reported as an error (`Rejected`, `RejectedUnreadable`, `Error::Provider`,
+  `Error::Redirected`, `Error::AmbiguousMutation`, `Error::ProviderRateLimited` and its invariant
+  variant) carries `ResponseDiagnostics`: the `Server`, `CF-RAY` and `cf-mitigated` headers as
+  received, so a caller can tell an edge network's answer, such as a bot-management challenge, from
+  OANDA's own. `AmbiguousMutation` also carries the status that left it uncertain, or `None` when no
+  response arrived. The client only reports these; it reads no cookies and never acts on a
+  challenge.
 - Prices, units, balances, and other financial values use exact `rust_decimal::Decimal` values
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
   Required and optional financial fields reject nonrepresentable coefficient/scale values
@@ -326,7 +329,7 @@ The deterministic tests exercise these SDK behaviors without credentials:
 | Stream delivery and failure | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1; synchronous close/drain preserves the finite buffered prefix, explicit tails/errors, cancellation, slot reuse and sibling stream/REST access |
 | Exit reserve and runtime changes | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs) and client unit tests: shared-clone admission, cancel/trade-close/position-close capacity, runtime replacement and release, spent capacity and provider cooldown |
 | Cross-client transport admission | [Admission scope tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/admission_scope.rs) and admission unit tests: different credentials share stream leases, connector pacing and cooldown; established socket reuse, cancellation and independent owners |
-| Redirects and response diagnostics | [Redirect tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/redirects.rs): REST reads, mutations and stream opens answered with 3xx return `Error::Redirected` with a reduced target and request ID, never contact the target, and leave the account unfenced; rejections and refused stream opens keep `Server`, `CF-RAY` and `cf-mitigated`, absence included |
+| Redirects and response diagnostics | [Redirect tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/redirects.rs): REST reads, mutations and stream opens answered with 3xx return `Error::Redirected` with a reduced target and request ID, never contact the target, and leave the account unfenced; rejections, refused stream opens, 429s and ambiguous mutations keep `Server`, `CF-RAY` and `cf-mitigated`, absence included, and an ambiguous mutation keeps its status and its fence |
 | Mutation uncertainty and rejection evidence | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs): single-attempt exits, account fences after ambiguous replies or timeouts, and supplied versus absent or undecodable provider evidence |
 
 These local checks do not extend the dated Practice results to all operations, runtime reserve

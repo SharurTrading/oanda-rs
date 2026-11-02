@@ -10,6 +10,8 @@ first public release.
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-11-03
+
 - Add `Error::StreamRecordLoss { cause }` for a consumed, complete newline-delimited
   record whose payload cannot be decoded. Live streams and finite buffered prefixes
   preserve later records in order after this error. Callers own continuity recovery.
@@ -163,5 +165,6 @@ for downstream changes.
   exchange). Lockfile-only: the published crate never pins transitive versions, so consumers
   resolve the fixed rustls through their own lockfiles.
 
+[4.1.0]: https://github.com/SharurTrading/oanda-rs/compare/v4.0.0...v4.1.0
 [4.0.0]: https://github.com/SharurTrading/oanda-rs/compare/v3.0.0...v4.0.0
 [3.0.0]: https://github.com/SharurTrading/oanda-rs/compare/v2.0.0...v3.0.0

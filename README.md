@@ -195,14 +195,17 @@ environment variables set, run `cargo run --example practice_account`. Select
   buffered backlog by a local cap of 16 MiB that ends the generation explicitly rather than evicting
   records already accepted. HTTP chunk segmentation is a transport read, not a provider record
   boundary, so a large chunk carrying many valid records is processed in order rather than
-  rejected, and buffered records are never evicted for a slow caller. Malformed or oversized records, timeouts, and connection loss end that stream
-  generation and require caller-owned recovery. The library does not reconnect or maintain account
+  rejected, and buffered records are never evicted for a slow caller. A malformed complete newline-delimited record yields
+  `Error::StreamRecordLoss { cause }` and retains the ordered suffix on the same stream.
+  Oversized records, timeouts, and connection loss end that stream generation. Every gap
+  requires caller-owned recovery. The library does not reconnect or maintain account
   and price projections.
 - `HttpStream::close` consumes one stream, closes its response and admission lease
   synchronously, and returns `BufferedEvents`, a finite synchronous iterator over the
   already buffered prefix. Handle every result before treating it as drained. Partial
-  tails and already-ended generations are explicit errors; malformed and oversized
-  records keep their existing errors. The iterator reads no further network data and
+  tails and already-ended generations are explicit terminal errors. Complete malformed
+  records yield `StreamRecordLoss` and leave later records available; size errors end
+  the iterator. The iterator reads no further network data and
   does not establish a complete venue sequence. Dropping a stream still discards its
   undelivered buffer; use `close` when that prefix must be consumed.
 - OANDA's [pricing stream](https://developer.oanda.com/rest-live-v20/pricing-ep/) is sampled at most

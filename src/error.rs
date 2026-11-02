@@ -232,6 +232,15 @@ pub enum Error {
     /// The stream had ended before a buffered cut could be established.
     #[error("OANDA stream already ended before its buffered prefix was closed")]
     StreamAlreadyEnded,
+    /// One complete newline-delimited stream record could not be decoded.
+    ///
+    /// The record has been consumed. Later records remain available from the same
+    /// stream or finite buffered prefix; callers own any continuity recovery.
+    #[error("OANDA stream record lost: {cause}")]
+    StreamRecordLoss {
+        /// Decoder diagnostic for the consumed record.
+        cause: String,
+    },
     /// Provider response did not match the documented shape.
     #[error("malformed OANDA response: {0}")]
     Decode(String),

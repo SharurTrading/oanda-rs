@@ -8,6 +8,14 @@ SPDX-License-Identifier: MIT-0
 All notable changes will be documented here. This project follows Semantic Versioning after its
 first public release.
 
+## [Unreleased]
+
+- Add `Error::StreamRecordLoss { cause }` for a consumed, complete newline-delimited
+  record whose payload cannot be decoded. Live streams and finite buffered prefixes
+  preserve later records in order after this error. Callers own continuity recovery.
+  REST decoding errors, resource limits, timeouts, transport failures and incomplete
+  finite tails retain their terminal behavior.
+
 ## [4.0.0] - 2026-10-26
 
 This major release types HTTP redirects and attaches edge-network response diagnostics to

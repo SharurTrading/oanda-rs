@@ -95,7 +95,12 @@ impl<E> Buffered<E> {
                 return Some(Err(Error::ResponseTooLarge));
             }
             // Decode the borrowed slice before compaction; the decoder returns owned evidence.
-            let event = (end > self.start).then(|| (self.decoder)(&self.bytes[self.start..end]));
+            let event = (end > self.start).then(|| {
+                (self.decoder)(&self.bytes[self.start..end]).map_err(|error| match error {
+                    Error::Decode(cause) => Error::StreamRecordLoss { cause },
+                    other => other,
+                })
+            });
             self.start = newline + 1;
             if self.start == self.bytes.len() {
                 self.bytes.clear();
@@ -115,8 +120,8 @@ impl<E> Buffered<E> {
 ///
 /// The HTTP response and admission lease are closed before this value is returned.
 /// Iteration is synchronous: it performs no network read and requires no runtime.
-/// It yields records in their original order, ending after the first error or
-/// after the prefix is exhausted. A nonempty unterminated tail is an explicit
+/// It yields records in their original order, continuing after `StreamRecordLoss`
+/// and ending after any other error or after the prefix is exhausted. A nonempty unterminated tail is an explicit
 /// error. Dropping this value discards any undelivered prefix, so closure alone
 /// does not prove that the caller consumed it.
 #[must_use = "consume the finite prefix and handle errors before claiming it was drained"]
@@ -151,7 +156,8 @@ impl<E> Iterator for BufferedEvents<E> {
             return Some(Err(error));
         }
         if let Some(event) = self.buffered.next() {
-            self.finished = event.is_err();
+            self.finished =
+                matches!(&event, Err(error) if !matches!(error, Error::StreamRecordLoss { .. }));
             return Some(event);
         }
         self.finished = true;
@@ -189,8 +195,9 @@ impl<E> HttpStream<E> {
     /// Cancel a pending `next_event` borrow before consuming the stream here.
     ///
     /// The iterator yields `StreamAlreadyEnded` if this generation had already
-    /// ended, and `IncompleteStreamRecord` for an unterminated tail. Decode and
-    /// size errors also end the iterator. Exhaust it successfully before claiming
+    /// ended, and `IncompleteStreamRecord` for an unterminated tail. A consumed
+    /// malformed record yields `StreamRecordLoss` and leaves the suffix available;
+    /// all other errors end the iterator. Exhaust it successfully before claiming
     /// that the buffered prefix was delivered.
     pub fn close(mut self) -> BufferedEvents<E> {
         let initial_error = self.ended.then_some(Error::StreamAlreadyEnded);
@@ -202,14 +209,18 @@ impl<E> HttpStream<E> {
         }
     }
 
-    /// Read the next event. Any error ends this generation and creates a continuity gap.
+    /// Reads the next event, reporting any continuity gap to the caller.
+    ///
+    /// `StreamRecordLoss` consumes only its complete newline-delimited record;
+    /// later records remain available. All other errors end the generation.
     pub async fn next_event(&mut self) -> Option<Result<E>> {
         if self.ended {
             return None;
         }
         loop {
             if let Some(result) = self.buffered.next() {
-                if result.is_err() {
+                if matches!(&result, Err(error) if !matches!(error, Error::StreamRecordLoss { .. }))
+                {
                     self.finish();
                 }
                 return Some(result);
@@ -436,6 +447,49 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn complete_record_losses_preserve_the_live_ordered_suffix() {
+        let bytes = format!(
+            "{}bad-json\n{}{{}}\n{}",
+            heartbeat(124),
+            heartbeat(126),
+            heartbeat(128)
+        );
+        let mut stream = from_buffer(bytes.into_bytes(), decode_transaction);
+        assert_eq!(
+            transaction_id(stream.next_event().await.expect("124")),
+            "124"
+        );
+        assert!(stream.next_event().await.expect("first loss").is_err());
+        assert_eq!(
+            transaction_id(stream.next_event().await.expect("126")),
+            "126"
+        );
+        assert!(stream.next_event().await.expect("second loss").is_err());
+        assert_eq!(
+            transaction_id(stream.next_event().await.expect("128")),
+            "128"
+        );
+        assert!(stream.next_event().await.is_none());
+    }
+
+    #[test]
+    fn complete_record_losses_preserve_the_closed_ordered_suffix() {
+        let bytes = format!(
+            "{}bad-json\n{}{{}}\n{}",
+            heartbeat(124),
+            heartbeat(126),
+            heartbeat(128)
+        );
+        let mut prefix = from_buffer(bytes.into_bytes(), decode_transaction).close();
+        assert_eq!(transaction_id(prefix.next().expect("124")), "124");
+        assert!(prefix.next().expect("first loss").is_err());
+        assert_eq!(transaction_id(prefix.next().expect("126")), "126");
+        assert!(prefix.next().expect("second loss").is_err());
+        assert_eq!(transaction_id(prefix.next().expect("128")), "128");
+        assert!(prefix.next().is_none());
+    }
+
+    #[tokio::test]
     async fn closing_preserves_the_exact_remaining_complete_prefix_and_original_decoder() {
         let bytes = format!("\r\n{}\n{}{}", heartbeat(10), heartbeat(11), heartbeat(12));
         let mut stream = from_buffer(bytes.into_bytes(), decode_transaction);
@@ -532,11 +586,18 @@ mod tests {
     }
 
     #[test]
-    fn malformed_and_oversized_prefixes_end_explicitly_without_skipping_to_later_records() {
+    fn malformed_prefix_keeps_suffix_and_oversized_prefixes_end_explicitly() {
         let mut malformed = b"not-json\n".to_vec();
         malformed.extend_from_slice(heartbeat(31).as_bytes());
         let mut buffered = from_buffer(malformed, decode_transaction).close();
-        assert!(matches!(buffered.next(), Some(Err(Error::Decode(_)))));
+        assert!(matches!(
+            buffered.next(),
+            Some(Err(Error::StreamRecordLoss { .. }))
+        ));
+        assert_eq!(
+            transaction_id(buffered.next().expect("retained suffix")),
+            "31"
+        );
         assert!(buffered.next().is_none());
         for mut oversized in [
             vec![b'x'; MAX_RECORD_BYTES + 1],
@@ -558,10 +619,10 @@ mod tests {
 
     #[tokio::test]
     async fn an_already_ended_generation_cannot_report_a_clean_buffered_cut() {
-        let mut stream = from_buffer(b"not-json\n".to_vec(), decode_transaction);
+        let mut stream = from_buffer(vec![b'x'; MAX_RECORD_BYTES + 1], decode_transaction);
         assert!(matches!(
             stream.next_event().await,
-            Some(Err(Error::Decode(_)))
+            Some(Err(Error::ResponseTooLarge))
         ));
         let mut buffered = stream.close();
         assert!(matches!(
@@ -743,11 +804,18 @@ mod tests {
                 .expect("finite HTTP prefix");
             let mut buffered = stream.close();
             match (index, buffered.next()) {
-                (0, Some(Err(Error::Decode(_)))) | (1, Some(Err(Error::ResponseTooLarge))) => {}
+                (0, Some(Err(Error::StreamRecordLoss { .. })))
+                | (1, Some(Err(Error::ResponseTooLarge))) => {}
                 (2, Some(Err(Error::IncompleteStreamRecord { bytes }))) => {
                     assert_eq!(bytes, prefix.len());
                 }
                 (_, observed) => panic!("buffered error was lost or changed: {observed:?}"),
+            }
+            if index == 0 {
+                assert_eq!(
+                    transaction_id(buffered.next().expect("retained suffix")),
+                    "51"
+                );
             }
             assert!(buffered.next().is_none());
             peer_closed(server).await;
@@ -755,7 +823,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn an_errored_real_http_generation_cannot_be_closed_as_a_clean_prefix() {
+    async fn terminal_eof_after_record_loss_cannot_be_closed_as_a_clean_prefix() {
         let (url, server) = crate::test_support::server(crate::test_support::http(
             "200 OK",
             "application/octet-stream",
@@ -770,8 +838,13 @@ mod tests {
             .expect("real stream");
         assert!(matches!(
             stream.next_event().await,
-            Some(Err(Error::Decode(_)))
+            Some(Err(Error::StreamRecordLoss { .. }))
         ));
+        assert!(matches!(
+            stream.next_event().await,
+            Some(Err(Error::Transport(_)))
+        ));
+        assert!(stream.next_event().await.is_none());
         let mut buffered = stream.close();
         assert!(matches!(
             buffered.next(),

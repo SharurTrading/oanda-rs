@@ -429,7 +429,7 @@ async fn invalid_query_and_mutation_are_rejected_before_network() {
 }
 
 #[tokio::test]
-async fn malformed_stream_record_ends_generation() {
+async fn malformed_stream_record_reports_loss_before_terminal_transport_eof() {
     let body = b"not-json\n";
     let mut response = format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
@@ -443,7 +443,11 @@ async fn malformed_stream_record_ends_generation() {
     let mut stream = client.stream_transactions(&account).await.expect("stream");
     assert!(matches!(
         stream.next_event().await,
-        Some(Err(Error::Decode(_)))
+        Some(Err(Error::StreamRecordLoss { .. }))
+    ));
+    assert!(matches!(
+        stream.next_event().await,
+        Some(Err(Error::Transport(_)))
     ));
     assert!(stream.next_event().await.is_none());
     task.await.expect("server");

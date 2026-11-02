@@ -11,7 +11,7 @@ SPDX-License-Identifier: MIT-0
 [![MSRV: Rust 1.95.0](https://img.shields.io/badge/MSRV-Rust%201.95.0-blue.svg?logo=rust)](https://github.com/SharurTrading/oanda-rs/blob/main/rust-toolchain.toml)
 [![license: MIT-0](https://img.shields.io/badge/license-MIT--0-blue.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/LICENSE)
 [![v20 operations: 32/32 typed](https://img.shields.io/badge/v20%20operations-32%2F32%20typed-brightgreen.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/docs/coverage.json)
-[![Offline tests: 147 passed locally](https://img.shields.io/badge/offline%20tests-147%20passed%20locally-brightgreen.svg)](#testing-status)
+[![Offline tests: 152 passed locally](https://img.shields.io/badge/offline%20tests-152%20passed%20locally-brightgreen.svg)](#testing-status)
 [![Practice probes: 3 passed on 2026-09-25](https://img.shields.io/badge/Practice%20probes-3%20passed%20%7C%202026--09--25-brightgreen.svg)](#testing-status)
 [![Practice observations: recorded October 2026](https://img.shields.io/badge/Practice%20observations-recorded%20October%202026-blue.svg)](https://github.com/SharurTrading/oanda-rs/blob/main/docs/behaviour-guide.md)
 
@@ -29,9 +29,10 @@ adapter is outside this repository.
 The project is licensed under [MIT No Attribution (MIT-0)](https://github.com/SharurTrading/oanda-rs/blob/main/LICENSE). The minimum supported Rust
 version is **1.95.0**.
 
-Version **4.0.0** follows Semantic Versioning. It types HTTP redirects and attaches response
-diagnostics to every HTTP answer reported as an error, which adds fields to existing error
-variants; see [Upgrading from 3.x](#upgrading-from-3x). Public API changes
+Version **4.1.0** follows Semantic Versioning. It adds `Error::StreamRecordLoss { cause }`, an additive
+variant on the `#[non_exhaustive]` error enum that requires no downstream source changes. The 4.0.0
+error-surface changes (typed redirects and response diagnostics on every HTTP answer reported as an
+error) are covered by [Upgrading from 3.x](#upgrading-from-3x). Public API changes
 that require downstream source changes use a new major version; additive APIs and fixes use
 minor and patch releases.
 Provider contract changes can still require callers to update operational behavior, so review the
@@ -324,16 +325,16 @@ and traffic on the same egress address.
 ## Testing status
 
 The badges distinguish deterministic test results, documented API coverage, and dated
-Practice observations. The [successful CI run on 2026-10-26](https://github.com/SharurTrading/oanda-rs/actions/runs/40288779530)
-at [commit `dc95504`](https://github.com/SharurTrading/oanda-rs/commit/dc95504f3b544643ba644b8b2726d68ca83a61c7)
-passed 147 Rust tests and left 3 live probes ignored. The current
-local suite passes the same **147 credential-free Rust tests, including three README doctests** with **3 live probes ignored**. The static
+Practice observations. The [successful CI run on 2026-11-03](https://github.com/SharurTrading/oanda-rs/actions/runs/41536740196)
+at [commit `627cacc`](https://github.com/SharurTrading/oanda-rs/commit/627cacc961d862ea10a0e0b5ca271be8c3ae9381)
+passed 152 Rust tests and left 3 live probes ignored. The current
+local suite passes the same **152 credential-free Rust tests, including three README doctests** with **3 live probes ignored**. The static
 test-count badge records the local suite; it is not a count of operations or authenticated venue
 tests.
 
 | Evidence | Verified scope | Result and date |
 | --- | --- | --- |
-| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 144 unit/integration tests and 3 README doctests passed locally on 2026-10-26 and in the linked CI run of the same day; 3 live probes ignored |
+| Credential-free Rust tests | Unit and synthetic loopback tests, including the checks below | 149 unit/integration tests and 3 README doctests passed locally on 2026-11-03 and in the linked CI run of the same day; 3 live probes ignored |
 | Coverage ledger | 30 REST operations, 2 streams and 168 named definitions | 32/32 operations and 168/168 definitions marked tested by the offline ledger check in that run |
 | Authenticated read-only Practice probes | Account list and summary, EUR/USD pricing, and one record from each stream | 3 passed on 2026-09-25, as recorded in the [probe notes](https://github.com/SharurTrading/oanda-rs/blob/main/docs/coverage.md#authenticated-probes) |
 | Practice observations while building an integration | Order fills in both account modes, stream open behaviour and timing, transaction-stream fill and replace events, P/L precision | Recorded October 2026 with per-fact source tags in the [behaviour guide](https://github.com/SharurTrading/oanda-rs/blob/main/docs/behaviour-guide.md); small-sample observations, untested on Live |
@@ -348,7 +349,7 @@ The deterministic tests exercise these SDK behaviors without credentials:
 | Provider definitions and variants | [Definition fixtures](https://github.com/SharurTrading/oanda-rs/blob/main/tests/definition_wire.rs), [scalar enums](https://github.com/SharurTrading/oanda-rs/blob/main/tests/enum_variants.rs) and [tagged variants](https://github.com/SharurTrading/oanda-rs/blob/main/tests/tagged_variants.rs): 168 definitions, 503 enum values and 55 tagged variants |
 | Observed transaction shapes | [Close of a flat side](https://github.com/SharurTrading/oanda-rs/blob/main/tests/close_flat_side.rs): synthetic transactions in the shape a 2026-10-16 Practice close of a flat hedged side produced, decoded by id, since id, id range, from the transaction stream and inside the `close_position` rejection; the closeout fill re-encodes with its undocumented requested units and home-conversion costs intact. [Opening fill](https://github.com/SharurTrading/oanda-rs/blob/main/tests/open_fill.rs): a synthetic fill in the shape of 2026-10-12 Practice opening fills keeps the undocumented cost on `tradeOpened`, a stated zero apart from absence |
 | Financial precision | [Decimal fixtures](https://github.com/SharurTrading/oanda-rs/blob/main/tests/decimal_precision.rs): exact strings and numeric liquidity, with nonrepresentable values refused |
-| Stream delivery and failure | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, backlog bounds and HTTP/1.1; synchronous close/drain preserves the finite buffered prefix, explicit tails/errors, cancellation, slot reuse and sibling stream/REST access |
+| Stream delivery and failure | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs) and stream unit tests: fragmentation, heartbeats, malformed and oversized records, complete record loss preserving the ordered suffix, backlog bounds and HTTP/1.1; synchronous close/drain preserves the finite buffered prefix, explicit tails/errors, cancellation, slot reuse and sibling stream/REST access |
 | Exit reserve and runtime changes | [Client contract tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/client_contract.rs) and client unit tests: shared-clone admission, cancel/trade-close/position-close capacity, runtime replacement and release, spent capacity and provider cooldown |
 | Cross-client transport admission | [Admission scope tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/admission_scope.rs) and admission unit tests: different credentials share stream leases, connector pacing and cooldown; established socket reuse, cancellation and independent owners |
 | Redirects and response diagnostics | [Redirect tests](https://github.com/SharurTrading/oanda-rs/blob/main/tests/redirects.rs): REST reads, mutations and stream opens answered with 3xx return `Error::Redirected` with a reduced target and request ID, never contact the target, and leave the account unfenced; rejections, refused stream opens (including unreadable refusal bodies), 429s and ambiguous mutations keep `Server`, `CF-RAY` and `cf-mitigated`, absence included, and an ambiguous mutation keeps its status and its fence |

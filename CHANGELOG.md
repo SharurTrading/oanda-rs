@@ -15,7 +15,8 @@ first public release.
   continues to write UTC with nine fractional digits. Leap seconds return
   `InvalidTimestamp::LeapSecond`.
 - Add `ClientBuilder::wall_clock` for applications that supply the UTC clock used to
-  interpret an HTTP-date `Retry-After`. Cooldown deadlines remain monotonic.
+  interpret an HTTP-date `Retry-After`. Cooldown deadlines remain monotonic and
+  retain the full duration to the stated date, up to the existing cap.
 
 ## [4.1.0] - 2026-11-03
 

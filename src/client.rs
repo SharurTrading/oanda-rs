@@ -459,8 +459,12 @@ fn parse_retry_after(
         return Some(Duration::from_secs(seconds).min(MAX_COOLDOWN));
     }
     let when = DateTimeParser::new().parse_timestamp(text).ok()?;
-    let seconds = u64::try_from(when.duration_since(wall_clock()).as_secs().max(0)).ok()?;
-    Some(Duration::from_secs(seconds).min(MAX_COOLDOWN))
+    let remaining = when
+        .duration_since(wall_clock())
+        .max(jiff::SignedDuration::ZERO);
+    Duration::try_from(remaining)
+        .ok()
+        .map(|delay| delay.min(MAX_COOLDOWN))
 }
 
 impl ClientBuilder {
@@ -1064,10 +1068,44 @@ mod tests {
         assert_cooldown(Some("7"), Duration::from_secs(7));
         assert_cooldown(
             Some("Thu, 08 Oct 2026 00:00:30 GMT"),
-            Duration::from_secs(29),
+            Duration::from_millis(29_500),
         );
-        assert_cooldown(Some("Wed, 07 Oct 2026 23:59:30 GMT"), Duration::ZERO);
+        assert_cooldown(Some("Thu, 08 Oct 2026 00:00:00 GMT"), Duration::ZERO);
+        assert_cooldown(Some("Thu, 08 Oct 2026 01:00:00 GMT"), MAX_COOLDOWN);
         assert_cooldown(Some("9999"), MAX_COOLDOWN);
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn http_date_cooldown_blocks_mutations_until_the_exact_expiry() {
+        let now = "2026-10-08T00:00:00.500000001Z"
+            .parse::<Timestamp>()
+            .expect("timestamp");
+        let client = Client::builder(Environment::Practice, "fixture")
+            .exit_reserve(2)
+            .wall_clock(move || now)
+            .build()
+            .expect("client");
+        let until = reqwest::header::HeaderValue::from_static("Thu, 08 Oct 2026 00:00:01 GMT");
+        client
+            .install_cooldown(Some(&until))
+            .expect("install cooldown");
+
+        tokio::time::advance(Duration::from_nanos(499_999_998)).await;
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(matches!(
+            client.clone().admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+
+        tokio::time::advance(Duration::from_nanos(1)).await;
+        client
+            .admit(true, false)
+            .await
+            .expect("ordinary mutation at expiry");
+        client.admit(true, true).await.expect("exit at expiry");
     }
 
     #[tokio::test(start_paused = true)]

@@ -10,6 +10,14 @@ first public release.
 
 ## [Unreleased]
 
+- Breaking. `Timestamp::new`, `Timestamp::into_inner`, and the `From` conversion now
+  use `jiff::Timestamp`. The wire accepts RFC3339 and exact signed Unix decimals and
+  continues to write UTC with nine fractional digits. Leap seconds return
+  `InvalidTimestamp::LeapSecond`.
+- Add `ClientBuilder::wall_clock` for applications that supply the UTC clock used to
+  interpret an HTTP-date `Retry-After`. Cooldown deadlines remain monotonic and
+  retain the full duration to the stated date, up to the existing cap.
+
 ## [4.1.0] - 2026-11-03
 
 - Add `Error::StreamRecordLoss { cause }` for a consumed, complete newline-delimited

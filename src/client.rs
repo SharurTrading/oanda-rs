@@ -10,6 +10,7 @@ use crate::{
     admission::REQUESTS_PER_SECOND, models::AcceptDatetimeFormat,
 };
 use futures_util::StreamExt;
+use jiff::{Timestamp, fmt::rfc2822::DateTimeParser};
 use reqwest::{Method, StatusCode, Url};
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
@@ -66,6 +67,7 @@ pub(crate) struct Inner {
     pub token: Zeroizing<String>,
     pub max_body: usize,
     pub datetime_format: AcceptDatetimeFormat,
+    wall_clock: Box<dyn Fn() -> Timestamp + Send + Sync>,
     pub(crate) admission: Admission,
     fenced: Mutex<HashSet<AccountID>>,
     in_flight: Mutex<HashSet<AccountID>>,
@@ -141,6 +143,7 @@ pub struct ClientBuilder {
     exit_reserve: Option<u32>,
     admission: Option<Admission>,
     datetime_format: AcceptDatetimeFormat,
+    wall_clock: Box<dyn Fn() -> Timestamp + Send + Sync>,
 }
 
 impl fmt::Debug for ClientBuilder {
@@ -180,6 +183,7 @@ impl Client {
             exit_reserve: None,
             admission: None,
             datetime_format: AcceptDatetimeFormat::Rfc3339,
+            wall_clock: Box::new(Timestamp::now),
         }
     }
 
@@ -436,7 +440,7 @@ impl Client {
     fn install_cooldown(&self, retry_after: Option<&reqwest::header::HeaderValue>) -> Result<()> {
         let cooldown = match retry_after {
             None => DEFAULT_COOLDOWN,
-            Some(value) => parse_retry_after(value).unwrap_or(MAX_COOLDOWN),
+            Some(value) => parse_retry_after(value, &self.inner.wall_clock).unwrap_or(MAX_COOLDOWN),
         };
         self.inner.admission.install_cooldown(cooldown)
     }
@@ -446,19 +450,21 @@ impl Client {
 ///
 /// A date already in the past asks for no wait at all, which is a stated
 /// instruction rather than a missing one.
-fn parse_retry_after(value: &reqwest::header::HeaderValue) -> Option<Duration> {
+fn parse_retry_after(
+    value: &reqwest::header::HeaderValue,
+    wall_clock: impl FnOnce() -> Timestamp,
+) -> Option<Duration> {
     let text = value.to_str().ok()?.trim();
     if let Ok(seconds) = text.parse::<u64>() {
         return Some(Duration::from_secs(seconds).min(MAX_COOLDOWN));
     }
-    let when = chrono::DateTime::parse_from_rfc2822(text).ok()?;
-    let seconds = u64::try_from(
-        (when.with_timezone(&chrono::Utc) - chrono::Utc::now())
-            .num_seconds()
-            .max(0),
-    )
-    .ok()?;
-    Some(Duration::from_secs(seconds).min(MAX_COOLDOWN))
+    let when = DateTimeParser::new().parse_timestamp(text).ok()?;
+    let remaining = when
+        .duration_since(wall_clock())
+        .max(jiff::SignedDuration::ZERO);
+    Duration::try_from(remaining)
+        .ok()
+        .map(|delay| delay.min(MAX_COOLDOWN))
 }
 
 impl ClientBuilder {
@@ -503,6 +509,15 @@ impl ClientBuilder {
         self.datetime_format = value;
         self
     }
+    /// Supply the UTC clock used when OANDA sends an HTTP-date `Retry-After`.
+    ///
+    /// Defaults to the system clock. Elapsed cooldowns use a monotonic timer.
+    #[must_use]
+    pub fn wall_clock(mut self, clock: impl Fn() -> Timestamp + Send + Sync + 'static) -> Self {
+        self.wall_clock = Box::new(clock);
+        self
+    }
+
     /// Override both hosts for deterministic loopback fixtures.
     /// Remote endpoints must remain the selected OANDA environment pair.
     #[must_use]
@@ -585,6 +600,7 @@ impl ClientBuilder {
                 token: self.token,
                 max_body: self.max_body,
                 datetime_format: self.datetime_format,
+                wall_clock: self.wall_clock,
                 admission,
                 fenced: Mutex::new(HashSet::new()),
                 in_flight: Mutex::new(HashSet::new()),
@@ -1023,9 +1039,13 @@ mod tests {
     }
 
     fn assert_cooldown(header: Option<&str>, expected: Duration) {
-        let client = Client::builder(Environment::Practice, "fixture").build();
-        assert!(client.is_ok());
-        let Ok(client) = client else { return };
+        let now = "2026-10-08T00:00:00.5Z"
+            .parse::<Timestamp>()
+            .expect("timestamp");
+        let client = Client::builder(Environment::Practice, "fixture")
+            .wall_clock(move || now)
+            .build()
+            .expect("client");
         let header =
             header.map(|text| reqwest::header::HeaderValue::from_str(text).expect("header"));
         let start = RateInstant::now();
@@ -1040,41 +1060,56 @@ mod tests {
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         let until = rate.cooldown_until.expect("cooldown installed");
-        // An RFC 9110 date carries whole seconds, so formatting a later
-        // instant floors it and `num_seconds` floors again; a slow runner can
-        // legitimately land one second under the nominal span. One second of
-        // tolerance each way keeps the bound meaningful without flaking.
-        let tolerance = Duration::from_secs(1);
-        assert!(
-            until + tolerance >= start + expected,
-            "cooldown shorter than {expected:?}"
-        );
-        assert!(
-            until <= RateInstant::now() + expected + tolerance,
-            "cooldown longer than {expected:?}"
-        );
+        assert_eq!(until, start + expected);
     }
 
-    #[test]
-    fn retry_after_reads_both_rfc_9110_forms() {
+    #[tokio::test(start_paused = true)]
+    async fn retry_after_reads_both_rfc_9110_forms() {
         assert_cooldown(Some("7"), Duration::from_secs(7));
-        // An HTTP-date OANDA is entitled to send is read, not treated as garbage.
-        let later = chrono::Utc::now() + chrono::Duration::seconds(30);
         assert_cooldown(
-            Some(&later.format("%a, %d %b %Y %H:%M:%S GMT").to_string()),
-            Duration::from_secs(29),
+            Some("Thu, 08 Oct 2026 00:00:30 GMT"),
+            Duration::from_millis(29_500),
         );
-        // A date already past asks for no wait at all.
-        let earlier = chrono::Utc::now() - chrono::Duration::seconds(30);
-        assert_cooldown(
-            Some(&earlier.format("%a, %d %b %Y %H:%M:%S GMT").to_string()),
-            Duration::ZERO,
-        );
+        assert_cooldown(Some("Thu, 08 Oct 2026 00:00:00 GMT"), Duration::ZERO);
+        assert_cooldown(Some("Thu, 08 Oct 2026 01:00:00 GMT"), MAX_COOLDOWN);
         assert_cooldown(Some("9999"), MAX_COOLDOWN);
     }
 
-    #[test]
-    fn an_unreadable_or_absent_retry_after_is_not_read_as_a_provider_instruction() {
+    #[tokio::test(start_paused = true)]
+    async fn http_date_cooldown_blocks_mutations_until_the_exact_expiry() {
+        let now = "2026-10-08T00:00:00.500000001Z"
+            .parse::<Timestamp>()
+            .expect("timestamp");
+        let client = Client::builder(Environment::Practice, "fixture")
+            .exit_reserve(2)
+            .wall_clock(move || now)
+            .build()
+            .expect("client");
+        let until = reqwest::header::HeaderValue::from_static("Thu, 08 Oct 2026 00:00:01 GMT");
+        client
+            .install_cooldown(Some(&until))
+            .expect("install cooldown");
+
+        tokio::time::advance(Duration::from_nanos(499_999_998)).await;
+        assert!(matches!(
+            client.admit(true, false).await,
+            Err(Error::RateLimited)
+        ));
+        assert!(matches!(
+            client.clone().admit(true, true).await,
+            Err(Error::RateLimited)
+        ));
+
+        tokio::time::advance(Duration::from_nanos(1)).await;
+        client
+            .admit(true, false)
+            .await
+            .expect("ordinary mutation at expiry");
+        client.admit(true, true).await.expect("exit at expiry");
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn an_unreadable_or_absent_retry_after_is_not_read_as_a_provider_instruction() {
         // No header: the documented local default, not a value OANDA supplied.
         assert_cooldown(None, DEFAULT_COOLDOWN);
         // A header this client cannot read: the local maximum, never a value the

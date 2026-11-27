@@ -180,7 +180,9 @@ environment variables set, run `cargo run --example practice_account`. Select
   parsed from OANDA decimal strings. Price-bucket liquidity also accepts JSON numbers exactly.
   Required and optional financial fields reject nonrepresentable coefficient/scale values
   during deserialization rather than rounding them.
-  Provider IDs and timestamps have dedicated types.
+  Provider IDs and timestamps have dedicated types. `Timestamp` accepts RFC3339 and signed Unix
+  seconds with up to nine fractional digits and writes nine-digit UTC RFC3339.
+  It rejects leap seconds. `into_inner()` returns a `jiff::Timestamp`.
 - REST response bodies are bounded. Clients built with the same `Admission` owner share
   local rate admission and provider cooldown, which honours both `Retry-After` forms RFC
   9110 defines. Clones also share that owner. Requests are single-attempt; a mutation is never

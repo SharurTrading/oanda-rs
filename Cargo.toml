@@ -55,6 +55,12 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 pedantic = { level = "deny", priority = -1 }
+# Endpoint contracts return OperationError<R> with the endpoint's typed
+# rejection payload inline (OA-COVERAGE-01), so several Err variants exceed
+# the 128-byte threshold. Boxing the public Err is a SemVer-breaking redesign
+# tracked separately; the inline typed rejection is the deliberate contract
+# shape until that lands.
+result_large_err = "allow"
 await_holding_lock = "deny"
 unwrap_used = "deny"
 expect_used = "deny"

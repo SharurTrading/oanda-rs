@@ -957,13 +957,12 @@ async fn stream_starts_without_rest_capacity_and_runtime_release_wakes_a_read() 
         .set_exit_reserve(0)
         .expect("release shared reserve");
     let read = read.await;
-    assert!(
+    assert_eq!(
         read.expect("read after release")
             .body
             .accounts
-            .as_ref()
-            .expect("accounts evidence")
-            .is_empty()
+            .expect("accounts evidence"),
+        [] as [oanda_client::models::AccountProperties; 0]
     );
     drop(transactions);
     assert_eq!(tokio::time::Instant::now(), started);

@@ -41,8 +41,8 @@ impl Validate for ListTransactionsQuery {
         }
         if let (Some(from), Some(to)) = (self.from, self.to)
             && (to < from
-                || to.into_inner().signed_duration_since(from.into_inner())
-                    > chrono::Duration::days(365))
+                || to.into_inner().duration_since(from.into_inner())
+                    > jiff::SignedDuration::from_hours(365 * 24))
         {
             return Err(Error::InvalidInput(
                 "transaction range must be ordered and at most 365 days".into(),
@@ -282,5 +282,41 @@ impl Client {
         let path = format!("/v3/accounts/{account_id_encoded}/transactions/sinceid");
         self.execute(RequestParts::new(Method::GET, &path).query(query)?)
             .await
+    }
+}
+
+#[cfg(test)]
+// Literal fixture dates must parse before evaluating the query bound.
+#[allow(clippy::expect_used)]
+mod tests {
+    use super::ListTransactionsQuery;
+    use crate::{Error, validation::Validate};
+
+    #[test]
+    fn transaction_history_allows_exactly_365_days() {
+        let query = ListTransactionsQuery {
+            from: Some(
+                "2024-01-01T00:00:00.123456789Z"
+                    .parse()
+                    .expect("fixture time"),
+            ),
+            to: Some(
+                "2024-12-31T00:00:00.123456789Z"
+                    .parse()
+                    .expect("fixture time"),
+            ),
+            ..ListTransactionsQuery::default()
+        };
+        assert!(query.validate().is_ok());
+
+        let longer = ListTransactionsQuery {
+            to: Some(
+                "2024-12-31T00:00:00.123456790Z"
+                    .parse()
+                    .expect("fixture time"),
+            ),
+            ..query
+        };
+        assert!(matches!(longer.validate(), Err(Error::InvalidInput(_))));
     }
 }

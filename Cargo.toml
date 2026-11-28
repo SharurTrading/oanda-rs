@@ -31,8 +31,8 @@ default = []
 live-tests = []
 
 [dependencies]
-chrono = { version = "0.4.45", features = ["serde"] }
 futures-util = "0.3.34"
+jiff = { version = "1.0.3", default-features = false, features = ["std"] }
 percent-encoding = "2.3.2"
 reqwest = { version = "0.13.5", default-features = false, features = ["json", "rustls", "stream"] }
 rust_decimal = { version = "1.43.0", features = ["serde-str"] }
@@ -42,7 +42,7 @@ thiserror = "2.0.21"
 tokio = { version = "1.53.1", features = ["macros", "sync", "time"] }
 tower-layer = "0.3.3"
 tower-service = "0.3.3"
-url = "2.5.8"
+url = "2.5.9"
 zeroize = "1.9.0"
 
 [dev-dependencies]
@@ -55,6 +55,12 @@ unsafe_code = "forbid"
 
 [lints.clippy]
 pedantic = { level = "deny", priority = -1 }
+# Endpoint contracts return OperationError<R> with the endpoint's typed
+# rejection payload inline (OA-COVERAGE-01), so several Err variants exceed
+# the 128-byte threshold. Boxing the public Err is a SemVer-breaking redesign
+# tracked separately; the inline typed rejection is the deliberate contract
+# shape until that lands.
+result_large_err = "allow"
 await_holding_lock = "deny"
 unwrap_used = "deny"
 expect_used = "deny"

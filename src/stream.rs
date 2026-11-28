@@ -759,15 +759,15 @@ mod tests {
             ),
             "43"
         );
-        assert!(
+        assert_eq!(
             client
                 .list_accounts()
                 .await
                 .expect("REST remains available")
                 .body
                 .accounts
-                .expect("explicit account list")
-                .is_empty()
+                .expect("explicit account list"),
+            [] as [crate::models::AccountProperties; 0]
         );
         rest_server.await.expect("REST server");
         assert_eq!(
